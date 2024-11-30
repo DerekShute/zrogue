@@ -1,0 +1,23 @@
+name: Build
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mlugg/setup-zig@v1
+      - run: zig build test
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mlugg/setup-zig@v1
+      - run: zig build
+
+# EOF
