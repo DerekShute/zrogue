@@ -57,9 +57,9 @@ pub const Map = struct {
 
     pub fn charAt(self: *Map, xy: [2]u16) !u8 {
         if (xy[0] >= self.width)
-            return error.Overflow;
+            return error.OverFlow;
         if (xy[1] >= self.height)
-            return error.Overflow;
+            return error.OverFlow;
 
         const loc = xy[0] + xy[1] * self.width;
         return self.places[loc].ch;
@@ -156,32 +156,40 @@ test "ask about valid map location" {
     try std.testing.expect(thing != null); // TODO only if something there
 }
 
-test "ask about invalid map location" {
+test "ask about thing at invalid map location" {
     const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer Map.deinit(map);
-
-    const thing = Map.monsterAt(map, .{ 20, 20 });
-    try std.testing.expectError(error.OverFlow, thing);
+    try std.testing.expectError(error.OverFlow, Map.monsterAt(map, .{ 0, 20 }));
+    try std.testing.expectError(error.OverFlow, Map.monsterAt(map, .{ 20, 0 }));
 }
 
 test "ask about a character on the map" {
-    const map: *Map = try Map.init(std.testing.allocator, 50, 50);
+    const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer Map.deinit(map);
     try std.testing.expect(try Map.charAt(map, .{ 0, 0 }) == ' ');
+}
+
+test "ask about invalid character on the map" {
+    const map: *Map = try Map.init(std.testing.allocator, 10, 10);
+    defer Map.deinit(map);
+    try std.testing.expectError(error.OverFlow, Map.charAt(map, .{ 20, 0 }));
+    try std.testing.expectError(error.OverFlow, Map.charAt(map, .{ 0, 20 }));
 }
 
 test "draw an invalid room" {
     const map: *Map = try Map.init(std.testing.allocator, 20, 20);
     defer Map.deinit(map);
 
-    try std.testing.expectError(error.OverFlow, Map.drawRoom(map, .{ 15, 15 }, .{ 10, 10 }));
+    try std.testing.expectError(error.OverFlow, Map.drawRoom(map, .{ 15, 15 }, .{ 4, 18 }));
+    try std.testing.expectError(error.OverFlow, Map.drawRoom(map, .{ 15, 15 }, .{ 18, 4 }));
 }
 
 test "draw an oversize room" {
     const map: *Map = try Map.init(std.testing.allocator, 20, 20);
     defer Map.deinit(map);
 
-    try std.testing.expectError(error.OverFlow, Map.drawRoom(map, .{ 0, 0 }, .{ 100, 100 }));
+    try std.testing.expectError(error.OverFlow, Map.drawRoom(map, .{ 0, 0 }, .{ 0, 100 }));
+    try std.testing.expectError(error.OverFlow, Map.drawRoom(map, .{ 0, 0 }, .{ 100, 0 }));
 }
 
 test "draw a valid room and test corners" {
