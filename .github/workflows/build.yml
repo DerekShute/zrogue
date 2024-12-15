@@ -4,13 +4,37 @@ on:
   pull_request:
 
 jobs:
-  test:
+
+  # There is a more elegant approach of invoking kcov as a build step and
+  # a marketplace action that does kcov directly
+
+  test-with-coverage:
     runs-on: ubuntu-latest
-    name: Test
+    name: Test With Coverage
     steps:
       - uses: actions/checkout@v3
       - uses: mlugg/setup-zig@v1
-      - run: zig build test
+
+      - name: Install kcov
+        run: |
+          wget https://github.com/SimonKagstrom/kcov/releases/download/v42/kcov-amd64.tar.gz
+          sudo tar xf kcov-amd64.tar.gz -C /
+
+      # Omit coverage of the libraries.  zig-out directory must be created explicitly
+
+      - name: Build and execute tests
+        run: |
+          mkdir -p zig-out/bin
+          zig test --test-no-exec -femit-bin=zig-out/bin/test_binary unit_tests.zig
+          kcov --exclude-pattern opt ${{ runner.temp }}/coverage ./zig-out/bin/test_binary
+
+      # The summary of the program execution
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: ${{ runner.temp }}/**/coverage.json
+          retention-days: 1
 
   build:
     runs-on: ubuntu-latest
