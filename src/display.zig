@@ -52,6 +52,10 @@ pub const DisplayProvider = struct {
     }
 }; // DisplayProvider
 
+//
+// MockDisplayProvider for testing purposes
+//
+
 pub const MockDisplayProvider = struct {
     maxx: u16,
     maxy: u16,
