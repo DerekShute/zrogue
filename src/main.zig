@@ -23,4 +23,21 @@ pub fn main() !void {
     _ = curses.endwin();
 }
 
+test "run the game" {
+    const game = @import("game.zig");
+    const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
+    const MockInputProvider = @import("input.zig").MockInputProvider;
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    var md = MockDisplayProvider.init(.{ .maxx = 80, .maxy = 24 });
+    const display = md.provider();
+
+    var mi = MockInputProvider.init(.{ .keypress = '*' });
+    const input = mi.provider();
+
+    try game.run(allocator, input, display);
+}
+
 // EOF
