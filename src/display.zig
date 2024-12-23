@@ -9,7 +9,6 @@ pub const DisplayProvider = struct {
     // VTable for implementation to manage
     pub const DisplayVTable = struct {
         // constructor/destructor
-        initscr: *const fn (ctx: *anyopaque) void,
         endwin: *const fn (ctx: *anyopaque) void,
         // methods
         erase: *const fn (ctx: *anyopaque) void,
@@ -20,10 +19,6 @@ pub const DisplayProvider = struct {
     };
 
     // Constructor and destructor
-
-    pub inline fn initscr(self: DisplayProvider) void {
-        self.vtable.initscr(self.ptr);
-    }
 
     pub inline fn endwin(self: DisplayProvider) void {
         self.vtable.endwin(self.ptr);
@@ -57,6 +52,7 @@ pub const DisplayProvider = struct {
 //
 
 pub const MockDisplayProvider = struct {
+    // TODO: 'initialized' field to track use-after-deinit
     maxx: u16,
     maxy: u16,
     x: u16,
@@ -84,7 +80,6 @@ pub const MockDisplayProvider = struct {
         return .{
             .ptr = self,
             .vtable = &.{
-                .initscr = initscr,
                 .endwin = endwin,
                 .erase = erase,
                 .getmaxx = getmaxx,
@@ -98,11 +93,6 @@ pub const MockDisplayProvider = struct {
     //
     // Methods
     //
-
-    fn initscr(ptr: *anyopaque) void {
-        _ = ptr;
-        return;
-    }
 
     fn endwin(ptr: *anyopaque) void {
         _ = ptr;
@@ -146,8 +136,6 @@ pub const MockDisplayProvider = struct {
 test "Basic use of mock provider" {
     var p = MockDisplayProvider.init(.{ .maxx = 50, .maxy = 50 });
     var d = p.provider();
-
-    d.initscr();
     defer d.endwin();
 
     d.erase();
