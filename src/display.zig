@@ -1,5 +1,10 @@
 const std = @import("std");
 
+pub const DisplayProviderError = error{
+    NotInitialized,
+    ImplementationError, // Curses is stupid
+};
+
 pub const DisplayProvider = struct {
 
     // Type-erased pointer to the display implementation
@@ -11,9 +16,9 @@ pub const DisplayProvider = struct {
         // constructor/destructor
         endwin: *const fn (ctx: *anyopaque) void,
         // methods
-        erase: *const fn (ctx: *anyopaque) void,
-        getmaxx: *const fn (ctx: *anyopaque) u16,
-        getmaxy: *const fn (ctx: *anyopaque) u16,
+        erase: *const fn (ctx: *anyopaque) DisplayProviderError!void,
+        getmaxx: *const fn (ctx: *anyopaque) DisplayProviderError!u16,
+        getmaxy: *const fn (ctx: *anyopaque) DisplayProviderError!u16,
         mvaddch: *const fn (ctx: *anyopaque, x: u16, y: u16, ch: u8) void,
         refresh: *const fn (ctx: *anyopaque) void,
     };
@@ -26,15 +31,15 @@ pub const DisplayProvider = struct {
 
     // Methods
 
-    pub inline fn erase(self: DisplayProvider) void {
+    pub inline fn erase(self: DisplayProvider) DisplayProviderError!void {
         return self.vtable.erase(self.ptr);
     }
 
-    pub inline fn getmaxx(self: DisplayProvider) u16 {
+    pub inline fn getmaxx(self: DisplayProvider) DisplayProviderError!u16 {
         return self.vtable.getmaxx(self.ptr);
     }
 
-    pub inline fn getmaxy(self: DisplayProvider) u16 {
+    pub inline fn getmaxy(self: DisplayProvider) DisplayProviderError!u16 {
         return self.vtable.getmaxy(self.ptr);
     }
 
@@ -52,7 +57,7 @@ pub const DisplayProvider = struct {
 //
 
 pub const MockDisplayProvider = struct {
-    // TODO: 'initialized' field to track use-after-deinit
+    initialized: bool,
     maxx: u16,
     maxy: u16,
     x: u16,
@@ -69,6 +74,7 @@ pub const MockDisplayProvider = struct {
 
     pub fn init(config: MockDisplayConfig) MockDisplayProvider {
         return MockDisplayProvider{
+            .initialized = true,
             .maxx = config.maxx,
             .maxy = config.maxy,
             .x = 0,
@@ -95,22 +101,32 @@ pub const MockDisplayProvider = struct {
     //
 
     fn endwin(ptr: *anyopaque) void {
-        _ = ptr;
-        return;
-    }
-
-    fn erase(ptr: *anyopaque) void {
-        _ = ptr;
-        return;
-    }
-
-    fn getmaxx(ptr: *anyopaque) u16 {
         const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
+        self.initialized = false;
+        return;
+    }
+
+    fn erase(ptr: *anyopaque) DisplayProviderError!void {
+        const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
+        if (!self.initialized) {
+            return DisplayProviderError.NotInitialized;
+        }
+        return;
+    }
+
+    fn getmaxx(ptr: *anyopaque) DisplayProviderError!u16 {
+        const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
+        if (!self.initialized) {
+            return DisplayProviderError.NotInitialized;
+        }
         return self.maxx;
     }
 
-    fn getmaxy(ptr: *anyopaque) u16 {
+    fn getmaxy(ptr: *anyopaque) DisplayProviderError!u16 {
         const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
+        if (!self.initialized) {
+            return DisplayProviderError.NotInitialized;
+        }
         return self.maxy;
     }
 
@@ -138,11 +154,21 @@ test "Basic use of mock provider" {
     var d = p.provider();
     defer d.endwin();
 
-    d.erase();
+    try d.erase();
     d.refresh();
 
-    try std.testing.expect(d.getmaxx() == 50);
-    try std.testing.expect(d.getmaxy() == 50);
+    try std.testing.expect(try d.getmaxx() == 50);
+    try std.testing.expect(try d.getmaxy() == 50);
+}
+
+test "Method use after endwin" {
+    var p = MockDisplayProvider.init(.{ .maxx = 50, .maxy = 50 });
+    var d = p.provider();
+
+    d.endwin();
+    try std.testing.expectError(DisplayProviderError.NotInitialized, d.erase());
+    try std.testing.expectError(DisplayProviderError.NotInitialized, d.getmaxx());
+    try std.testing.expectError(DisplayProviderError.NotInitialized, d.getmaxy());
 }
 
 // EOF
