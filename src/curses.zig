@@ -1,5 +1,7 @@
 const std = @import("std");
-const DisplayProvider = @import("display.zig").DisplayProvider;
+const display = @import("display.zig");
+const DisplayProvider = display.DisplayProvider;
+const DisplayProviderError = display.DisplayProviderError;
 const InputProvider = @import("input.zig").InputProvider;
 const curses = @cImport(@cInclude("curses.h"));
 
@@ -9,7 +11,7 @@ const curses = @cImport(@cInclude("curses.h"));
 
 fn checkError(res: c_int) !c_int {
     if (res == curses.ERR) {
-        return error.CursesError;
+        return DisplayProviderError.ImplementationError;
     }
     return res;
 }
@@ -50,49 +52,54 @@ pub const CursesDisplayProvider = struct {
 
     fn endwin(ptr: *anyopaque) void {
         _ = ptr;
-        // Slightly more liberal just in case something to scrape up
         global_win = null;
-        _ = checkError(curses.endwin()) catch |err| {
-            std.debug.print("Error: {}\n", .{err});
-            return; // No complaints just do it
-        };
+        _ = curses.endwin(); // Liberal shut-up-and-do-it
     }
 
     //
     // Methods
     //
 
-    fn erase(ptr: *anyopaque) void {
+    fn erase(ptr: *anyopaque) DisplayProviderError!void {
         _ = ptr;
-        _ = checkError(curses.werase(global_win)) catch |err| {
-            std.debug.print("Error: {}\n", .{err});
-            return; // TODO: Is there a better paradigm?
-        };
+        if (global_win == null) {
+            return DisplayProviderError.NotInitialized;
+        }
+        _ = try checkError(curses.werase(global_win));
     }
 
-    pub fn getmaxy(ptr: *anyopaque) u16 {
+    pub fn getmaxy(ptr: *anyopaque) DisplayProviderError!u16 {
         _ = ptr;
-        return @intCast(curses.getmaxy(global_win));
-    }
-    pub fn getmaxx(ptr: *anyopaque) u16 {
-        _ = ptr;
-        return @intCast(curses.getmaxx(global_win));
-    }
-
-    fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) void {
-        _ = ptr;
-        _ = checkError(curses.mvwaddch(global_win, y, x, ch)) catch |err| {
-            std.debug.print("Error: {}\n", .{err});
-            return; // TODO awful
-        };
+        if (global_win == null) {
+            return DisplayProviderError.NotInitialized;
+        }
+        return @intCast(try checkError(curses.getmaxy(global_win)));
     }
 
-    fn refresh(ptr: *anyopaque) void {
+    pub fn getmaxx(ptr: *anyopaque) DisplayProviderError!u16 {
         _ = ptr;
-        _ = checkError(curses.refresh()) catch |err| {
-            std.debug.print("Error: {}\n", .{err});
-            return; // TODO awful
-        };
+        if (global_win == null) {
+            return DisplayProviderError.NotInitialized;
+        }
+        return @intCast(try checkError(curses.getmaxx(global_win)));
+    }
+
+    fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) DisplayProviderError!void {
+        _ = ptr;
+        if (global_win == null) {
+            return DisplayProviderError.NotInitialized;
+        }
+        _ = try checkError(curses.mvaddch(y, x, ch)); // TODO not using windowed interface here
+        return;
+    }
+
+    fn refresh(ptr: *anyopaque) DisplayProviderError!void {
+        _ = ptr;
+        if (global_win == null) {
+            return DisplayProviderError.NotInitialized;
+        }
+        _ = try checkError(curses.refresh());
+        return;
     }
 };
 
@@ -125,8 +132,8 @@ pub const CursesInputProvider = struct {
 };
 
 pub const CursesInitReturn = struct {
-    display: CursesDisplayProvider,
-    input: CursesInputProvider,
+    d: CursesDisplayProvider,
+    i: CursesInputProvider,
 };
 
 pub fn init(allocator: std.mem.Allocator) !CursesInitReturn {
@@ -140,13 +147,32 @@ pub fn init(allocator: std.mem.Allocator) !CursesInitReturn {
     }
 
     return .{
-        .display = .{
+        .d = .{
             .allocator = allocator,
             .x = 0,
             .y = 0,
         },
-        .input = .{},
+        .i = .{},
     };
+}
+
+//
+// Unit Tests
+//
+
+// Kind of nonsense because we phony up the non-init situation
+test "Display method use without initialization (after endwin)" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    var p = CursesDisplayProvider{ .allocator = allocator, .x = 0, .y = 0 };
+    var d = p.provider();
+
+    try std.testing.expectError(DisplayProviderError.NotInitialized, d.erase());
+    try std.testing.expectError(DisplayProviderError.NotInitialized, d.getmaxx());
+    try std.testing.expectError(DisplayProviderError.NotInitialized, d.getmaxy());
+    try std.testing.expectError(DisplayProviderError.NotInitialized, d.mvaddch(1, 1, '+'));
+    try std.testing.expectError(DisplayProviderError.NotInitialized, d.refresh());
 }
 
 // EOF

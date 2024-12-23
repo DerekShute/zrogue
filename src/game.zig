@@ -4,11 +4,12 @@ const InputProvider = @import("input.zig").InputProvider;
 
 const level = @import("level.zig");
 
+// TODO: test maxx, maxy
 pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !void {
     const map = try level.Map.init(allocator, 24, 80);
     defer map.deinit();
 
-    display.erase();
+    try display.erase();
 
     try map.drawRoom(.{ 5, 5 }, .{ 15, 15 });
 
@@ -19,7 +20,7 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
         }
     }
 
-    display.refresh();
+    try display.refresh();
     _ = input.getch();
 }
 
