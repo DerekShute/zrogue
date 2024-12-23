@@ -9,8 +9,8 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     var providers = try curses.init(allocator);
-    const display = providers.display.provider();
-    const input = providers.input.provider();
+    const display = providers.d.provider();
+    const input = providers.i.provider();
     defer display.endwin();
 
     try game.run(allocator, input, display);
