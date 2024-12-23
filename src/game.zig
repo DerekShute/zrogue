@@ -8,8 +8,6 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
     const map = try level.Map.init(allocator, 24, 80);
     defer map.deinit();
 
-    display.initscr();
-    defer display.endwin();
     display.erase();
 
     try map.drawRoom(.{ 5, 5 }, .{ 15, 15 });
@@ -17,7 +15,7 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
     for (0..24) |y| {
         for (0..80) |x| {
             const c = try map.charAt(.{ @truncate(x), @truncate(y) });
-            try display.mvaddch(@intCast(y), @intCast(x), c);
+            try display.mvaddch(@intCast(x), @intCast(y), c);
         }
     }
 
