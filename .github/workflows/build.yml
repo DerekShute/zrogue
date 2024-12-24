@@ -23,7 +23,8 @@ jobs:
 
       - name: Install ncurses
         run: |
-          apt-get update && apt-get install libncurses5-dev libncursesw5-dev
+          sudo apt-get update
+          sudo apt-get install libncurses5-dev libncursesw5-dev -y
 
       # Omit coverage of the libraries.  zig-out directory must be created explicitly
       # TODO print out coverage.json
