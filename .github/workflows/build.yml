@@ -1,4 +1,4 @@
-name: Build
+name: Build and Test
 
 on:
   workflow_dispatch:
@@ -6,44 +6,20 @@ on:
 
 jobs:
 
-  # There is a more elegant approach of invoking kcov as a build step and
-  # a marketplace action that does kcov directly
+  # 2024-12-24 : kcov v42 wants libopcodes-2.38-system and this is no longer
+  # what is in place on the runners
 
-  test-with-coverage:
+  build-and-test:
     runs-on: ubuntu-latest
-    name: Test With Coverage
+    name: Build and Test
     steps:
       - uses: actions/checkout@v3
       - uses: mlugg/setup-zig@v1
 
-      - name: Install kcov
-        run: |
-          wget https://github.com/SimonKagstrom/kcov/releases/download/v42/kcov-amd64.tar.gz
-          sudo tar xf kcov-amd64.tar.gz -C /
+      - name: Build
+        run: zig build
 
-      # Omit coverage of the libraries.  zig-out directory must be created explicitly
-      # TODO print out coverage.json
-
-      - name: Build and execute tests
-        run: |
-          mkdir -p zig-out/bin
-          zig test --test-no-exec -femit-bin=zig-out/bin/test_binary unit_tests.zig
-          kcov --exclude-pattern opt ${{ runner.temp }}/coverage ./zig-out/bin/test_binary
-
-      # This is reasonably sized as long as the exclusion pattern is right
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: ${{ runner.temp }}/coverage
-          retention-days: 1
-
-  build:
-    runs-on: ubuntu-latest
-    name: Build
-    steps:
-      - uses: actions/checkout@v3
-      - uses: mlugg/setup-zig@v1
-      - run: zig build
+      - name: Test
+        run: zig build test
 
 # EOF
