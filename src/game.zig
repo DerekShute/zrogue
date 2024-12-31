@@ -8,7 +8,7 @@ const Thing = @import("thing.zig").Thing;
 // TODO: test maxx, maxy
 pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !void {
     const map = try level.Map.init(allocator, 24, 80);
-    var player = Thing{ .xy = .{ 10, 10 }, .ch = '@' };
+    var player = Thing.config(.{ 10, 10 }, '@', input, display, playerAction);
 
     defer map.deinit();
 
@@ -26,7 +26,10 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
     }
 
     try display.refresh();
-    _ = input.getch();
+    player.doAction();
 }
 
+fn playerAction(self: *Thing) void {
+    _ = self.input.getch();
+}
 // EOF
