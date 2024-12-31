@@ -8,6 +8,7 @@ comptime {
     _ = @import("src/input.zig");
     _ = @import("src/level.zig");
     _ = @import("src/main.zig");
+    _ = @import("src/thing.zig");
 }
 
 // EOF
