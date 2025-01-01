@@ -1,6 +1,7 @@
 const std = @import("std");
 const DisplayProvider = @import("display.zig").DisplayProvider;
 const InputProvider = @import("input.zig").InputProvider;
+const ActionEvent = @import("zrogue.zig").ActionEvent;
 
 const level = @import("level.zig");
 const Thing = @import("thing.zig").Thing;
@@ -26,18 +27,21 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
     }
 
     try display.refresh();
-    try player.doAction();
+
+    var event = ActionEvent.NoEvent;
+    while (event == ActionEvent.NoEvent) {
+        event = try player.doAction();
+    }
 }
 
-fn playerAction(self: *Thing) !void {
-    var done = false;
+fn playerAction(self: *Thing) !ActionEvent {
+    const ch = try self.input.getch();
 
-    while (done == false) {
-        const ch = try self.input.getch();
-        try self.display.mvaddch(0, 0, @intCast(ch));
-        if (ch == 'q') {
-            done = true;
-        }
+    try self.display.mvaddch(0, 0, @intCast(ch));
+
+    if (ch == 'q') {
+        return ActionEvent.QuittingGame;
     }
+    return ActionEvent.NoEvent;
 }
 // EOF
