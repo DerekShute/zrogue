@@ -1,9 +1,5 @@
 const std = @import("std");
-
-pub const DisplayProviderError = error{
-    NotInitialized,
-    ImplementationError, // Curses is stupid
-};
+const ZrogueError = @import("zrogue.zig").ZrogueError;
 
 pub const DisplayProvider = struct {
 
@@ -16,11 +12,11 @@ pub const DisplayProvider = struct {
         // constructor/destructor
         endwin: *const fn (ctx: *anyopaque) void,
         // methods
-        erase: *const fn (ctx: *anyopaque) DisplayProviderError!void,
-        getmaxx: *const fn (ctx: *anyopaque) DisplayProviderError!u16,
-        getmaxy: *const fn (ctx: *anyopaque) DisplayProviderError!u16,
-        mvaddch: *const fn (ctx: *anyopaque, x: u16, y: u16, ch: u8) DisplayProviderError!void,
-        refresh: *const fn (ctx: *anyopaque) DisplayProviderError!void,
+        erase: *const fn (ctx: *anyopaque) ZrogueError!void,
+        getmaxx: *const fn (ctx: *anyopaque) ZrogueError!u16,
+        getmaxy: *const fn (ctx: *anyopaque) ZrogueError!u16,
+        mvaddch: *const fn (ctx: *anyopaque, x: u16, y: u16, ch: u8) ZrogueError!void,
+        refresh: *const fn (ctx: *anyopaque) ZrogueError!void,
     };
 
     // Constructor and destructor
@@ -31,23 +27,23 @@ pub const DisplayProvider = struct {
 
     // Methods
 
-    pub inline fn erase(self: DisplayProvider) DisplayProviderError!void {
+    pub inline fn erase(self: DisplayProvider) ZrogueError!void {
         return self.vtable.erase(self.ptr);
     }
 
-    pub inline fn getmaxx(self: DisplayProvider) DisplayProviderError!u16 {
+    pub inline fn getmaxx(self: DisplayProvider) ZrogueError!u16 {
         return self.vtable.getmaxx(self.ptr);
     }
 
-    pub inline fn getmaxy(self: DisplayProvider) DisplayProviderError!u16 {
+    pub inline fn getmaxy(self: DisplayProvider) ZrogueError!u16 {
         return self.vtable.getmaxy(self.ptr);
     }
 
-    pub inline fn mvaddch(self: DisplayProvider, x: u16, y: u16, ch: u8) DisplayProviderError!void {
+    pub inline fn mvaddch(self: DisplayProvider, x: u16, y: u16, ch: u8) ZrogueError!void {
         try self.vtable.mvaddch(self.ptr, x, y, ch);
     }
 
-    pub inline fn refresh(self: DisplayProvider) DisplayProviderError!void {
+    pub inline fn refresh(self: DisplayProvider) ZrogueError!void {
         return self.vtable.refresh(self.ptr);
     }
 }; // DisplayProvider
@@ -106,31 +102,31 @@ pub const MockDisplayProvider = struct {
         return;
     }
 
-    fn erase(ptr: *anyopaque) DisplayProviderError!void {
+    fn erase(ptr: *anyopaque) ZrogueError!void {
         const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
         if (!self.initialized) {
-            return DisplayProviderError.NotInitialized;
+            return ZrogueError.NotInitialized;
         }
         return;
     }
 
-    fn getmaxx(ptr: *anyopaque) DisplayProviderError!u16 {
+    fn getmaxx(ptr: *anyopaque) ZrogueError!u16 {
         const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
         if (!self.initialized) {
-            return DisplayProviderError.NotInitialized;
+            return ZrogueError.NotInitialized;
         }
         return self.maxx;
     }
 
-    fn getmaxy(ptr: *anyopaque) DisplayProviderError!u16 {
+    fn getmaxy(ptr: *anyopaque) ZrogueError!u16 {
         const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
         if (!self.initialized) {
-            return DisplayProviderError.NotInitialized;
+            return ZrogueError.NotInitialized;
         }
         return self.maxy;
     }
 
-    fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) DisplayProviderError!void {
+    fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) ZrogueError!void {
         const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
         _ = x;
         _ = y;
@@ -139,7 +135,7 @@ pub const MockDisplayProvider = struct {
         return;
     }
 
-    fn refresh(ptr: *anyopaque) DisplayProviderError!void {
+    fn refresh(ptr: *anyopaque) ZrogueError!void {
         _ = ptr;
         return;
     }
@@ -166,9 +162,9 @@ test "Method use after endwin" {
     var d = p.provider();
 
     d.endwin();
-    try std.testing.expectError(DisplayProviderError.NotInitialized, d.erase());
-    try std.testing.expectError(DisplayProviderError.NotInitialized, d.getmaxx());
-    try std.testing.expectError(DisplayProviderError.NotInitialized, d.getmaxy());
+    try std.testing.expectError(ZrogueError.NotInitialized, d.erase());
+    try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxx());
+    try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxy());
 }
 
 // EOF

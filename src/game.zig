@@ -26,10 +26,18 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
     }
 
     try display.refresh();
-    player.doAction();
+    try player.doAction();
 }
 
-fn playerAction(self: *Thing) void {
-    _ = self.input.getch();
+fn playerAction(self: *Thing) !void {
+    var done = false;
+
+    while (done == false) {
+        const ch = try self.input.getch();
+        try self.display.mvaddch(0, 0, @intCast(ch));
+        if (ch == 'q') {
+            done = true;
+        }
+    }
 }
 // EOF

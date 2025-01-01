@@ -1,11 +1,12 @@
 const std = @import("std");
 const DisplayProvider = @import("display.zig").DisplayProvider;
 const InputProvider = @import("input.zig").InputProvider;
+const ZrogueError = @import("zrogue.zig").ZrogueError;
 
 // ===================
 // Structure for monsters, player, and objects
 
-const ActionHandler = *const fn (self: *Thing) void;
+const ActionHandler = *const fn (self: *Thing) ZrogueError!void;
 
 pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
@@ -41,9 +42,8 @@ pub const Thing = struct {
         return std.mem.eql(u16, &self.xy, &pos);
     }
 
-    // TODO: will this apply to objects?
-    pub fn doAction(self: *Thing) void {
-        self.doaction(self); // Why no synctactic sugar here?
+    pub fn doAction(self: *Thing) ZrogueError!void {
+        try self.doaction(self); // Why no synctactic sugar here?
     }
 
     // TODO: setX, setY, moveRelative, getX, getY, etc
@@ -59,7 +59,7 @@ test "create a thing" {
         // don't want to pollute the module with "x"
         var x: usize = 0;
 
-        fn action(self: *Thing) void {
+        fn action(self: *Thing) !void {
             _ = self;
             x = 1; // Side effect
         }
@@ -71,7 +71,7 @@ test "create a thing" {
     try std.testing.expect(thing.atPos(.{ 10, 10 }));
     try std.testing.expect(thing.getChar() == '@');
 
-    thing.doAction();
+    try thing.doAction();
     try std.testing.expect(TestStruct.x == 1);
 }
 // EOF
