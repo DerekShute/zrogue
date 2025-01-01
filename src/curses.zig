@@ -1,17 +1,20 @@
 const std = @import("std");
 const display = @import("display.zig");
+const ZrogueError = @import("zrogue.zig").ZrogueError;
 const DisplayProvider = display.DisplayProvider;
-const DisplayProviderError = display.DisplayProviderError;
 const InputProvider = @import("input.zig").InputProvider;
 const curses = @cImport(@cInclude("curses.h"));
 
 //
 // Lifted from https://github.com/Akuli/curses-minesweeper
 //
-
-fn checkError(res: c_int) !c_int {
+// Causes:
+//
+//   * Move cursor to x,y not supported by window size
+//
+fn checkError(res: c_int) ZrogueError!c_int {
     if (res == curses.ERR) {
-        return DisplayProviderError.ImplementationError;
+        return ZrogueError.ImplementationError;
     }
     return res;
 }
@@ -24,6 +27,9 @@ var global_win: ?*curses.WINDOW = null;
 
 //
 // Providing a Curses-based Display
+//
+//
+// * (0,0) is top left corner, Y incrementing down the display, X incrementing right
 //
 
 pub const CursesDisplayProvider = struct {
@@ -60,43 +66,43 @@ pub const CursesDisplayProvider = struct {
     // Methods
     //
 
-    fn erase(ptr: *anyopaque) DisplayProviderError!void {
+    fn erase(ptr: *anyopaque) ZrogueError!void {
         _ = ptr;
         if (global_win == null) {
-            return DisplayProviderError.NotInitialized;
+            return ZrogueError.NotInitialized;
         }
         _ = try checkError(curses.werase(global_win));
     }
 
-    pub fn getmaxy(ptr: *anyopaque) DisplayProviderError!u16 {
+    pub fn getmaxy(ptr: *anyopaque) ZrogueError!u16 {
         _ = ptr;
         if (global_win == null) {
-            return DisplayProviderError.NotInitialized;
+            return ZrogueError.NotInitialized;
         }
         return @intCast(try checkError(curses.getmaxy(global_win)));
     }
 
-    pub fn getmaxx(ptr: *anyopaque) DisplayProviderError!u16 {
+    pub fn getmaxx(ptr: *anyopaque) ZrogueError!u16 {
         _ = ptr;
         if (global_win == null) {
-            return DisplayProviderError.NotInitialized;
+            return ZrogueError.NotInitialized;
         }
         return @intCast(try checkError(curses.getmaxx(global_win)));
     }
 
-    fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) DisplayProviderError!void {
+    fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) ZrogueError!void {
         _ = ptr;
         if (global_win == null) {
-            return DisplayProviderError.NotInitialized;
+            return ZrogueError.NotInitialized;
         }
         _ = try checkError(curses.mvaddch(y, x, ch)); // TODO not using windowed interface here
         return;
     }
 
-    fn refresh(ptr: *anyopaque) DisplayProviderError!void {
+    fn refresh(ptr: *anyopaque) ZrogueError!void {
         _ = ptr;
         if (global_win == null) {
-            return DisplayProviderError.NotInitialized;
+            return ZrogueError.NotInitialized;
         }
         _ = try checkError(curses.refresh());
         return;
@@ -121,13 +127,9 @@ pub const CursesInputProvider = struct {
     // Methods
     //
 
-    fn getch(ptr: *anyopaque) u8 {
+    fn getch(ptr: *anyopaque) ZrogueError!usize {
         _ = ptr;
-        _ = checkError(curses.wgetch(global_win)) catch |err| {
-            std.debug.print("Error: {}\n", .{err});
-            // TODO not right at all
-        };
-        return 0; // TODO figure out c_int conversion
+        return @intCast(try checkError(curses.wgetch(global_win)));
     }
 };
 
@@ -145,6 +147,9 @@ pub fn init(allocator: std.mem.Allocator) !CursesInitReturn {
     if (res) |res_val| {
         global_win = res_val;
     }
+
+    _ = try checkError(curses.noecho());
+    _ = try checkError(curses.curs_set(0));
 
     return .{
         .d = .{
@@ -168,11 +173,11 @@ test "Display method use without initialization (after endwin)" {
     var p = CursesDisplayProvider{ .allocator = allocator, .x = 0, .y = 0 };
     var d = p.provider();
 
-    try std.testing.expectError(DisplayProviderError.NotInitialized, d.erase());
-    try std.testing.expectError(DisplayProviderError.NotInitialized, d.getmaxx());
-    try std.testing.expectError(DisplayProviderError.NotInitialized, d.getmaxy());
-    try std.testing.expectError(DisplayProviderError.NotInitialized, d.mvaddch(1, 1, '+'));
-    try std.testing.expectError(DisplayProviderError.NotInitialized, d.refresh());
+    try std.testing.expectError(ZrogueError.NotInitialized, d.erase());
+    try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxx());
+    try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxy());
+    try std.testing.expectError(ZrogueError.NotInitialized, d.mvaddch(1, 1, '+'));
+    try std.testing.expectError(ZrogueError.NotInitialized, d.refresh());
 }
 
 // EOF

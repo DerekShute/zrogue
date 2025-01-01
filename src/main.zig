@@ -32,7 +32,8 @@ test "run the game" {
     const display = md.provider();
     defer display.endwin();
 
-    var mi = MockInputProvider.init(.{ .keypress = '*' });
+    // This is instrumented to quit
+    var mi = MockInputProvider.init(.{ .keypress = 'q' });
     const input = mi.provider();
 
     try game.run(allocator, input, display);

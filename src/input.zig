@@ -1,4 +1,5 @@
 const std = @import("std");
+const ZrogueError = @import("zrogue.zig").ZrogueError;
 
 pub const InputProvider = struct {
     // Type-erased pointer to the display implementation
@@ -8,14 +9,14 @@ pub const InputProvider = struct {
     // VTable for implementation to manage
     pub const InputVTable = struct {
         // methods
-        getch: *const fn (ctx: *anyopaque) u8,
+        getch: *const fn (ctx: *anyopaque) ZrogueError!usize,
     };
 
     //
     // Methods
     //
 
-    pub inline fn getch(self: InputProvider) u8 {
+    pub inline fn getch(self: InputProvider) ZrogueError!usize {
         return self.vtable.getch(self.ptr);
     }
 };
@@ -51,9 +52,9 @@ pub const MockInputProvider = struct {
     // Methods
     //
 
-    fn getch(ptr: *anyopaque) u8 {
+    fn getch(ptr: *anyopaque) ZrogueError!usize {
         const self: *MockInputProvider = @ptrCast(@alignCast(ptr));
-        return self.keypress;
+        return @as(usize, self.keypress);
         // TODO: error if no more keypresses to provide
     }
 }; // MockInputProvider
@@ -66,7 +67,7 @@ test "Basic use of mock input provider" {
     var p = MockInputProvider.init(.{ .keypress = '*' });
     var i = p.provider();
 
-    try std.testing.expect(i.getch() == '*');
+    try std.testing.expect(try i.getch() == '*');
 }
 
 // EOF
