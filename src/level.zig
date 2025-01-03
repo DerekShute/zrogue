@@ -1,5 +1,6 @@
 const std = @import("std");
 const Thing = @import("thing.zig").Thing;
+const Pos = @import("zrogue.zig").Pos;
 
 // ===================
 // Spot on the map
@@ -37,13 +38,13 @@ const Place = struct {
 pub const Map = struct {
     allocator: std.mem.Allocator,
     places: []Place,
-    height: u16,
-    width: u16,
+    height: Pos.Dim,
+    width: Pos.Dim,
 
     //
     // Allocate and initialize
     //
-    pub fn init(allocator: std.mem.Allocator, height: u16, width: u16) !*Map {
+    pub fn init(allocator: std.mem.Allocator, height: Pos.Dim, width: Pos.Dim) !*Map {
         const map: *Map = try allocator.create(Map);
         errdefer Map.deinit(map); // This should handle all failure-cleanup
         map.* = .{
@@ -53,7 +54,7 @@ pub const Map = struct {
             .places = &.{}, // Empty slice
         };
         // TODO this blows up u8 height width
-        map.places = try allocator.alloc(Place, height * width);
+        map.places = try allocator.alloc(Place, @intCast(height * width));
         for (map.places) |*place| {
             place.setChar(' '); // TODO constants
             place.flags = 0;
@@ -75,56 +76,67 @@ pub const Map = struct {
 
     // Utility
 
-    fn toPlace(self: *Map, xy: [2]u16) !*Place {
+    fn toPlace(self: *Map, xy: [2]Pos.Dim) !*Place {
+        // TODO: sign check
         if (xy[0] >= self.width)
             return error.OverFlow;
         if (xy[1] >= self.height)
             return error.OverFlow;
 
-        const loc = xy[0] + xy[1] * self.width;
+        const loc: usize = @intCast(xy[0] + xy[1] * self.width);
         return &self.places[loc];
     }
 
     // Methods
 
-    pub fn getChar(self: *Map, xy: [2]u16) !u8 {
+    pub fn getChar(self: *Map, xy: [2]Pos.Dim) !u8 {
         const place = try self.toPlace(xy);
         return place.getChar();
     }
 
-    pub fn getMonster(self: *Map, xy: [2]u16) !?*Thing {
+    pub fn getMonster(self: *Map, xy: [2]Pos.Dim) !?*Thing {
         const place = try self.toPlace(xy);
         return place.getMonst();
     }
 
-    pub fn setMonster(self: *Map, monst: *Thing, xy: [2]u16) !void {
+    pub fn setMonster(self: *Map, monst: *Thing, xy: [2]Pos.Dim) !void {
         const place = try self.toPlace(xy);
         try place.setMonst(monst);
-        monst.setPos(xy); // TODO is this the best way?
+        monst.setXY(xy[0], xy[1]); // TODO is this the best way?
     }
 
-    pub fn drawRoom(self: *Map, xy: [2]u16, max: [2]u16) !void {
+    pub fn drawRoom(self: *Map, xy: [2]Pos.Dim, max: [2]Pos.Dim) !void {
         const T = struct {
             // End x or y is inclusive
-            fn vert(places: []Place, width: u16, startx: u16, y: [2]u16) void {
-                for (y[0]..y[1] + 1) |at| {
-                    const loc = startx + at * width;
-                    places[loc].setChar('|'); // TODO: manifest constant
+            fn vert(places: []Place, width: Pos.Dim, startx: Pos.Dim, y: [2]Pos.Dim) void {
+                const starty: usize = @intCast(y[0]);
+                const endy: usize = @intCast(y[1]);
+                const _width: usize = @intCast(width);
+                const _startx: usize = @intCast(startx);
+                for (starty..endy + 1) |at| {
+                    places[_startx + at * _width].setChar('|'); // TODO: manifest constant
                 }
             }
 
-            fn horiz(places: []Place, width: u16, starty: u16, x: [2]u16) void {
-                for (x[0]..x[1] + 1) |at| {
-                    const loc = at + starty * width;
-                    places[loc].setChar('-'); // TODO: manifest constant
+            fn horiz(places: []Place, width: Pos.Dim, starty: Pos.Dim, x: [2]Pos.Dim) void {
+                const _starty: usize = @intCast(starty);
+                const startx: usize = @intCast(x[0]);
+                const endx: usize = @intCast(x[1]);
+                const _width: usize = @intCast(width);
+                for (startx..endx + 1) |at| {
+                    places[at + _starty * _width].setChar('-'); // TODO: manifest constant
                 }
             }
 
-            fn field(places: []Place, width: u16, start: [2]u16, limit: [2]u16) void {
-                for (start[1]..limit[1] + 1) |c_y| {
-                    for (start[0]..limit[0] + 1) |c_x| {
-                        const loc = c_x + c_y * width;
-                        places[loc].setChar('.'); // TODO: manifest constant
+            fn field(places: []Place, width: Pos.Dim, start: [2]Pos.Dim, limit: [2]Pos.Dim) void {
+                const _starty: usize = @intCast(start[1]);
+                const _endy: usize = @intCast(limit[1]);
+                const _startx: usize = @intCast(start[0]);
+                const _endx: usize = @intCast(limit[0]);
+                const _width: usize = @intCast(width);
+                for (_starty.._endy + 1) |c_y| {
+                    for (_startx.._endx + 1) |c_x| {
+                        places[c_x + c_y * _width].setChar('.'); // TODO: manifest constant
                     }
                 }
             }
@@ -239,11 +251,11 @@ test "draw a valid room and test corners" {
 test "putting monsters places" {
     const map: *Map = try Map.init(std.testing.allocator, 50, 50);
     defer Map.deinit(map);
-    var thing = Thing{ .xy = .{ 0, 0 }, .ch = '@' };
-    var thing2 = Thing{ .xy = .{ 0, 0 }, .ch = '@' };
+    var thing = Thing{ .xy = Pos.init(0, 0), .ch = '@' };
+    var thing2 = Thing{ .xy = Pos.init(0, 0), .ch = '@' };
 
     try map.setMonster(&thing, .{ 10, 10 });
-    try std.testing.expect(thing.atPos(.{ 10, 10 }));
+    try std.testing.expect(thing.atXY(10, 10));
 
     try std.testing.expectError(error.AlreadyOccupied, map.setMonster(&thing2, .{ 10, 10 }));
 }
