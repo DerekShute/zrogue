@@ -9,7 +9,7 @@ const Thing = @import("thing.zig").Thing;
 // TODO: test maxx, maxy
 pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !void {
     const map = try level.Map.init(allocator, 24, 80);
-    var player = Thing.config(.{ 10, 10 }, '@', input, display, playerAction);
+    var player = Thing.config(10, 10, '@', input, display, playerAction);
 
     defer map.deinit();
 
@@ -21,7 +21,7 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
     // TODO: Some kind of display abstraction or put in the display provider
     for (0..24) |y| {
         for (0..80) |x| {
-            const c = try map.getChar(.{ @truncate(x), @truncate(y) });
+            const c = try map.getChar(.{ @intCast(x), @intCast(y) });
             try display.mvaddch(@intCast(x), @intCast(y), c);
         }
     }

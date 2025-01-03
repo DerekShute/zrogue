@@ -5,6 +5,7 @@ const InputProvider = @import("input.zig").InputProvider;
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 const ActionEvent = zrogue.ActionEvent;
+const Pos = zrogue.Pos;
 
 // ===================
 // Structure for monsters, player, and objects
@@ -14,15 +15,15 @@ const ActionHandler = *const fn (self: *Thing) ZrogueError!ActionEvent;
 pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
     // TODO: timer, action queue
-    xy: [2]u16 = .{ 0, 0 },
+    xy: Pos = Pos.init(-1, -1),
     ch: u8 = ' ',
     input: InputProvider = undefined,
     display: DisplayProvider = undefined,
     doaction: ActionHandler = undefined,
 
-    pub fn config(xy: [2]u16, ch: u8, input: InputProvider, display: DisplayProvider, action: ActionHandler) Thing {
+    pub fn config(x: Pos.Dim, y: Pos.Dim, ch: u8, input: InputProvider, display: DisplayProvider, action: ActionHandler) Thing {
         return Thing{
-            .xy = xy,
+            .xy = Pos.init(x, y),
             .ch = ch,
             .input = input,
             .display = display,
@@ -30,27 +31,27 @@ pub const Thing = struct {
         };
     }
 
-    pub fn getPos(self: *Thing) [2]u16 {
+    pub fn getPos(self: *Thing) Pos {
         return self.xy;
     }
 
-    pub fn setPos(self: *Thing, xy: [2]u16) void {
-        self.xy = xy;
+    pub fn setXY(self: *Thing, x: Pos.Dim, y: Pos.Dim) void {
+        self.xy = Pos.init(x, y);
     }
 
     pub fn getChar(self: *Thing) u8 {
         return self.ch;
     }
 
-    pub fn atPos(self: *Thing, pos: [2]u16) bool {
-        return std.mem.eql(u16, &self.xy, &pos);
+    pub fn atXY(self: *Thing, x: Pos.Dim, y: Pos.Dim) bool {
+        return self.xy.eql(Pos.init(x, y));
     }
 
     pub fn doAction(self: *Thing) ZrogueError!ActionEvent {
         return try self.doaction(self); // Why no synctactic sugar here?
     }
 
-    // TODO: setX, setY, moveRelative, getX, getY, etc
+    // TODO: setX, setY, moveRelative, getX, getY, getXY, etc
 
 };
 
@@ -70,10 +71,10 @@ test "create a thing" {
         }
     };
 
-    var thing = Thing{ .xy = .{ 0, 0 }, .ch = '@', .doaction = TestStruct.action };
-    try std.testing.expect(thing.atPos(.{ 0, 0 }));
-    thing.setPos(.{ 10, 10 });
-    try std.testing.expect(thing.atPos(.{ 10, 10 }));
+    var thing = Thing{ .xy = Pos.init(0, 0), .ch = '@', .doaction = TestStruct.action };
+    try std.testing.expect(thing.atXY(0, 0));
+    thing.setXY(10, 10);
+    try std.testing.expect(thing.atXY(10, 10));
     try std.testing.expect(thing.getChar() == '@');
 
     try std.testing.expect(try thing.doAction() == ActionEvent.NoEvent);
