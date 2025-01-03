@@ -13,15 +13,15 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
 
     defer map.deinit();
 
-    try map.setMonster(&player, .{ 10, 10 });
+    try map.setMonster(&player, 10, 10);
     try display.erase();
 
-    try map.drawRoom(.{ 5, 5 }, .{ 15, 15 });
+    try map.drawRoom(5, 5, 15, 15);
 
     // TODO: Some kind of display abstraction or put in the display provider
     for (0..24) |y| {
         for (0..80) |x| {
-            const c = try map.getChar(.{ @intCast(x), @intCast(y) });
+            const c = try map.getChar(@intCast(x), @intCast(y));
             try display.mvaddch(@intCast(x), @intCast(y), c);
         }
     }

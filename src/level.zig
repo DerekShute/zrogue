@@ -76,54 +76,54 @@ pub const Map = struct {
 
     // Utility
 
-    fn toPlace(self: *Map, xy: [2]Pos.Dim) !*Place {
+    fn toPlace(self: *Map, x: Pos.Dim, y: Pos.Dim) !*Place {
         // TODO: sign check
-        if (xy[0] >= self.width)
+        if (x >= self.width)
             return error.OverFlow;
-        if (xy[1] >= self.height)
+        if (y >= self.height)
             return error.OverFlow;
 
-        const loc: usize = @intCast(xy[0] + xy[1] * self.width);
+        const loc: usize = @intCast(x + y * self.width);
         return &self.places[loc];
     }
 
     // Methods
 
-    pub fn getChar(self: *Map, xy: [2]Pos.Dim) !u8 {
-        const place = try self.toPlace(xy);
+    pub fn getChar(self: *Map, x: Pos.Dim, y: Pos.Dim) !u8 {
+        const place = try self.toPlace(x, y);
         return place.getChar();
     }
 
-    pub fn getMonster(self: *Map, xy: [2]Pos.Dim) !?*Thing {
-        const place = try self.toPlace(xy);
+    pub fn getMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !?*Thing {
+        const place = try self.toPlace(x, y);
         return place.getMonst();
     }
 
-    pub fn setMonster(self: *Map, monst: *Thing, xy: [2]Pos.Dim) !void {
-        const place = try self.toPlace(xy);
+    pub fn setMonster(self: *Map, monst: *Thing, x: Pos.Dim, y: Pos.Dim) !void {
+        const place = try self.toPlace(x, y);
         try place.setMonst(monst);
-        monst.setXY(xy[0], xy[1]); // TODO is this the best way?
+        monst.setXY(x, y); // TODO is this the best way?
     }
 
-    pub fn drawRoom(self: *Map, xy: [2]Pos.Dim, max: [2]Pos.Dim) !void {
+    pub fn drawRoom(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
         const T = struct {
             // End x or y is inclusive
-            fn vert(places: []Place, width: Pos.Dim, startx: Pos.Dim, y: [2]Pos.Dim) void {
-                const starty: usize = @intCast(y[0]);
-                const endy: usize = @intCast(y[1]);
+            fn vert(places: []Place, width: Pos.Dim, startx: Pos.Dim, yrange: [2]Pos.Dim) void {
+                const _starty: usize = @intCast(yrange[0]);
+                const _endy: usize = @intCast(yrange[1]);
                 const _width: usize = @intCast(width);
                 const _startx: usize = @intCast(startx);
-                for (starty..endy + 1) |at| {
+                for (_starty.._endy + 1) |at| {
                     places[_startx + at * _width].setChar('|'); // TODO: manifest constant
                 }
             }
 
-            fn horiz(places: []Place, width: Pos.Dim, starty: Pos.Dim, x: [2]Pos.Dim) void {
+            fn horiz(places: []Place, width: Pos.Dim, starty: Pos.Dim, xrange: [2]Pos.Dim) void {
                 const _starty: usize = @intCast(starty);
-                const startx: usize = @intCast(x[0]);
-                const endx: usize = @intCast(x[1]);
+                const _startx: usize = @intCast(xrange[0]);
+                const _endx: usize = @intCast(xrange[1]);
                 const _width: usize = @intCast(width);
-                for (startx..endx + 1) |at| {
+                for (_startx.._endx + 1) |at| {
                     places[at + _starty * _width].setChar('-'); // TODO: manifest constant
                 }
             }
@@ -142,23 +142,24 @@ pub const Map = struct {
             }
         };
 
-        if (max[0] >= self.width)
+        // TODO sign check
+        if (maxx >= self.width)
             return error.OverFlow;
-        if (max[1] >= self.height)
+        if (maxy >= self.height)
             return error.OverFlow;
-        if (xy[0] >= max[0])
+        if (x >= maxx)
             return error.OverFlow;
-        if (xy[1] >= max[1])
+        if (y >= maxy)
             return error.OverFlow;
 
         // Horizontal bars in the corners
-        T.vert(self.places, self.width, xy[0], .{ xy[1] + 1, max[1] - 1 });
-        T.vert(self.places, self.width, max[0], .{ xy[1] + 1, max[1] - 1 });
-        T.horiz(self.places, self.width, xy[1], .{ xy[0], max[0] });
-        T.horiz(self.places, self.width, max[1], .{ xy[0], max[0] });
+        T.vert(self.places, self.width, x, .{ y + 1, maxy - 1 });
+        T.vert(self.places, self.width, maxx, .{ y + 1, maxy - 1 });
+        T.horiz(self.places, self.width, y, .{ x, maxx });
+        T.horiz(self.places, self.width, maxy, .{ x, maxx });
 
         // Floor
-        T.field(self.places, self.width, .{ xy[0] + 1, xy[1] + 1 }, .{ max[0] - 1, max[1] - 1 });
+        T.field(self.places, self.width, .{ x + 1, y + 1 }, .{ maxx - 1, maxy - 1 });
     }
 };
 
@@ -192,60 +193,60 @@ test "ask about valid map location" {
     const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer map.deinit();
 
-    const thing = try map.getMonster(.{ 4, 4 });
+    const thing = try map.getMonster(4, 4);
     try std.testing.expect(thing == null); // Nothing there
 }
 
 test "ask about thing at invalid map location" {
     const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer map.deinit();
-    try std.testing.expectError(error.OverFlow, map.getMonster(.{ 0, 20 }));
-    try std.testing.expectError(error.OverFlow, map.getMonster(.{ 20, 0 }));
+    try std.testing.expectError(error.OverFlow, map.getMonster(0, 20));
+    try std.testing.expectError(error.OverFlow, map.getMonster(20, 0));
 }
 
 test "ask about a character on the map" {
     const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer map.deinit();
-    try std.testing.expect(try map.getChar(.{ 0, 0 }) == ' ');
+    try std.testing.expect(try map.getChar(0, 0) == ' ');
 }
 
 test "ask about invalid character on the map" {
     const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer map.deinit();
-    try std.testing.expectError(error.OverFlow, map.getChar(.{ 20, 0 }));
-    try std.testing.expectError(error.OverFlow, map.getChar(.{ 0, 20 }));
+    try std.testing.expectError(error.OverFlow, map.getChar(20, 0));
+    try std.testing.expectError(error.OverFlow, map.getChar(0, 20));
 }
 
 test "draw an invalid room" {
     const map: *Map = try Map.init(std.testing.allocator, 20, 20);
     defer map.deinit();
 
-    try std.testing.expectError(error.OverFlow, map.drawRoom(.{ 15, 15 }, .{ 4, 18 }));
-    try std.testing.expectError(error.OverFlow, map.drawRoom(.{ 15, 15 }, .{ 18, 4 }));
+    try std.testing.expectError(error.OverFlow, map.drawRoom(15, 15, 4, 18));
+    try std.testing.expectError(error.OverFlow, map.drawRoom(15, 15, 18, 4));
 }
 
 test "draw an oversize room" {
     const map: *Map = try Map.init(std.testing.allocator, 20, 20);
     defer map.deinit();
 
-    try std.testing.expectError(error.OverFlow, map.drawRoom(.{ 0, 0 }, .{ 0, 100 }));
-    try std.testing.expectError(error.OverFlow, map.drawRoom(.{ 0, 0 }, .{ 100, 0 }));
+    try std.testing.expectError(error.OverFlow, map.drawRoom(0, 0, 0, 100));
+    try std.testing.expectError(error.OverFlow, map.drawRoom(0, 0, 100, 0));
 }
 
 test "draw a valid room and test corners" {
     const map: *Map = try Map.init(std.testing.allocator, 50, 50);
     defer map.deinit();
 
-    try map.drawRoom(.{ 10, 10 }, .{ 20, 20 });
+    try map.drawRoom(10, 10, 20, 20);
     // Corners are '-'
-    try std.testing.expect(try map.getChar(.{ 10, 10 }) == '-');
-    try std.testing.expect(try map.getChar(.{ 20, 10 }) == '-');
-    try std.testing.expect(try map.getChar(.{ 10, 20 }) == '-');
-    try std.testing.expect(try map.getChar(.{ 20, 20 }) == '-');
-    try std.testing.expect(try map.getChar(.{ 19, 19 }) == '.');
-    try std.testing.expect(try map.getChar(.{ 11, 11 }) == '.');
-    try std.testing.expect(try map.getChar(.{ 11, 19 }) == '.');
-    try std.testing.expect(try map.getChar(.{ 19, 11 }) == '.');
+    try std.testing.expect(try map.getChar(10, 10) == '-');
+    try std.testing.expect(try map.getChar(20, 10) == '-');
+    try std.testing.expect(try map.getChar(10, 20) == '-');
+    try std.testing.expect(try map.getChar(20, 20) == '-');
+    try std.testing.expect(try map.getChar(19, 19) == '.');
+    try std.testing.expect(try map.getChar(11, 11) == '.');
+    try std.testing.expect(try map.getChar(11, 19) == '.');
+    try std.testing.expect(try map.getChar(19, 11) == '.');
 }
 
 test "putting monsters places" {
@@ -254,10 +255,10 @@ test "putting monsters places" {
     var thing = Thing{ .xy = Pos.init(0, 0), .ch = '@' };
     var thing2 = Thing{ .xy = Pos.init(0, 0), .ch = '@' };
 
-    try map.setMonster(&thing, .{ 10, 10 });
+    try map.setMonster(&thing, 10, 10);
     try std.testing.expect(thing.atXY(10, 10));
 
-    try std.testing.expectError(error.AlreadyOccupied, map.setMonster(&thing2, .{ 10, 10 }));
+    try std.testing.expectError(error.AlreadyOccupied, map.setMonster(&thing2, 10, 10));
 }
 
 // EOF
