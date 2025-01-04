@@ -4,13 +4,14 @@ const InputProvider = @import("input.zig").InputProvider;
 
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
-const ActionEvent = zrogue.ActionEvent;
+const ThingAction = zrogue.ThingAction;
+const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
 
 // ===================
 // Structure for monsters, player, and objects
 
-const ActionHandler = *const fn (self: *Thing) ZrogueError!ActionEvent;
+const ActionHandler = *const fn (self: *Thing) ZrogueError!ThingAction;
 
 pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
@@ -47,7 +48,7 @@ pub const Thing = struct {
         return self.xy.eql(Pos.init(x, y));
     }
 
-    pub fn doAction(self: *Thing) ZrogueError!ActionEvent {
+    pub fn doAction(self: *Thing) ZrogueError!ThingAction {
         return try self.doaction(self); // Why no synctactic sugar here?
     }
 
@@ -64,10 +65,10 @@ test "create a thing" {
         // don't want to pollute the module with "x"
         var x: usize = 0;
 
-        fn action(self: *Thing) !ActionEvent {
+        fn action(self: *Thing) !ThingAction {
             _ = self;
             x = 1; // Side effect
-            return ActionEvent.NoEvent;
+            return ThingAction.init(ActionType.NoAction);
         }
     };
 
@@ -77,7 +78,8 @@ test "create a thing" {
     try std.testing.expect(thing.atXY(10, 10));
     try std.testing.expect(thing.getChar() == '@');
 
-    try std.testing.expect(try thing.doAction() == ActionEvent.NoEvent);
+    const action = try thing.doAction();
+    try std.testing.expect(action.type == ActionType.NoAction);
     try std.testing.expect(TestStruct.x == 1);
 }
 // EOF

@@ -51,9 +51,25 @@ pub const ZrogueError = error{
 // Results of the Thing.doAction() method, which drives what the game loop
 // does next: keep going, plant a tombstone, declare victory, etc.
 //
-pub const ActionEvent = enum {
-    NoEvent,
-    QuittingGame,
+// TODO: within ThingAction
+pub const ActionType = enum {
+    NoAction,
+    QuitAction,
+    BumpAction, // Directional
+
+};
+
+pub const ThingAction = struct {
+    type: ActionType,
+    pos: Pos, // BumpAction (delta)
+
+    pub inline fn init(t: ActionType) ThingAction {
+        return .{ .type = t, .pos = Pos.init(0, 0) };
+    }
+
+    pub inline fn init_pos(t: ActionType, p: Pos) ThingAction {
+        return .{ .type = t, .pos = p };
+    }
 };
 
 //
