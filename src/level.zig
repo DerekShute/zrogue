@@ -32,6 +32,12 @@ const Place = struct {
         self.monst = new_monst;
     }
 
+    pub fn removeMonst(self: *Place) !void {
+        if (self.monst) |_| {
+            self.monst = null;
+        }
+    }
+
     // TODO: getFlags(), setFlags()
 };
 
@@ -103,6 +109,15 @@ pub const Map = struct {
         const place = try self.toPlace(x, y);
         try place.setMonst(monst);
         monst.setXY(x, y); // TODO is this the best way?
+    }
+
+    pub fn removeMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !void {
+        const place = try self.toPlace(x, y);
+        const monst = place.getMonst();
+        if (monst) |m| {
+            try place.removeMonst();
+            m.setXY(-1, -1);
+        }
     }
 
     pub fn drawRoom(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
