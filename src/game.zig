@@ -9,9 +9,8 @@ const Pos = zrogue.Pos;
 const level = @import("level.zig");
 const Thing = @import("thing.zig").Thing;
 
-// TODO: test maxx, maxy
 pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !void {
-    const map = try level.Map.init(allocator, 24, 80);
+    const map = try level.Map.init(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X);
     var player = Thing.config(10, 10, '@', input, display, playerAction);
 
     defer map.deinit();
