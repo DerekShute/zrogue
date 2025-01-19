@@ -12,8 +12,12 @@ const std = @import("std");
 
 pub const DISPLAY_MINX = 80;
 pub const DISPLAY_MINY = 24;
+
+pub const MESSAGE_ROW = 0; // At row zero
+pub const STAT_ROW = DISPLAY_MINY; // TODO: technically, 'bottom'
+
 pub const MAPSIZE_X = DISPLAY_MINX;
-pub const MAPSIZE_Y = DISPLAY_MINY; // TODO: this will change
+pub const MAPSIZE_Y = DISPLAY_MINY - 2; // Minus message and stat rows
 
 //
 // Map coordinates and width/height and directional deltas

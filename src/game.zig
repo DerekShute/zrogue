@@ -55,10 +55,14 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *level.Map) !void {
 fn playerAction(self: *Thing, map: *level.Map) !ThingAction {
     var ret = ThingAction.init(ActionType.NoAction);
 
+    //
+    // Convert map to display: it shifts down one row to make room for
+    // messages
+    //
     for (0..zrogue.MAPSIZE_Y) |y| {
         for (0..zrogue.MAPSIZE_X) |x| {
             const c = try map.getChar(@intCast(x), @intCast(y));
-            try self.display.mvaddch(@intCast(x), @intCast(y), c);
+            try self.display.mvaddch(@intCast(x), @intCast(y + 1), c);
         }
     }
 
