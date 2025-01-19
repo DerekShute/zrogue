@@ -56,6 +56,7 @@ pub const ZrogueError = error{
     AlreadyInUse, // Curses
     DisplayTooSmall, // Curses
     ImplementationError, // Curses is annoying at least for now
+    MapOverFlow,
 };
 
 //

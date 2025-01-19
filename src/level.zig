@@ -1,6 +1,8 @@
 const std = @import("std");
 const Thing = @import("thing.zig").Thing;
-const Pos = @import("zrogue.zig").Pos;
+const zrogue = @import("zrogue.zig");
+const Pos = zrogue.Pos;
+const ZrogueError = zrogue.ZrogueError;
 
 // ===================
 // Spot on the map
@@ -82,12 +84,12 @@ pub const Map = struct {
 
     // Utility
 
-    fn toPlace(self: *Map, x: Pos.Dim, y: Pos.Dim) !*Place {
+    fn toPlace(self: *Map, x: Pos.Dim, y: Pos.Dim) ZrogueError!*Place {
         // TODO: sign check
         if (x >= self.width)
-            return error.OverFlow;
+            return ZrogueError.MapOverFlow;
         if (y >= self.height)
-            return error.OverFlow;
+            return ZrogueError.MapOverFlow;
 
         const loc: usize = @intCast(x + y * self.width);
         return &self.places[loc];
@@ -159,13 +161,13 @@ pub const Map = struct {
 
         // TODO sign check
         if (maxx >= self.width)
-            return error.OverFlow;
+            return ZrogueError.MapOverFlow;
         if (maxy >= self.height)
-            return error.OverFlow;
+            return ZrogueError.MapOverFlow;
         if (x >= maxx)
-            return error.OverFlow;
+            return ZrogueError.MapOverFlow;
         if (y >= maxy)
-            return error.OverFlow;
+            return ZrogueError.MapOverFlow;
 
         // Horizontal bars in the corners
         T.vert(self.places, self.width, x, .{ y + 1, maxy - 1 });
@@ -215,8 +217,8 @@ test "ask about valid map location" {
 test "ask about thing at invalid map location" {
     const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer map.deinit();
-    try std.testing.expectError(error.OverFlow, map.getMonster(0, 20));
-    try std.testing.expectError(error.OverFlow, map.getMonster(20, 0));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.getMonster(0, 20));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.getMonster(20, 0));
 }
 
 test "ask about a character on the map" {
@@ -228,24 +230,24 @@ test "ask about a character on the map" {
 test "ask about invalid character on the map" {
     const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer map.deinit();
-    try std.testing.expectError(error.OverFlow, map.getChar(20, 0));
-    try std.testing.expectError(error.OverFlow, map.getChar(0, 20));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.getChar(20, 0));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.getChar(0, 20));
 }
 
 test "draw an invalid room" {
     const map: *Map = try Map.init(std.testing.allocator, 20, 20);
     defer map.deinit();
 
-    try std.testing.expectError(error.OverFlow, map.drawRoom(15, 15, 4, 18));
-    try std.testing.expectError(error.OverFlow, map.drawRoom(15, 15, 18, 4));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(15, 15, 4, 18));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(15, 15, 18, 4));
 }
 
 test "draw an oversize room" {
     const map: *Map = try Map.init(std.testing.allocator, 20, 20);
     defer map.deinit();
 
-    try std.testing.expectError(error.OverFlow, map.drawRoom(0, 0, 0, 100));
-    try std.testing.expectError(error.OverFlow, map.drawRoom(0, 0, 100, 0));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(0, 0, 0, 100));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(0, 0, 100, 0));
 }
 
 test "draw a valid room and test corners" {

@@ -1,7 +1,7 @@
 const std = @import("std");
 const DisplayProvider = @import("display.zig").DisplayProvider;
 const InputProvider = @import("input.zig").InputProvider;
-
+const Map = @import("level.zig").Map;
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 const ThingAction = zrogue.ThingAction;
@@ -11,7 +11,7 @@ const Pos = zrogue.Pos;
 // ===================
 // Structure for monsters, player, and objects
 
-const ActionHandler = *const fn (self: *Thing) ZrogueError!ThingAction;
+const ActionHandler = *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction;
 
 pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
@@ -48,38 +48,12 @@ pub const Thing = struct {
         return self.xy.eql(Pos.init(x, y));
     }
 
-    pub fn doAction(self: *Thing) ZrogueError!ThingAction {
-        return try self.doaction(self); // Why no synctactic sugar here?
+    pub fn doAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
+        return try self.doaction(self, map); // Why no synctactic sugar here?
     }
 
     // TODO: setX, setY, moveRelative, getX, getY, getXY, etc
 
 };
 
-//
-// Full API testing broken out in game.zig because config() is getting complex
-//
-test "create a thing" {
-    const TestStruct = struct {
-        // Want to prove that we get all the way into the action callback and
-        // don't want to pollute the module with "x"
-        var x: usize = 0;
-
-        fn action(self: *Thing) !ThingAction {
-            _ = self;
-            x = 1; // Side effect
-            return ThingAction.init(ActionType.NoAction);
-        }
-    };
-
-    var thing = Thing{ .xy = Pos.init(0, 0), .ch = '@', .doaction = TestStruct.action };
-    try std.testing.expect(thing.atXY(0, 0));
-    thing.setXY(10, 10);
-    try std.testing.expect(thing.atXY(10, 10));
-    try std.testing.expect(thing.getChar() == '@');
-
-    const action = try thing.doAction();
-    try std.testing.expect(action.type == ActionType.NoAction);
-    try std.testing.expect(TestStruct.x == 1);
-}
 // EOF
