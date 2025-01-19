@@ -11,29 +11,20 @@ const Thing = @import("thing.zig").Thing;
 
 pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !void {
     const map = try level.Map.init(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X);
-    var player = Thing.config(10, 10, '@', input, display, playerAction);
-
     defer map.deinit();
+
+    // TODO: player as input to the run
+    var player = Thing.config(10, 10, '@', input, display, playerAction);
 
     try map.setMonster(&player, 10, 10);
     try display.erase();
 
     try map.drawRoom(5, 5, 15, 15);
 
-    // TODO: Some kind of display abstraction or put in the display provider
-    // and routed through the player
-
+    // TODO: master copy of the map versus player copy
     var action = ThingAction.init(ActionType.NoAction);
     while (action.type != ActionType.QuitAction) {
-        for (0..24) |y| {
-            for (0..80) |x| {
-                const c = try map.getChar(@intCast(x), @intCast(y));
-                try display.mvaddch(@intCast(x), @intCast(y), c);
-            }
-        }
-
-        try display.refresh();
-        action = try player.doAction();
+        action = try player.doAction(map);
         switch (action.type) {
             ActionType.QuitAction => continue, // TODO: 'quitting' message
             ActionType.BumpAction => try bumpAction(&player, &action, map),
@@ -58,8 +49,21 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *level.Map) !void {
     }
 }
 
-fn playerAction(self: *Thing) !ThingAction {
+//
+// Map is the _visible_ or _known_ map presented to the player
+//
+fn playerAction(self: *Thing, map: *level.Map) !ThingAction {
     var ret = ThingAction.init(ActionType.NoAction);
+
+    for (0..zrogue.MAPSIZE_Y) |y| {
+        for (0..zrogue.MAPSIZE_X) |x| {
+            const c = try map.getChar(@intCast(x), @intCast(y));
+            try self.display.mvaddch(@intCast(x), @intCast(y), c);
+        }
+    }
+
+    // TODO law of demeter
+    try self.display.refresh();
     const ch = try self.input.getch();
 
     switch (ch) {
