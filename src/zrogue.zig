@@ -7,6 +7,15 @@ const std = @import("std");
 //
 
 //
+// Constants relating to display conventions
+//
+
+pub const DISPLAY_MINX = 80;
+pub const DISPLAY_MINY = 24;
+pub const MAPSIZE_X = DISPLAY_MINX;
+pub const MAPSIZE_Y = DISPLAY_MINY; // TODO: this will change
+
+//
 // Map coordinates and width/height and directional deltas
 //
 pub const Pos = struct {
@@ -44,6 +53,8 @@ pub const Pos = struct {
 //
 pub const ZrogueError = error{
     NotInitialized,
+    AlreadyInUse, // Curses
+    DisplayTooSmall, // Curses
     ImplementationError, // Curses is annoying at least for now
 };
 

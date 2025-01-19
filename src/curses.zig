@@ -138,14 +138,24 @@ pub const CursesInitReturn = struct {
     i: CursesInputProvider,
 };
 
-pub fn init(allocator: std.mem.Allocator) !CursesInitReturn {
+pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) ZrogueError!CursesInitReturn {
     if (global_win != null) {
-        return error.CursesAlreadyInUse;
+        return ZrogueError.AlreadyInUse;
     }
 
     const res = curses.initscr();
+    errdefer {
+        _ = curses.endwin();
+    }
     if (res) |res_val| {
         global_win = res_val;
+    }
+
+    if (try checkError(curses.getmaxx(global_win)) < minx) {
+        return ZrogueError.DisplayTooSmall;
+    }
+    if (try checkError(curses.getmaxy(global_win)) < miny) {
+        return ZrogueError.DisplayTooSmall;
     }
 
     _ = try checkError(curses.noecho());
