@@ -19,6 +19,8 @@ pub const STAT_ROW = DISPLAY_MINY; // TODO: technically, 'bottom'
 pub const MAPSIZE_X = DISPLAY_MINX;
 pub const MAPSIZE_Y = DISPLAY_MINY - 2; // Minus message and stat rows
 
+pub const MESSAGE_MAXSIZE = DISPLAY_MINX;
+
 //
 // Map coordinates and width/height and directional deltas
 //

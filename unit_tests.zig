@@ -10,6 +10,7 @@ comptime {
     _ = @import("src/main.zig");
     _ = @import("src/thing.zig");
     _ = @import("src/zrogue.zig");
+    _ = @import("src/message_log.zig");
 }
 
 // EOF
