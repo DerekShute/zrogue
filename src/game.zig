@@ -8,18 +8,31 @@ const Pos = zrogue.Pos;
 
 const level = @import("level.zig");
 const Thing = @import("thing.zig").Thing;
+const MessageLog = @import("message_log.zig").MessageLog;
 
 pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !void {
     const map = try level.Map.init(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X);
     defer map.deinit();
 
+    const msglog = try MessageLog.init(allocator);
+    errdefer msglog.deinit();
+
     // TODO: player as input to the run
-    var player = Thing.config(10, 10, '@', input, display, playerAction);
+    var player = Thing.config(
+        10,
+        10,
+        '@',
+        input,
+        display,
+        playerAction,
+        msglog,
+    );
 
     try map.setMonster(&player, 10, 10);
     try display.erase();
 
     try map.drawRoom(5, 5, 15, 15);
+    player.addMessage("Welcome to the dungeon!");
 
     // TODO: master copy of the map versus player copy
     var action = ThingAction.init(ActionType.NoAction);
@@ -46,6 +59,9 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *level.Map) !void {
     if (try map.getChar(new_x, new_y) == '.') { // TODO manifest constant
         try map.removeMonster(pos.getX(), pos.getY());
         try map.setMonster(entity, new_x, new_y);
+        // TODO reveal surroundings if dark and not blind
+    } else {
+        entity.addMessage("Ouch!");
     }
 }
 
@@ -55,9 +71,24 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *level.Map) !void {
 fn playerAction(self: *Thing, map: *level.Map) !ThingAction {
     var ret = ThingAction.init(ActionType.NoAction);
 
+    const message = self.getMessage();
+
+    for (0..zrogue.MAPSIZE_X) |x| {
+        if (x < message.len) {
+            try self.display.mvaddch(@intCast(x), 0, message[x]);
+        } else {
+            try self.display.mvaddch(@intCast(x), 0, ' ');
+        }
+    }
+
+    self.clearMessage();
+
     //
     // Convert map to display: it shifts down one row to make room for
     // messages
+    //
+    // TODO: the actual character is display-dependent.  All this should use constants
+    // to describe what the place is:  floor, door, wall/solid, etc.
     //
     for (0..zrogue.MAPSIZE_Y) |y| {
         for (0..zrogue.MAPSIZE_X) |x| {
