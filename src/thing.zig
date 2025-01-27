@@ -7,6 +7,7 @@ const ZrogueError = zrogue.ZrogueError;
 const ThingAction = zrogue.ThingAction;
 const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
+const MessageLog = @import("message_log.zig").MessageLog;
 
 // ===================
 // Structure for monsters, player, and objects
@@ -21,14 +22,17 @@ pub const Thing = struct {
     input: InputProvider = undefined,
     display: DisplayProvider = undefined,
     doaction: ActionHandler = undefined,
+    log: ?*MessageLog = null,
 
-    pub fn config(x: Pos.Dim, y: Pos.Dim, ch: u8, input: InputProvider, display: DisplayProvider, action: ActionHandler) Thing {
+    // msglog: monsters don't have it
+    pub fn config(x: Pos.Dim, y: Pos.Dim, ch: u8, input: InputProvider, display: DisplayProvider, action: ActionHandler, msglog: ?*MessageLog) Thing {
         return Thing{
             .xy = Pos.init(x, y),
             .ch = ch,
             .input = input,
             .display = display,
             .doaction = action,
+            .log = msglog,
         };
     }
 
@@ -50,6 +54,29 @@ pub const Thing = struct {
 
     pub fn doAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
         return try self.doaction(self, map); // Why no synctactic sugar here?
+    }
+
+    //
+    // Log messages to the thing (if something was set)
+    //
+
+    pub fn addMessage(self: *Thing, msg: []const u8) void {
+        if (self.log) |log| {
+            log.add(msg);
+        }
+    }
+
+    pub fn getMessage(self: *Thing) []u8 {
+        if (self.log) |log| {
+            return log.get();
+        }
+        return ""; // TODO sure why not
+    }
+
+    pub fn clearMessage(self: *Thing) void {
+        if (self.log) |log| {
+            return log.clear();
+        }
     }
 
     // TODO: setX, setY, moveRelative, getX, getY, getXY, etc
