@@ -6,6 +6,7 @@ const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 const ThingAction = zrogue.ThingAction;
 const ActionType = zrogue.ActionType;
+const MapContents = zrogue.MapContents;
 const Pos = zrogue.Pos;
 const MessageLog = @import("message_log.zig").MessageLog;
 
@@ -18,14 +19,14 @@ pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
     // TODO: timer, action queue
     xy: Pos = Pos.init(-1, -1),
-    ch: u8 = ' ',
+    ch: MapContents = MapContents.floor, // Extremely provisional of course
     input: InputProvider = undefined,
     display: DisplayProvider = undefined,
     doaction: ActionHandler = undefined,
     log: ?*MessageLog = null,
 
     // msglog: monsters don't have it
-    pub fn config(x: Pos.Dim, y: Pos.Dim, ch: u8, input: InputProvider, display: DisplayProvider, action: ActionHandler, msglog: ?*MessageLog) Thing {
+    pub fn config(x: Pos.Dim, y: Pos.Dim, ch: MapContents, input: InputProvider, display: DisplayProvider, action: ActionHandler, msglog: ?*MessageLog) Thing {
         return Thing{
             .xy = Pos.init(x, y),
             .ch = ch,
@@ -44,7 +45,7 @@ pub const Thing = struct {
         self.xy = Pos.init(x, y);
     }
 
-    pub fn getChar(self: *Thing) u8 {
+    pub fn getChar(self: *Thing) MapContents {
         return self.ch;
     }
 
