@@ -22,6 +22,18 @@ pub const MAPSIZE_Y = DISPLAY_MINY - 2; // Minus message and stat rows
 pub const MESSAGE_MAXSIZE = DISPLAY_MINX;
 
 //
+// Visible thing at map space
+//
+// TODO: union with monster types and objects?
+//
+pub const MapContents = enum {
+    unknown,
+    wall,
+    floor,
+    player,
+};
+
+//
 // Map coordinates and width/height and directional deltas
 //
 pub const Pos = struct {

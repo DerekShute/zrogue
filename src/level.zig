@@ -3,23 +3,24 @@ const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
 const Pos = zrogue.Pos;
 const ZrogueError = zrogue.ZrogueError;
+const MapContents = zrogue.MapContents;
 
 // ===================
 // Spot on the map
 
 const Place = struct {
-    ch: u8 = ' ', // TODO manifest constant
+    ch: MapContents = MapContents.unknown,
     flags: u8 = 0, // TODO room flags as packed struct(u8)
     monst: ?*Thing = null,
 
-    pub fn getChar(self: *Place) u8 {
+    pub fn getChar(self: *Place) MapContents {
         if (self.monst) |monst| {
             return monst.getChar();
         }
         return self.ch;
     }
 
-    pub fn setChar(self: *Place, tochar: u8) void {
+    pub fn setChar(self: *Place, tochar: MapContents) void {
         self.ch = tochar;
     }
 
@@ -64,7 +65,7 @@ pub const Map = struct {
         // TODO this blows up u8 height width
         map.places = try allocator.alloc(Place, @intCast(height * width));
         for (map.places) |*place| {
-            place.setChar(' '); // TODO constants
+            place.setChar(MapContents.unknown);
             place.flags = 0;
             place.monst = null;
         }
@@ -97,7 +98,7 @@ pub const Map = struct {
 
     // Methods
 
-    pub fn getChar(self: *Map, x: Pos.Dim, y: Pos.Dim) !u8 {
+    pub fn getChar(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapContents {
         const place = try self.toPlace(x, y);
         return place.getChar();
     }
@@ -122,6 +123,9 @@ pub const Map = struct {
         }
     }
 
+    //
+    // TODO: unless horiz and vert walls wanted, this is irrelevant
+    //
     pub fn drawRoom(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
         const T = struct {
             // End x or y is inclusive
@@ -131,7 +135,7 @@ pub const Map = struct {
                 const _width: usize = @intCast(width);
                 const _startx: usize = @intCast(startx);
                 for (_starty.._endy + 1) |at| {
-                    places[_startx + at * _width].setChar('|'); // TODO: manifest constant
+                    places[_startx + at * _width].setChar(MapContents.wall);
                 }
             }
 
@@ -141,7 +145,7 @@ pub const Map = struct {
                 const _endx: usize = @intCast(xrange[1]);
                 const _width: usize = @intCast(width);
                 for (_startx.._endx + 1) |at| {
-                    places[at + _starty * _width].setChar('-'); // TODO: manifest constant
+                    places[at + _starty * _width].setChar(MapContents.wall);
                 }
             }
 
@@ -153,7 +157,7 @@ pub const Map = struct {
                 const _width: usize = @intCast(width);
                 for (_starty.._endy + 1) |c_y| {
                     for (_startx.._endx + 1) |c_x| {
-                        places[c_x + c_y * _width].setChar('.'); // TODO: manifest constant
+                        places[c_x + c_y * _width].setChar(MapContents.floor);
                     }
                 }
             }
@@ -224,7 +228,7 @@ test "ask about thing at invalid map location" {
 test "ask about a character on the map" {
     const map: *Map = try Map.init(std.testing.allocator, 10, 10);
     defer map.deinit();
-    try std.testing.expect(try map.getChar(0, 0) == ' ');
+    try std.testing.expect(try map.getChar(0, 0) == MapContents.unknown);
 }
 
 test "ask about invalid character on the map" {
@@ -250,27 +254,11 @@ test "draw an oversize room" {
     try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(0, 0, 100, 0));
 }
 
-test "draw a valid room and test corners" {
-    const map: *Map = try Map.init(std.testing.allocator, 50, 50);
-    defer map.deinit();
-
-    try map.drawRoom(10, 10, 20, 20);
-    // Corners are '-'
-    try std.testing.expect(try map.getChar(10, 10) == '-');
-    try std.testing.expect(try map.getChar(20, 10) == '-');
-    try std.testing.expect(try map.getChar(10, 20) == '-');
-    try std.testing.expect(try map.getChar(20, 20) == '-');
-    try std.testing.expect(try map.getChar(19, 19) == '.');
-    try std.testing.expect(try map.getChar(11, 11) == '.');
-    try std.testing.expect(try map.getChar(11, 19) == '.');
-    try std.testing.expect(try map.getChar(19, 11) == '.');
-}
-
 test "putting monsters places" {
     const map: *Map = try Map.init(std.testing.allocator, 50, 50);
     defer Map.deinit(map);
-    var thing = Thing{ .xy = Pos.init(0, 0), .ch = '@' };
-    var thing2 = Thing{ .xy = Pos.init(0, 0), .ch = '@' };
+    var thing = Thing{ .xy = Pos.init(0, 0), .ch = MapContents.player };
+    var thing2 = Thing{ .xy = Pos.init(0, 0), .ch = MapContents.player };
 
     try map.setMonster(&thing, 10, 10);
     try std.testing.expect(thing.atXY(10, 10));

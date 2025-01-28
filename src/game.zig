@@ -5,6 +5,7 @@ const zrogue = @import("zrogue.zig");
 const ThingAction = zrogue.ThingAction;
 const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
+const MapContents = zrogue.MapContents;
 
 const level = @import("level.zig");
 const Thing = @import("thing.zig").Thing;
@@ -21,7 +22,7 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
     var player = Thing.config(
         10,
         10,
-        '@',
+        MapContents.player,
         input,
         display,
         playerAction,
@@ -47,6 +48,19 @@ pub fn run(allocator: std.mem.Allocator, input: InputProvider, display: DisplayP
 }
 
 //
+// Convert map location to what it is displayed as
+//
+fn mapToChar(ch: MapContents) u8 {
+    const c: u8 = switch (ch) {
+        MapContents.unknown => ' ',
+        MapContents.floor => '.',
+        MapContents.wall => '#',
+        MapContents.player => '@',
+    };
+    return c;
+}
+
+//
 // Player action development here
 //
 
@@ -56,7 +70,7 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *level.Map) !void {
     const new_x = pos.getX() + do_action.pos.getX();
     const new_y = pos.getY() + do_action.pos.getY();
 
-    if (try map.getChar(new_x, new_y) == '.') { // TODO manifest constant
+    if (try map.getChar(new_x, new_y) == MapContents.floor) { // TODO manifest constant
         try map.removeMonster(pos.getX(), pos.getY());
         try map.setMonster(entity, new_x, new_y);
         // TODO reveal surroundings if dark and not blind
@@ -87,13 +101,10 @@ fn playerAction(self: *Thing, map: *level.Map) !ThingAction {
     // Convert map to display: it shifts down one row to make room for
     // messages
     //
-    // TODO: the actual character is display-dependent.  All this should use constants
-    // to describe what the place is:  floor, door, wall/solid, etc.
-    //
     for (0..zrogue.MAPSIZE_Y) |y| {
         for (0..zrogue.MAPSIZE_X) |x| {
-            const c = try map.getChar(@intCast(x), @intCast(y));
-            try self.display.mvaddch(@intCast(x), @intCast(y + 1), c);
+            const ch = mapToChar(try map.getChar(@intCast(x), @intCast(y)));
+            try self.display.mvaddch(@intCast(x), @intCast(y + 1), ch);
         }
     }
 
