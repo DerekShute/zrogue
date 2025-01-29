@@ -111,7 +111,7 @@ pub const Map = struct {
     pub fn setMonster(self: *Map, monst: *Thing, x: Pos.Dim, y: Pos.Dim) !void {
         const place = try self.toPlace(x, y);
         try place.setMonst(monst);
-        monst.setXY(x, y); // TODO is this the best way?
+        monst.setXY(x, y);
     }
 
     pub fn removeMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !void {
