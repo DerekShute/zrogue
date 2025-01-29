@@ -1,6 +1,4 @@
 const std = @import("std");
-const DisplayProvider = @import("display.zig").DisplayProvider;
-const InputProvider = @import("input.zig").InputProvider;
 const Map = @import("level.zig").Map;
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
@@ -20,18 +18,14 @@ pub const Thing = struct {
     // TODO: timer, action queue
     xy: Pos = Pos.init(-1, -1),
     ch: MapContents = MapContents.floor, // Extremely provisional of course
-    input: InputProvider = undefined,
-    display: DisplayProvider = undefined,
     doaction: ActionHandler = undefined,
     log: ?*MessageLog = null,
 
     // msglog: monsters don't have it
-    pub fn config(x: Pos.Dim, y: Pos.Dim, ch: MapContents, input: InputProvider, display: DisplayProvider, action: ActionHandler, msglog: ?*MessageLog) Thing {
+    pub fn config(x: Pos.Dim, y: Pos.Dim, ch: MapContents, action: ActionHandler, msglog: ?*MessageLog) Thing {
         return Thing{
             .xy = Pos.init(x, y),
             .ch = ch,
-            .input = input,
-            .display = display,
             .doaction = action,
             .log = msglog,
         };

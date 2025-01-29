@@ -6,6 +6,8 @@ const game = @import("game.zig");
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 
+const Player = @import("player.zig").Player;
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -24,7 +26,9 @@ pub fn main() !void {
     const input = providers.i.provider();
     defer display.endwin();
 
-    try game.run(allocator, input, display);
+    const player = try Player.init(allocator, input, display);
+    defer player.deinit();
+    try game.run(allocator, player.toThing());
 }
 
 //
@@ -48,7 +52,9 @@ test "run the game" {
     var mi = MockInputProvider.init(.{ .keypress = 'q' });
     const input = mi.provider();
 
-    try game.run(allocator, input, display);
+    const player = try Player.init(allocator, input, display);
+    defer player.deinit();
+    try game.run(allocator, player.toThing());
 
     // TODO: must be a way to test for all leaks (of display still init, etc.)
 }
