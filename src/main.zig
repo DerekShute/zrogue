@@ -40,6 +40,7 @@ test "run the game" {
     const allocator = gpa.allocator();
     // TODO: use testing allocator
 
+    const Command = zrogue.Command;
     const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
     const MockInputProvider = @import("input.zig").MockInputProvider;
 
@@ -49,7 +50,7 @@ test "run the game" {
     defer display.endwin();
 
     // This is instrumented to quit
-    var mi = MockInputProvider.init(.{ .keypress = 'q' });
+    var mi = MockInputProvider.init(.{ .command = Command.quit });
     const input = mi.provider();
 
     const player = try Player.init(allocator, input, display);

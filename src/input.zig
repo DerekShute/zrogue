@@ -1,5 +1,11 @@
 const std = @import("std");
-const ZrogueError = @import("zrogue.zig").ZrogueError;
+const zrogue = @import("zrogue.zig");
+const ZrogueError = zrogue.ZrogueError;
+const Command = zrogue.Command;
+
+//
+// Input provider - pull commands out of the player/user
+//
 
 pub const InputProvider = struct {
     // Type-erased pointer to the display implementation
@@ -9,15 +15,15 @@ pub const InputProvider = struct {
     // VTable for implementation to manage
     pub const InputVTable = struct {
         // methods
-        getch: *const fn (ctx: *anyopaque) ZrogueError!usize,
+        getCommand: *const fn (ctx: *anyopaque) ZrogueError!Command,
     };
 
     //
     // Methods
     //
 
-    pub inline fn getch(self: InputProvider) ZrogueError!usize {
-        return self.vtable.getch(self.ptr);
+    pub inline fn getCommand(self: InputProvider) ZrogueError!Command {
+        return self.vtable.getCommand(self.ptr);
     }
 };
 
@@ -26,16 +32,16 @@ pub const InputProvider = struct {
 //
 
 pub const MockInputProvider = struct {
-    keypress: u8, // TODO slice/array with index
+    command: Command, // TODO slice/array with index
 
     pub const MockInputConfig = struct {
-        keypress: u8,
+        command: Command,
         // TODO cursor
     };
 
     pub fn init(config: MockInputConfig) MockInputProvider {
         return MockInputProvider{
-            .keypress = config.keypress,
+            .command = config.command,
         };
     }
 
@@ -43,7 +49,7 @@ pub const MockInputProvider = struct {
         return .{
             .ptr = self,
             .vtable = &.{
-                .getch = getch,
+                .getCommand = getCommand,
             },
         };
     }
@@ -52,9 +58,9 @@ pub const MockInputProvider = struct {
     // Methods
     //
 
-    fn getch(ptr: *anyopaque) ZrogueError!usize {
+    fn getCommand(ptr: *anyopaque) ZrogueError!Command {
         const self: *MockInputProvider = @ptrCast(@alignCast(ptr));
-        return @as(usize, self.keypress);
+        return self.command;
         // TODO: error if no more keypresses to provide
     }
 }; // MockInputProvider
@@ -64,10 +70,10 @@ pub const MockInputProvider = struct {
 //
 
 test "Basic use of mock input provider" {
-    var p = MockInputProvider.init(.{ .keypress = '*' });
+    var p = MockInputProvider.init(.{ .command = Command.quit });
     var i = p.provider();
 
-    try std.testing.expect(try i.getch() == '*');
+    try std.testing.expect(try i.getCommand() == Command.quit);
 }
 
 // EOF
