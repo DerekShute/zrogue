@@ -32,16 +32,17 @@ pub const InputProvider = struct {
 //
 
 pub const MockInputProvider = struct {
-    command: Command, // TODO slice/array with index
+    commandlist: []Command,
+    index: u16 = 0,
 
     pub const MockInputConfig = struct {
-        command: Command,
+        commands: []Command,
         // TODO cursor
     };
 
     pub fn init(config: MockInputConfig) MockInputProvider {
         return MockInputProvider{
-            .command = config.command,
+            .commandlist = config.commands,
         };
     }
 
@@ -60,7 +61,11 @@ pub const MockInputProvider = struct {
 
     fn getCommand(ptr: *anyopaque) ZrogueError!Command {
         const self: *MockInputProvider = @ptrCast(@alignCast(ptr));
-        return self.command;
+        const i = self.index;
+        if (i >= self.commandlist.len)
+            return ZrogueError.IndexOverflow;
+        self.index = self.index + 1;
+        return self.commandlist[i];
         // TODO: error if no more keypresses to provide
     }
 }; // MockInputProvider
@@ -70,10 +75,16 @@ pub const MockInputProvider = struct {
 //
 
 test "Basic use of mock input provider" {
-    var p = MockInputProvider.init(.{ .command = Command.quit });
+    var commandlist = [_]Command{
+        Command.goWest,
+        Command.quit,
+    };
+    var p = MockInputProvider.init(.{ .commands = &commandlist });
     var i = p.provider();
 
+    try std.testing.expect(try i.getCommand() == Command.goWest);
     try std.testing.expect(try i.getCommand() == Command.quit);
+    try std.testing.expectError(ZrogueError.IndexOverflow, i.getCommand());
 }
 
 // EOF
