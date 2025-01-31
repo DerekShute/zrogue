@@ -166,6 +166,7 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) ZrogueError!Curses
     }
 
     // Instantly process events, and activate arrow keys
+    // TODO: mouse events
     _ = curses.raw();
     _ = curses.noecho();
     _ = curses.keypad(global_win, true);

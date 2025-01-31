@@ -36,10 +36,7 @@ pub fn main() !void {
 //
 
 test "run the game" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-    // TODO: use testing allocator
-
+    const allocator = std.testing.allocator;
     const Command = zrogue.Command;
     const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
     const MockInputProvider = @import("input.zig").MockInputProvider;
@@ -49,8 +46,17 @@ test "run the game" {
     const display = md.provider();
     defer display.endwin();
 
-    // This is instrumented to quit
-    var mi = MockInputProvider.init(.{ .command = Command.quit });
+    var commandlist = [_]Command{
+        Command.goWest,
+        Command.goEast,
+        Command.goNorth,
+        Command.goSouth,
+        Command.ascend,
+        Command.descend,
+        Command.wait,
+        Command.quit,
+    };
+    var mi = MockInputProvider.init(.{ .commands = &commandlist });
     const input = mi.provider();
 
     const player = try Player.init(allocator, input, display);

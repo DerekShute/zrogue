@@ -89,6 +89,7 @@ pub const ZrogueError = error{
     DisplayTooSmall, // Curses
     ImplementationError, // Curses is annoying at least for now
     MapOverFlow,
+    IndexOverflow,
 };
 
 //

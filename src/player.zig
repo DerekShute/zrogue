@@ -1,13 +1,14 @@
 const std = @import("std");
-const zrogue = @import("zrogue.zig");
-const ZrogueError = zrogue.ZrogueError;
 const DisplayProvider = @import("display.zig").DisplayProvider;
 const InputProvider = @import("input.zig").InputProvider;
 const Map = @import("level.zig").Map;
-const ThingAction = zrogue.ThingAction;
+const zrogue = @import("zrogue.zig");
+const ZrogueError = zrogue.ZrogueError;
 const ActionType = zrogue.ActionType;
-const Pos = zrogue.Pos;
+const Command = zrogue.Command;
 const MapContents = zrogue.MapContents;
+const Pos = zrogue.Pos;
+const ThingAction = zrogue.ThingAction;
 const Thing = @import("thing.zig").Thing;
 const MessageLog = @import("message_log.zig").MessageLog;
 
@@ -142,12 +143,11 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
 
 const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
 const MockInputProvider = @import("input.zig").MockInputProvider;
-const Command = zrogue.Command;
 
 test "create a player" {
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
     const display = md.provider();
-    var mi = MockInputProvider.init(.{ .command = Command.quit });
+    var mi = MockInputProvider.init(.{ .commands = &.{} });
     const input = mi.provider();
 
     const player = try Player.init(std.testing.allocator, input, display);
@@ -158,7 +158,7 @@ test "fail to create a player" { // First allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
     const display = md.provider();
-    var mi = MockInputProvider.init(.{ .command = Command.quit });
+    var mi = MockInputProvider.init(.{ .commands = &.{} });
     const input = mi.provider();
 
     try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), input, display));
@@ -168,7 +168,7 @@ test "fail to fully create a player" { // right now there are two allocations
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
     const display = md.provider();
-    var mi = MockInputProvider.init(.{ .command = Command.quit });
+    var mi = MockInputProvider.init(.{ .commands = &.{} });
     const input = mi.provider();
 
     try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), input, display));
