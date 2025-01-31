@@ -13,8 +13,15 @@ const Thing = @import("thing.zig").Thing;
 const MessageLog = @import("message_log.zig").MessageLog;
 
 // ===================
-// Player:
-
+//
+// Player: Player abstraction
+//
+// DOT Player -> Thing [label="implements"]
+// DOT Player -> InputProvider [label="receives"]
+// DOT Player -> DisplayProvider [label="receives"]
+// DOT Player -> std_mem_Allocator [label="receives"]
+// DOT Player -> MessageLog [label="contains"]
+//
 pub const Player = struct {
     thing: Thing, // NOTE: Must be first, for pointer coercion from *Thing
     allocator: std.mem.Allocator,

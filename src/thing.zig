@@ -8,11 +8,15 @@ const MapContents = zrogue.MapContents;
 const Pos = zrogue.Pos;
 const MessageLog = @import("message_log.zig").MessageLog;
 
-// ===================
-// Structure for monsters, player, and objects
-
 const ActionHandler = *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction;
 
+// ===================
+//
+// Structure for monsters, player, and objects
+//
+// DOT Thing -> MessageLog [label="receives"]
+// DOT Thing -> ActionHandler [label="receives"]
+//
 pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
     // TODO: timer, action queue

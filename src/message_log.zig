@@ -1,8 +1,11 @@
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
 
+// ===================
 //
 // Record of messages sent to an entity (presumably a player)
+//
+// DOT MessageLog -> std_mem_Allocator [label="receives"]
 //
 // TODO: Right now, depth of one
 //
@@ -45,7 +48,9 @@ pub const MessageLog = struct {
     }
 };
 
-// ==================================================
+//
+// Unit Tests
+//
 
 test "allocate and add messages" {
     const log: *MessageLog = try MessageLog.init(std.testing.allocator);

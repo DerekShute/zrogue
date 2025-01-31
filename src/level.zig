@@ -6,7 +6,10 @@ const ZrogueError = zrogue.ZrogueError;
 const MapContents = zrogue.MapContents;
 
 // ===================
+//
 // Spot on the map
+//
+// DOT level_Place -> Thing [label="refers"]
 
 const Place = struct {
     ch: MapContents = MapContents.unknown,
@@ -44,6 +47,13 @@ const Place = struct {
     // TODO: getFlags(), setFlags()
 };
 
+// ===================
+//
+// Map (global)
+//
+// DOT level_Map -> level_Place [label="contains"]
+// DOT level_Map -> std_mem_Allocator [label="receives"]
+//
 pub const Map = struct {
     allocator: std.mem.Allocator,
     places: []Place,

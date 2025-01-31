@@ -3,10 +3,12 @@ const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 const Command = zrogue.Command;
 
+// ===================
 //
 // Input provider - pull commands out of the player/user
 //
-
+// DOT InputProvider -> InputVTable
+//
 pub const InputProvider = struct {
     // Type-erased pointer to the display implementation
     ptr: *anyopaque,
@@ -30,6 +32,9 @@ pub const InputProvider = struct {
 //
 // MockInputProvider for testing purposes
 //
+
+// DOT MockInputProvider -> DisplayProvider [label="implements"]
+// DOT MockInputConfig -> MockInputProvider [label="configures"]
 
 pub const MockInputProvider = struct {
     commandlist: []Command,

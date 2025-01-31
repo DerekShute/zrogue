@@ -1,6 +1,12 @@
 const std = @import("std");
 const ZrogueError = @import("zrogue.zig").ZrogueError;
 
+// ===================
+//
+// Provides the display interface
+//
+// DOT DisplayProvider -> DisplayVTable
+//
 pub const DisplayProvider = struct {
 
     // Type-erased pointer to the display implementation
@@ -51,6 +57,9 @@ pub const DisplayProvider = struct {
 //
 // MockDisplayProvider for testing purposes
 //
+
+// DOT MockDisplayProvider -> DisplayProvider [label="implements"]
+// DOT MockDisplayConfig -> MockDisplayProvider [label="configures"]
 
 pub const MockDisplayProvider = struct {
     initialized: bool,

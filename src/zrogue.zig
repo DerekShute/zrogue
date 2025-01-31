@@ -119,7 +119,7 @@ pub const ThingAction = struct {
 };
 
 //
-// UNIT TESTS
+// Unit Tests
 //
 
 test "create a Pos and use its operations" {
