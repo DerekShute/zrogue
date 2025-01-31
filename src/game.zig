@@ -29,6 +29,8 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
         switch (action.type) {
             ActionType.QuitAction => continue, // TODO: 'quitting' message
             ActionType.BumpAction => try bumpAction(player_thing, &action, map),
+            ActionType.AscendAction => try ascendAction(player_thing, &action, map),
+            ActionType.DescendAction => try descendAction(player_thing, &action, map),
             ActionType.NoAction => continue,
         }
     }
@@ -37,6 +39,12 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
 //
 // Action development here
 //
+
+fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+    _ = do_action;
+    _ = map;
+    entity.addMessage("No stairs here!");
+}
 
 fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
     const pos = entity.getPos();
@@ -53,6 +61,12 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
     } else {
         entity.addMessage("Ouch!");
     }
+}
+
+fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+    _ = do_action;
+    _ = map;
+    entity.addMessage("No stairs here!");
 }
 
 // EOF

@@ -22,6 +22,20 @@ pub const MAPSIZE_Y = DISPLAY_MINY - 2; // Minus message and stat rows
 pub const MESSAGE_MAXSIZE = DISPLAY_MINX;
 
 //
+// Input abstraction
+//
+pub const Command = enum {
+    wait,
+    quit,
+    goWest, // 'up'/'down' confusing w/r/t stairs
+    goEast,
+    goNorth,
+    goSouth,
+    ascend,
+    descend,
+};
+
+//
 // Visible thing at map space
 //
 // TODO: union with monster types and objects?
@@ -85,8 +99,9 @@ pub const ZrogueError = error{
 pub const ActionType = enum {
     NoAction,
     QuitAction,
+    AscendAction,
     BumpAction, // Directional
-
+    DescendAction,
 };
 
 pub const ThingAction = struct {

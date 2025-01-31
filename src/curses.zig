@@ -1,7 +1,8 @@
 const std = @import("std");
-const display = @import("display.zig");
-const ZrogueError = @import("zrogue.zig").ZrogueError;
-const DisplayProvider = display.DisplayProvider;
+const zrogue = @import("zrogue.zig");
+const ZrogueError = zrogue.ZrogueError;
+const Command = zrogue.Command;
+const DisplayProvider = @import("display.zig").DisplayProvider;
 const InputProvider = @import("input.zig").InputProvider;
 const curses = @cImport(@cInclude("curses.h"));
 
@@ -118,7 +119,7 @@ pub const CursesInputProvider = struct {
         return .{
             .ptr = self,
             .vtable = &.{
-                .getch = getch,
+                .getCommand = getCommand,
             },
         };
     }
@@ -127,9 +128,22 @@ pub const CursesInputProvider = struct {
     // Methods
     //
 
-    fn getch(ptr: *anyopaque) ZrogueError!usize {
+    // abstract ncurses code to internal 'command'.  Note that this is unhelpful for selection of items using a-z etc.
+    //
+    // TODO: resize 'key'
+    fn getCommand(ptr: *anyopaque) ZrogueError!Command {
         _ = ptr;
-        return @intCast(try checkError(curses.wgetch(global_win)));
+        const cmd = switch (try checkError(curses.getch())) {
+            curses.KEY_LEFT => Command.goWest,
+            curses.KEY_RIGHT => Command.goEast,
+            curses.KEY_UP => Command.goNorth,
+            curses.KEY_DOWN => Command.goSouth,
+            '>' => Command.descend,
+            '<' => Command.ascend,
+            'q' => Command.quit,
+            else => Command.wait,
+        };
+        return cmd;
     }
 };
 
@@ -150,6 +164,11 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) ZrogueError!Curses
     if (res) |res_val| {
         global_win = res_val;
     }
+
+    // Instantly process events, and activate arrow keys
+    _ = curses.raw();
+    _ = curses.noecho();
+    _ = curses.keypad(global_win, true);
 
     if (try checkError(curses.getmaxx(global_win)) < minx) {
         return ZrogueError.DisplayTooSmall;

@@ -59,8 +59,8 @@ pub const Player = struct {
         try self.display.mvaddch(x, y, ch);
     }
 
-    inline fn getch(self: *Player) ZrogueError!usize {
-        return self.input.getch();
+    inline fn getCommand(self: *Player) ZrogueError!Command {
+        return self.input.getCommand();
     }
 
     inline fn addMessage(self: *Player, msg: []const u8) void {
@@ -121,13 +121,16 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     }
 
     try self.refresh();
-    const ch = try self.getch();
 
-    switch (ch) {
-        'q' => ret = ThingAction.init(ActionType.QuitAction),
-        'l' => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(-1, 0)),
-        'r' => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(1, 0)),
-        else => try self.mvaddch(0, 0, @intCast(ch)),
+    switch (try self.getCommand()) {
+        Command.quit => ret = ThingAction.init(ActionType.QuitAction),
+        Command.goWest => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(-1, 0)),
+        Command.goEast => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(1, 0)),
+        Command.goNorth => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(0, -1)),
+        Command.goSouth => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(0, 1)),
+        Command.ascend => ret = ThingAction.init(ActionType.AscendAction),
+        Command.descend => ret = ThingAction.init(ActionType.DescendAction),
+        else => ret = ThingAction.init(ActionType.NoAction),
     }
 
     return ret;
@@ -139,11 +142,12 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
 
 const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
 const MockInputProvider = @import("input.zig").MockInputProvider;
+const Command = zrogue.Command;
 
 test "create a player" {
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
     const display = md.provider();
-    var mi = MockInputProvider.init(.{ .keypress = 'q' });
+    var mi = MockInputProvider.init(.{ .command = Command.quit });
     const input = mi.provider();
 
     const player = try Player.init(std.testing.allocator, input, display);
@@ -154,7 +158,7 @@ test "fail to create a player" { // First allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
     const display = md.provider();
-    var mi = MockInputProvider.init(.{ .keypress = 'q' });
+    var mi = MockInputProvider.init(.{ .command = Command.quit });
     const input = mi.provider();
 
     try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), input, display));
@@ -164,7 +168,7 @@ test "fail to fully create a player" { // right now there are two allocations
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
     const display = md.provider();
-    var mi = MockInputProvider.init(.{ .keypress = 'q' });
+    var mi = MockInputProvider.init(.{ .command = Command.quit });
     const input = mi.provider();
 
     try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), input, display));
