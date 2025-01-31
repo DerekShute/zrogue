@@ -13,7 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Test
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - uses: tlylt/install-graphviz@v1
+
       - uses: mlugg/setup-zig@v1
 
       - name: Build
@@ -21,5 +24,13 @@ jobs:
 
       - name: Test
         run: zig build test
+
+      - name: make visualization
+        run: make
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visualization
+          path: visualize.svg
 
 # EOF

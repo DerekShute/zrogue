@@ -8,6 +8,10 @@ const ZrogueError = zrogue.ZrogueError;
 
 const Player = @import("player.zig").Player;
 
+//
+// Main entrypoint
+//
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
