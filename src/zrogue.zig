@@ -45,6 +45,14 @@ pub const MapContents = enum {
     wall,
     floor,
     player,
+
+    pub fn feature(self: MapContents) bool {
+        return (self == MapContents.wall); // TODO door, stairs
+    }
+
+    pub fn passable(self: MapContents) bool {
+        return (self == MapContents.floor); // TODO door, stairs
+    }
 };
 
 //
@@ -77,6 +85,13 @@ pub const Pos = struct {
 
     pub inline fn eql(self: Pos, other: Pos) bool {
         return ((self.getX() == other.getX()) and (self.getY() == other.getY()));
+    }
+
+    // Chebyshev distance
+    pub inline fn distance(pos1: Pos, pos2: Pos) Dim {
+        const maxx = @abs(pos1.getX() - pos2.getX());
+        const maxy = @abs(pos1.getY() - pos2.getY());
+        return if (maxx > maxy) @intCast(maxx) else @intCast(maxy);
     }
 };
 
@@ -125,12 +140,21 @@ pub const ThingAction = struct {
 test "create a Pos and use its operations" {
     const a = Pos.init(5, 5);
     const b: Pos.Dim = 5;
+    const expect = std.testing.expect;
 
-    try std.testing.expect(a.getY() == b);
-    try std.testing.expect(a.getX() == b);
-    try std.testing.expect(a.quant() == 25);
-    try std.testing.expect(a.isDim());
-    try std.testing.expect(a.eql(Pos.init(5, 5)));
+    try expect(a.getY() == b);
+    try expect(a.getX() == b);
+    try expect(a.quant() == 25);
+    try expect(a.isDim());
+    try expect(a.eql(Pos.init(5, 5)));
+
+    // Distance calculations
+
+    try expect(Pos.distance(Pos.init(1, 1), Pos.init(2, 2)) == 1);
+    try expect(Pos.distance(Pos.init(1, 1), Pos.init(3, 3)) == 2);
+    try expect(Pos.distance(Pos.init(1, 1), Pos.init(0, 0)) == 1);
+    try expect(Pos.distance(Pos.init(1, 1), Pos.init(1, 1)) == 0);
+    try expect(Pos.distance(Pos.init(-1, -1), Pos.init(0, 0)) == 1);
 }
 
 // EOF

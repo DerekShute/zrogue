@@ -13,14 +13,33 @@ const MapContents = zrogue.MapContents;
 
 const Place = struct {
     ch: MapContents = MapContents.unknown,
-    flags: u8 = 0, // TODO room flags as packed struct(u8)
-    monst: ?*Thing = null,
+    flags: packed struct {
+        lit: bool,
+        known: bool,
+    },
+    monst: ?*Thing,
+
+    // Constructor, probably not idiomatic
+
+    pub fn config(self: *Place) void {
+        self.ch = MapContents.unknown;
+        self.flags = .{ .lit = false, .known = false };
+        self.monst = null;
+    }
+
+    //
+    // Methods
+    //
 
     pub fn getChar(self: *Place) MapContents {
         if (self.monst) |monst| {
             return monst.getChar();
         }
         return self.ch;
+    }
+
+    pub fn passable(self: *Place) bool {
+        return self.ch.passable();
     }
 
     pub fn setChar(self: *Place, tochar: MapContents) void {
@@ -44,7 +63,17 @@ const Place = struct {
         }
     }
 
-    // TODO: getFlags(), setFlags()
+    pub fn isLit(self: *Place) bool {
+        return self.flags.lit;
+    }
+
+    pub fn isKnown(self: *Place) bool {
+        return self.flags.known;
+    }
+
+    pub fn setKnown(self: *Place, val: bool) void {
+        self.flags.known = val;
+    }
 };
 
 // ===================
@@ -75,9 +104,7 @@ pub const Map = struct {
         // TODO this blows up u8 height width
         map.places = try allocator.alloc(Place, @intCast(height * width));
         for (map.places) |*place| {
-            place.setChar(MapContents.unknown);
-            place.flags = 0;
-            place.monst = null;
+            place.config();
         }
 
         return map;
@@ -113,6 +140,11 @@ pub const Map = struct {
         return place.getChar();
     }
 
+    pub fn passable(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
+        const place = try self.toPlace(x, y);
+        return place.passable();
+    }
+
     pub fn getMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !?*Thing {
         const place = try self.toPlace(x, y);
         return place.getMonst();
@@ -130,6 +162,34 @@ pub const Map = struct {
         if (monst) |m| {
             try place.removeMonst();
             m.setXY(-1, -1);
+        }
+    }
+
+    pub fn isLit(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
+        const place = try self.toPlace(x, y);
+        return place.isLit();
+    }
+
+    pub fn isKnown(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
+        const place = try self.toPlace(x, y);
+        return place.isKnown();
+    }
+
+    pub fn setKnown(self: *Map, x: Pos.Dim, y: Pos.Dim, val: bool) !void {
+        const place = try self.toPlace(x, y);
+        place.setKnown(val);
+    }
+
+    pub fn setRegionKnown(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
+        const _minx: usize = @intCast(x);
+        const _miny: usize = @intCast(y);
+        const _maxx: usize = @intCast(maxx + 1);
+        const _maxy: usize = @intCast(maxy + 1);
+        for (_miny.._maxy) |_y| {
+            for (_minx.._maxx) |_x| {
+                const place = try self.toPlace(@intCast(_x), @intCast(_y));
+                place.setKnown(true);
+            }
         }
     }
 
@@ -195,12 +255,30 @@ pub const Map = struct {
 };
 
 //
-// Plethora of tests
+// Unit Tests
 //
 
-test "allocate and free" {
+test "smoke test" {
     const map: *Map = try Map.init(std.testing.allocator, 100, 100);
     defer map.deinit();
+
+    try map.drawRoom(10, 10, 20, 20);
+
+    try std.testing.expect(try map.isLit(15, 15) == false);
+    try std.testing.expect(try map.isKnown(15, 15) == false);
+    try std.testing.expect(try map.getChar(0, 0) == MapContents.unknown);
+    try std.testing.expect(try map.getChar(10, 10) == MapContents.wall);
+
+    try map.setKnown(15, 15, true);
+    try std.testing.expect(try map.isKnown(15, 15) == true);
+    try map.setKnown(15, 15, false);
+    try std.testing.expect(try map.isKnown(15, 15) == false);
+
+    try map.setRegionKnown(12, 12, 15, 15);
+    try std.testing.expect(try map.isKnown(12, 12) == true);
+    try std.testing.expect(try map.isKnown(15, 15) == true);
+    try std.testing.expect(try map.isKnown(16, 16) == false);
+    try std.testing.expect(try map.isKnown(11, 11) == false);
 }
 
 test "fails to allocate any of map" { // first allocation attempt
@@ -233,12 +311,6 @@ test "ask about thing at invalid map location" {
     defer map.deinit();
     try std.testing.expectError(ZrogueError.MapOverFlow, map.getMonster(0, 20));
     try std.testing.expectError(ZrogueError.MapOverFlow, map.getMonster(20, 0));
-}
-
-test "ask about a character on the map" {
-    const map: *Map = try Map.init(std.testing.allocator, 10, 10);
-    defer map.deinit();
-    try std.testing.expect(try map.getChar(0, 0) == MapContents.unknown);
 }
 
 test "ask about invalid character on the map" {
