@@ -82,6 +82,10 @@ pub const Player = struct {
     inline fn clearMessage(self: *Player) void {
         return self.log.clear();
     }
+
+    inline fn getPos(self: *Player) Pos {
+        return self.thing.getPos();
+    }
 };
 
 //
@@ -121,10 +125,24 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     // Convert map to display: it shifts down one row to make room for
     // messages
     //
+    // If known and wall/door/stairs (feature), display it.
+    // If blind, don't display it
+    // If lit and in current room (line of sight simplification), display it.
+    // If known and close, display it
+    //
+    // TODO probably a better way to do this
+    //
     for (0..zrogue.MAPSIZE_Y) |y| {
         for (0..zrogue.MAPSIZE_X) |x| {
-            const ch = mapToChar(try map.getChar(@intCast(x), @intCast(y)));
-            try self.mvaddch(@intCast(x), @intCast(y + 1), ch);
+            const _x: Pos.Dim = @intCast(x);
+            const _y: Pos.Dim = @intCast(y);
+            var mc = try map.getChar(_x, _y);
+            if ((mc.feature()) and (!try map.isKnown(_x, _y))) {
+                mc = MapContents.unknown;
+            } else if (Pos.distance(Pos.init(_x, _y), self.getPos()) > 1) {
+                mc = MapContents.unknown;
+            }
+            try self.mvaddch(@intCast(_x), @intCast(_y + 1), mapToChar(mc));
         }
     }
 

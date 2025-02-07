@@ -20,6 +20,7 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
     try map.setMonster(player_thing, 10, 10);
 
     try map.drawRoom(5, 5, 15, 15);
+
     player_thing.addMessage("Welcome to the dungeon!");
 
     // TODO: master copy of the map versus player copy
@@ -53,11 +54,13 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
     const new_x = pos.getX() + do_action.pos.getX();
     const new_y = pos.getY() + do_action.pos.getY();
 
-    // TODO: 'passable'
-    if (try map.getChar(new_x, new_y) == MapContents.floor) {
+    if (try map.passable(new_x, new_y)) {
         try map.removeMonster(pos.getX(), pos.getY());
         try map.setMonster(entity, new_x, new_y);
-        // TODO reveal surroundings if dark and not blind
+
+        // TODO map edges
+        // TODO if not blind
+        try map.setRegionKnown(new_x - 1, new_y - 1, new_x + 1, new_y + 1);
     } else {
         entity.addMessage("Ouch!");
     }
