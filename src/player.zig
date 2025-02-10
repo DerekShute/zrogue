@@ -132,13 +132,17 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     //
     // TODO probably a better way to do this
     //
+    // TODO needs unit test of this, one bug found
+    //
     for (0..zrogue.MAPSIZE_Y) |y| {
         for (0..zrogue.MAPSIZE_X) |x| {
             const _x: Pos.Dim = @intCast(x);
             const _y: Pos.Dim = @intCast(y);
             var mc = try map.getChar(_x, _y);
-            if ((mc.feature()) and (!try map.isKnown(_x, _y))) {
-                mc = MapContents.unknown;
+            if (mc.feature()) {
+                if (!try map.isKnown(_x, _y)) {
+                    mc = MapContents.unknown;
+                }
             } else if (Pos.distance(Pos.init(_x, _y), self.getPos()) > 1) {
                 mc = MapContents.unknown;
             }
