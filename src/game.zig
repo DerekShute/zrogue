@@ -14,7 +14,7 @@ const Thing = @import("thing.zig").Thing;
 //
 
 pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
-    const map = try Map.init(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X);
+    const map = try Map.config(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X);
     defer map.deinit();
 
     try map.setMonster(player_thing, 10, 10);
@@ -41,13 +41,13 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
 // Action development here
 //
 
-fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+fn ascendAction(entity: *Thing, do_action: *ThingAction, map: Map) !void {
     _ = do_action;
     _ = map;
     entity.addMessage("No stairs here!");
 }
 
-fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+fn bumpAction(entity: *Thing, do_action: *ThingAction, map: Map) !void {
     const pos = entity.getPos();
 
     // TODO Law of Demeter here
@@ -66,7 +66,7 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
     }
 }
 
-fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+fn descendAction(entity: *Thing, do_action: *ThingAction, map: Map) !void {
     _ = do_action;
     _ = map;
     entity.addMessage("No stairs here!");
