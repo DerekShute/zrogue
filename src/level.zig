@@ -104,7 +104,7 @@ pub const Map = struct {
         };
     }
 
-    pub fn deinit(self: Map) void {
+    pub fn deinit(self: *Map) void {
         const allocator = self.allocator;
         if (self.places.len != 0) {
             allocator.free(self.places);
@@ -113,7 +113,7 @@ pub const Map = struct {
 
     // Utility
 
-    fn toPlace(self: Map, x: Pos.Dim, y: Pos.Dim) ZrogueError!*Place {
+    fn toPlace(self: *Map, x: Pos.Dim, y: Pos.Dim) ZrogueError!*Place {
         // TODO: sign check
         if (x >= self.width)
             return ZrogueError.MapOverFlow;
@@ -126,28 +126,28 @@ pub const Map = struct {
 
     // Methods
 
-    pub fn getChar(self: Map, x: Pos.Dim, y: Pos.Dim) !MapContents {
+    pub fn getChar(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapContents {
         const place = try self.toPlace(x, y);
         return place.getChar();
     }
 
-    pub fn passable(self: Map, x: Pos.Dim, y: Pos.Dim) !bool {
+    pub fn passable(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
         const place = try self.toPlace(x, y);
         return place.passable();
     }
 
-    pub fn getMonster(self: Map, x: Pos.Dim, y: Pos.Dim) !?*Thing {
+    pub fn getMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !?*Thing {
         const place = try self.toPlace(x, y);
         return place.getMonst();
     }
 
-    pub fn setMonster(self: Map, monst: *Thing, x: Pos.Dim, y: Pos.Dim) !void {
+    pub fn setMonster(self: *Map, monst: *Thing, x: Pos.Dim, y: Pos.Dim) !void {
         const place = try self.toPlace(x, y);
         try place.setMonst(monst);
         monst.setXY(x, y);
     }
 
-    pub fn removeMonster(self: Map, x: Pos.Dim, y: Pos.Dim) !void {
+    pub fn removeMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !void {
         const place = try self.toPlace(x, y);
         const monst = place.getMonst();
         if (monst) |m| {
@@ -156,22 +156,22 @@ pub const Map = struct {
         }
     }
 
-    pub fn isLit(self: Map, x: Pos.Dim, y: Pos.Dim) !bool {
+    pub fn isLit(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
         const place = try self.toPlace(x, y);
         return place.isLit();
     }
 
-    pub fn isKnown(self: Map, x: Pos.Dim, y: Pos.Dim) !bool {
+    pub fn isKnown(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
         const place = try self.toPlace(x, y);
         return place.isKnown();
     }
 
-    pub fn setKnown(self: Map, x: Pos.Dim, y: Pos.Dim, val: bool) !void {
+    pub fn setKnown(self: *Map, x: Pos.Dim, y: Pos.Dim, val: bool) !void {
         const place = try self.toPlace(x, y);
         place.setKnown(val);
     }
 
-    pub fn setRegionKnown(self: Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
+    pub fn setRegionKnown(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
         const _minx: usize = @intCast(x);
         const _miny: usize = @intCast(y);
         const _maxx: usize = @intCast(maxx + 1);
@@ -187,7 +187,7 @@ pub const Map = struct {
     //
     // TODO: unless horiz and vert walls wanted, this is irrelevant
     //
-    pub fn drawRoom(self: Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
+    pub fn drawRoom(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
         const T = struct {
             // End x or y is inclusive
             fn vert(places: []Place, width: Pos.Dim, startx: Pos.Dim, yrange: [2]Pos.Dim) void {
@@ -324,11 +324,12 @@ test "draw an oversize room" {
 
 test "putting monsters places" {
     var map: Map = try Map.config(std.testing.allocator, 50, 50);
-    defer Map.deinit(map);
+    defer map.deinit();
     var thing = Thing{ .xy = Pos.init(0, 0), .ch = MapContents.player };
     var thing2 = Thing{ .xy = Pos.init(0, 0), .ch = MapContents.player };
 
-    try map.setMonster(&thing, 10, 10);
+    var m: *Map = &map;
+    try m.setMonster(&thing, 10, 10);
     try std.testing.expect(thing.atXY(10, 10));
 
     try std.testing.expectError(error.AlreadyOccupied, map.setMonster(&thing2, 10, 10));

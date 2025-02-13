@@ -8,7 +8,7 @@ const MapContents = zrogue.MapContents;
 const Pos = zrogue.Pos;
 const MessageLog = @import("message_log.zig").MessageLog;
 
-const ActionHandler = *const fn (self: *Thing, map: Map) ZrogueError!ThingAction;
+const ActionHandler = *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction;
 
 // ===================
 //
@@ -51,7 +51,7 @@ pub const Thing = struct {
         return self.xy.eql(Pos.init(x, y));
     }
 
-    pub fn doAction(self: *Thing, map: Map) ZrogueError!ThingAction {
+    pub fn doAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
         return try self.doaction(self, map); // Why no synctactic sugar here?
     }
 
