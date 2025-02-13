@@ -5,7 +5,7 @@ const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
 const MapContents = zrogue.MapContents;
 
-const Map = @import("level.zig").Map;
+const Map = @import("map.zig").Map;
 
 const Thing = @import("thing.zig").Thing;
 
