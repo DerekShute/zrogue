@@ -86,6 +86,10 @@ pub const Player = struct {
     inline fn getPos(self: *Player) Pos {
         return self.thing.getPos();
     }
+
+    inline fn getDistance(self: *Player, pos: Pos) Pos.Dim {
+        return self.getPos().distance(pos);
+    }
 };
 
 //
@@ -102,6 +106,25 @@ fn mapToChar(ch: MapContents) u8 {
 }
 
 //
+// ugly logic to figure out what is displayed at that location given
+// distance-from-player, light, etc.
+//
+// * If known and wall/door/stairs (feature), display it.
+// * If blind, don't display it
+// * If lit and in current room (line of sight simplification), display it.
+// * If known and close, display it
+//
+fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapContents {
+    const mc = try map.getChar(x, y);
+    if (mc.feature() and try map.isKnown(x, y)) {
+        return mc;
+    } else if (player.getDistance(Pos.init(x, y)) <= 1) {
+        return mc;
+    }
+    return MapContents.unknown;
+}
+
+//
 // Action callback
 //
 // Map is the _visible_ or _known_ map presented to the player
@@ -111,7 +134,7 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     var ret = ThingAction.init(ActionType.NoAction);
     const message = self.getMessage();
 
-    for (0..zrogue.MAPSIZE_X) |x| {
+    for (0..@intCast(map.getWidth())) |x| {
         if (x < message.len) {
             try self.mvaddch(@intCast(x), 0, message[x]);
         } else {
@@ -122,31 +145,14 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     self.clearMessage();
 
     //
-    // Convert map to display: it shifts down one row to make room for
-    // messages
+    // Convert map to display
     //
-    // If known and wall/door/stairs (feature), display it.
-    // If blind, don't display it
-    // If lit and in current room (line of sight simplification), display it.
-    // If known and close, display it
-    //
-    // TODO probably a better way to do this
-    //
-    // TODO needs unit test of this, one bug found
-    //
-    for (0..zrogue.MAPSIZE_Y) |y| {
-        for (0..zrogue.MAPSIZE_X) |x| {
-            const _x: Pos.Dim = @intCast(x);
-            const _y: Pos.Dim = @intCast(y);
-            var mc = try map.getChar(_x, _y);
-            if (mc.feature()) {
-                if (!try map.isKnown(_x, _y)) {
-                    mc = MapContents.unknown;
-                }
-            } else if (Pos.distance(Pos.init(_x, _y), self.getPos()) > 1) {
-                mc = MapContents.unknown;
-            }
-            try self.mvaddch(@intCast(_x), @intCast(_y + 1), mapToChar(mc));
+    for (0..@intCast(map.getHeight())) |y| {
+        for (0..@intCast(map.getWidth())) |x| {
+            const mc = try render(map, self, @intCast(x), @intCast(y));
+
+            // Shift down one row to make room for message bar
+            try self.mvaddch(@intCast(x), @intCast(y + 1), mapToChar(mc));
         }
     }
 
@@ -172,6 +178,7 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
 
 const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
 const MockInputProvider = @import("input.zig").MockInputProvider;
+const expect = std.testing.expect;
 
 test "create a player" {
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
@@ -181,6 +188,32 @@ test "create a player" {
 
     const player = try Player.init(std.testing.allocator, input, display);
     defer player.deinit();
+
+    //
+    // Try out rendering
+    //
+    var map: Map = try Map.config(std.testing.allocator, 30, 30);
+    defer map.deinit();
+
+    try map.drawRoom(5, 5, 20, 20);
+    try map.setMonster(player.toThing(), 6, 6);
+
+    // TODO: light, blindness
+
+    // distant default
+    try expect(try render(&map, player, 0, 0) == MapContents.unknown);
+    // near stuff, including self
+    try expect(try render(&map, player, 6, 6) == MapContents.player);
+    try expect(try render(&map, player, 5, 5) == MapContents.wall);
+    try expect(try render(&map, player, 7, 7) == MapContents.floor);
+    // distant 'known' floor not rendered
+    try map.setKnown(10, 10, true);
+    try expect(try render(&map, player, 10, 10) == MapContents.unknown);
+    // distant unknown feature
+    try expect(try render(&map, player, 20, 20) == MapContents.unknown);
+    // distant known feature
+    try map.setKnown(19, 20, true);
+    try expect(try render(&map, player, 19, 20) == MapContents.wall);
 }
 
 test "fail to create a player" { // First allocation attempt

@@ -126,6 +126,14 @@ pub const Map = struct {
 
     // Methods
 
+    pub fn getHeight(self: *Map) Pos.Dim {
+        return self.height;
+    }
+
+    pub fn getWidth(self: *Map) Pos.Dim {
+        return self.width;
+    }
+
     pub fn getChar(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapContents {
         const place = try self.toPlace(x, y);
         return place.getChar();
@@ -250,10 +258,13 @@ pub const Map = struct {
 //
 
 test "map smoke test" {
-    var map: Map = try Map.config(std.testing.allocator, 100, 100);
+    var map: Map = try Map.config(std.testing.allocator, 100, 50);
     defer map.deinit();
 
     try map.drawRoom(10, 10, 20, 20);
+
+    try std.testing.expect(map.getHeight() == 100);
+    try std.testing.expect(map.getWidth() == 50);
 
     try std.testing.expect(try map.isLit(15, 15) == false);
     try std.testing.expect(try map.isKnown(15, 15) == false);
