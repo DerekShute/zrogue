@@ -6,6 +6,7 @@ const Pos = zrogue.Pos;
 const MapContents = zrogue.MapContents;
 
 const Map = @import("map.zig").Map;
+const Room = @import("map.zig").Room;
 
 const Thing = @import("thing.zig").Thing;
 
@@ -14,11 +15,14 @@ const Thing = @import("thing.zig").Thing;
 //
 
 pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
-    var map = try Map.config(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X);
+    var map: Map = try Map.config(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X);
     defer map.deinit();
 
     try map.setMonster(player_thing, 10, 10);
-    try map.drawRoom(5, 5, 15, 15);
+
+    var room = Room.config(Pos.init(5, 5), Pos.init(15, 15));
+    room.setDark();
+    try map.addRoom(room);
 
     player_thing.addMessage("Welcome to the dungeon!");
 
@@ -59,7 +63,12 @@ fn bumpAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
 
         // TODO map edges
         // TODO if not blind
-        try map.setRegionKnown(new_x - 1, new_y - 1, new_x + 1, new_y + 1);
+        if ((map.inRoom(entity.getPos())) and (map.isLit(entity.getPos()))) {
+            // TODO how to do only once?
+            try map.setRegionKnown(map.room.getMinX(), map.room.getMinY(), map.room.getMaxX(), map.room.getMaxY());
+        } else {
+            try map.setRegionKnown(new_x - 1, new_y - 1, new_x + 1, new_y + 1);
+        }
     } else {
         entity.addMessage("Ouch!");
     }

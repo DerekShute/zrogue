@@ -156,6 +156,17 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
         }
     }
 
+    if (map.inRoom(self.getPos()) and map.isLit(self.getPos())) {
+        for (0..zrogue.MAPSIZE_Y) |y| {
+            for (0..zrogue.MAPSIZE_X) |x| {
+                const _x: Pos.Dim = @intCast(x);
+                const _y: Pos.Dim = @intCast(y);
+                const mc = try map.getChar(_x, _y);
+                try self.mvaddch(@intCast(_x), @intCast(_y + 1), mapToChar(mc));
+            }
+        }
+    }
+
     try self.refresh();
 
     switch (try self.getCommand()) {
@@ -179,6 +190,7 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
 const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
 const MockInputProvider = @import("input.zig").MockInputProvider;
 const expect = std.testing.expect;
+const Room = @import("map.zig").Room;
 
 test "create a player" {
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
@@ -195,8 +207,11 @@ test "create a player" {
     var map: Map = try Map.config(std.testing.allocator, 30, 30);
     defer map.deinit();
 
-    try map.drawRoom(5, 5, 20, 20);
     try map.setMonster(player.toThing(), 6, 6);
+
+    var room = Room.config(Pos.init(5, 5), Pos.init(20, 20));
+    room.setDark();
+    try map.addRoom(room);
 
     // TODO: light, blindness
 
