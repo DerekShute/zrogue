@@ -106,7 +106,7 @@ fn mapToChar(ch: MapContents) u8 {
 //
 // Map is the _visible_ or _known_ map presented to the player
 //
-fn playerAction(ptr: *Thing, map: Map) !ThingAction {
+fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     const self: *Player = @ptrCast(@alignCast(ptr));
     var ret = ThingAction.init(ActionType.NoAction);
     const message = self.getMessage();
