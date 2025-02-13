@@ -1,4 +1,5 @@
 const std = @import("std");
+const expect = std.testing.expect;
 const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
 const Pos = zrogue.Pos;
@@ -76,14 +77,74 @@ const Place = struct {
 
 // ===================
 //
+// Room
+//
+
+pub const Room = struct {
+    topleft: Pos,
+    bottomright: Pos,
+    flags: packed struct {
+        lit: bool,
+    },
+
+    // Constructor
+
+    pub fn config(tl: Pos, br: Pos) Room {
+        return .{
+            .topleft = tl,
+            .bottomright = br,
+            .flags = .{
+                .lit = true,
+            },
+        };
+    }
+
+    // Methods
+
+    pub fn getMinX(self: *Room) Pos.Dim {
+        return self.topleft.getX();
+    }
+
+    pub fn getMaxX(self: *Room) Pos.Dim {
+        return self.bottomright.getX();
+    }
+
+    pub fn getMinY(self: *Room) Pos.Dim {
+        return self.topleft.getY();
+    }
+
+    pub fn getMaxY(self: *Room) Pos.Dim {
+        return self.bottomright.getY();
+    }
+
+    pub fn isLit(self: *Room) bool {
+        return self.flags.lit;
+    }
+
+    pub fn setDark(self: *Room) void {
+        self.flags.lit = false;
+    }
+
+    pub fn isInside(self: *Room, p: Pos) bool {
+        if ((p.getX() < self.topleft.getX()) or (p.getX() > self.bottomright.getX()) or (p.getY() < self.topleft.getY()) or (p.getY() > self.bottomright.getY())) {
+            return false;
+        }
+        return true;
+    }
+};
+
+// ===================
+//
 // Map (global)
 //
 // DOT Map -> map_Place [label="contains"]
+// DOT Map -> map_Room [label="contains"]
 // DOT Map -> std_mem_Allocator [label="receives"]
 //
 pub const Map = struct {
     allocator: std.mem.Allocator,
     places: []Place,
+    room: Room, // TODO array of them
     height: Pos.Dim,
     width: Pos.Dim,
 
@@ -101,6 +162,7 @@ pub const Map = struct {
             .height = height,
             .width = width,
             .places = places,
+            .room = undefined,
         };
     }
 
@@ -144,6 +206,8 @@ pub const Map = struct {
         return place.passable();
     }
 
+    // monsters
+
     pub fn getMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !?*Thing {
         const place = try self.toPlace(x, y);
         return place.getMonst();
@@ -162,11 +226,6 @@ pub const Map = struct {
             try place.removeMonst();
             m.setXY(-1, -1);
         }
-    }
-
-    pub fn isLit(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
-        const place = try self.toPlace(x, y);
-        return place.isLit();
     }
 
     pub fn isKnown(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
@@ -192,10 +251,14 @@ pub const Map = struct {
         }
     }
 
-    //
-    // TODO: unless horiz and vert walls wanted, this is irrelevant
-    //
-    pub fn drawRoom(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
+    // rooms
+
+    pub fn inRoom(self: *Map, p: Pos) bool {
+        return self.room.isInside(p);
+    }
+
+    pub fn addRoom(self: *Map, room: Room) ZrogueError!void {
+        var r = room; // force to var reference
         const T = struct {
             // End x or y is inclusive
             fn vert(places: []Place, width: Pos.Dim, startx: Pos.Dim, yrange: [2]Pos.Dim) void {
@@ -232,24 +295,33 @@ pub const Map = struct {
             }
         };
 
-        // TODO sign check
-        if (maxx >= self.width)
+        if ((r.getMaxX() > self.width) or (r.getMaxY() > self.height)) {
             return ZrogueError.MapOverFlow;
-        if (maxy >= self.height)
-            return ZrogueError.MapOverFlow;
-        if (x >= maxx)
-            return ZrogueError.MapOverFlow;
-        if (y >= maxy)
-            return ZrogueError.MapOverFlow;
+        }
+
+        // TODO 'removed' room of 1x1 size is allowed
+        if ((r.getMaxX() < r.getMinX()) or (r.getMaxY() < r.getMinY())) {
+            return ZrogueError.OutOfBounds;
+        }
+
+        // TODO array of, and you know which index based on room's position
+        self.room = r;
 
         // Horizontal bars in the corners
-        T.vert(self.places, self.width, x, .{ y + 1, maxy - 1 });
-        T.vert(self.places, self.width, maxx, .{ y + 1, maxy - 1 });
-        T.horiz(self.places, self.width, y, .{ x, maxx });
-        T.horiz(self.places, self.width, maxy, .{ x, maxx });
+        T.vert(self.places, self.width, r.getMinX(), .{ r.getMinY() + 1, r.getMaxY() - 1 });
+        T.vert(self.places, self.width, r.getMaxX(), .{ r.getMinY() + 1, r.getMaxY() - 1 });
+        T.horiz(self.places, self.width, r.getMinY(), .{ r.getMinX(), r.getMaxX() });
+        T.horiz(self.places, self.width, r.getMaxY(), .{ r.getMinX(), r.getMaxX() });
 
         // Floor
-        T.field(self.places, self.width, .{ x + 1, y + 1 }, .{ maxx - 1, maxy - 1 });
+        T.field(self.places, self.width, .{ r.getMinX() + 1, r.getMinY() + 1 }, .{ r.getMaxX() - 1, r.getMaxY() - 1 });
+    }
+
+    pub fn isLit(self: *Map, p: Pos) bool {
+        if (self.room.isInside(p)) {
+            return self.room.isLit();
+        }
+        return false;
     }
 };
 
@@ -257,30 +329,72 @@ pub const Map = struct {
 // Unit Tests
 //
 
+// Rooms
+
+test "create a room and test properties" {
+    var room: Room = Room.config(Pos.init(10, 10), Pos.init(20, 20));
+
+    try expect(room.getMaxX() == 20);
+    try expect(room.getMaxY() == 20);
+    try expect(room.getMinX() == 10);
+    try expect(room.getMinY() == 10);
+    try expect(room.isInside(Pos.init(15, 15)));
+    try expect(room.isInside(Pos.init(10, 10)));
+    try expect(room.isInside(Pos.init(20, 20)));
+    try expect(room.isInside(Pos.init(10, 20)));
+    try expect(room.isInside(Pos.init(20, 10)));
+    try expect(!room.isInside(Pos.init(0, 0)));
+    try expect(!room.isInside(Pos.init(-10, -10)));
+    try expect(!room.isInside(Pos.init(10, 0)));
+    try expect(!room.isInside(Pos.init(0, 10)));
+    try expect(!room.isInside(Pos.init(15, 21)));
+
+    try expect(room.isLit() == true);
+    room.setDark();
+    try expect(room.isLit() == false);
+}
+
+// Rooms
+
+test "add a room and ask about it" {
+    var map: Map = try Map.config(std.testing.allocator, 20, 20);
+    defer map.deinit();
+
+    const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
+    try map.addRoom(r1);
+    try expect(map.inRoom(Pos.init(7, 7)) == true);
+    try expect(map.inRoom(Pos.init(19, 19)) == false);
+    try expect(map.inRoom(Pos.init(-1, -1)) == false);
+}
+
+// Map
+
 test "map smoke test" {
     var map: Map = try Map.config(std.testing.allocator, 100, 50);
     defer map.deinit();
 
-    try map.drawRoom(10, 10, 20, 20);
+    try map.addRoom(Room.config(Pos.init(10, 10), Pos.init(20, 20)));
 
     try std.testing.expect(map.getHeight() == 100);
     try std.testing.expect(map.getWidth() == 50);
 
-    try std.testing.expect(try map.isLit(15, 15) == false);
-    try std.testing.expect(try map.isKnown(15, 15) == false);
-    try std.testing.expect(try map.getChar(0, 0) == MapContents.unknown);
-    try std.testing.expect(try map.getChar(10, 10) == MapContents.wall);
+    try expect(map.isLit(Pos.init(15, 15)) == true);
+    // TODO set room dark, then ask again
+
+    try expect(try map.isKnown(15, 15) == false);
+    try expect(try map.getChar(0, 0) == MapContents.unknown);
+    try expect(try map.getChar(10, 10) == MapContents.wall);
 
     try map.setKnown(15, 15, true);
-    try std.testing.expect(try map.isKnown(15, 15) == true);
+    try expect(try map.isKnown(15, 15) == true);
     try map.setKnown(15, 15, false);
-    try std.testing.expect(try map.isKnown(15, 15) == false);
+    try expect(try map.isKnown(15, 15) == false);
 
     try map.setRegionKnown(12, 12, 15, 15);
-    try std.testing.expect(try map.isKnown(12, 12) == true);
-    try std.testing.expect(try map.isKnown(15, 15) == true);
-    try std.testing.expect(try map.isKnown(16, 16) == false);
-    try std.testing.expect(try map.isKnown(11, 11) == false);
+    try expect(try map.isKnown(12, 12) == true);
+    try expect(try map.isKnown(15, 15) == true);
+    try expect(try map.isKnown(16, 16) == false);
+    try expect(try map.isKnown(11, 11) == false);
 }
 
 test "fails to allocate any of map" { // first allocation attempt
@@ -300,7 +414,7 @@ test "ask about valid map location" {
     defer map.deinit();
 
     const thing = try map.getMonster(4, 4);
-    try std.testing.expect(thing == null); // Nothing there
+    try expect(thing == null); // Nothing there
 }
 
 test "ask about thing at invalid map location" {
@@ -321,17 +435,23 @@ test "draw an invalid room" {
     var map: Map = try Map.config(std.testing.allocator, 20, 20);
     defer map.deinit();
 
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(15, 15, 4, 18));
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(15, 15, 18, 4));
+    const r1 = Room.config(Pos.init(15, 15), Pos.init(4, 18));
+    try std.testing.expectError(ZrogueError.OutOfBounds, map.addRoom(r1));
+    const r2 = Room.config(Pos.init(15, 15), Pos.init(18, 4));
+    try std.testing.expectError(ZrogueError.OutOfBounds, map.addRoom(r2));
 }
 
 test "draw an oversize room" {
     var map: Map = try Map.config(std.testing.allocator, 20, 20);
     defer map.deinit();
 
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(0, 0, 0, 100));
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.drawRoom(0, 0, 100, 0));
+    const r1 = Room.config(Pos.init(0, 0), Pos.init(0, 100));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.addRoom(r1));
+    const r2 = Room.config(Pos.init(0, 0), Pos.init(100, 0));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.addRoom(r2));
 }
+
+// Monsters
 
 test "putting monsters places" {
     var map: Map = try Map.config(std.testing.allocator, 50, 50);
