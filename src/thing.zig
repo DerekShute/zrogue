@@ -1,5 +1,5 @@
 const std = @import("std");
-const Map = @import("level.zig").Map;
+const Map = @import("map.zig").Map;
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 const ThingAction = zrogue.ThingAction;
