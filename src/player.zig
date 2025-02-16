@@ -6,7 +6,7 @@ const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 const ActionType = zrogue.ActionType;
 const Command = zrogue.Command;
-const MapContents = zrogue.MapContents;
+const MapTile = zrogue.MapTile;
 const Pos = zrogue.Pos;
 const ThingAction = zrogue.ThingAction;
 const Thing = @import("thing.zig").Thing;
@@ -36,7 +36,7 @@ pub const Player = struct {
         errdefer log.deinit();
 
         p.allocator = allocator;
-        p.thing = Thing.config(0, 0, MapContents.player, playerAction, log);
+        p.thing = Thing.config(0, 0, MapTile.player, playerAction, log);
         p.input = input;
         p.display = display;
         p.log = log;
@@ -95,12 +95,12 @@ pub const Player = struct {
 //
 // Convert map location to what it is displayed as
 //
-fn mapToChar(ch: MapContents) u8 {
+fn mapToChar(ch: MapTile) u8 {
     const c: u8 = switch (ch) {
-        MapContents.unknown => ' ',
-        MapContents.floor => '.',
-        MapContents.wall => '#',
-        MapContents.player => '@',
+        MapTile.unknown => ' ',
+        MapTile.floor => '.',
+        MapTile.wall => '#',
+        MapTile.player => '@',
     };
     return c;
 }
@@ -114,14 +114,14 @@ fn mapToChar(ch: MapContents) u8 {
 // * If lit and in current room (line of sight simplification), display it.
 // * If known and close, display it
 //
-fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapContents {
-    const mc = try map.getChar(x, y);
-    if (mc.feature() and try map.isKnown(x, y)) {
-        return mc;
+fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
+    const tile = try map.getTile(x, y);
+    if (tile.feature() and try map.isKnown(x, y)) {
+        return tile;
     } else if (player.getDistance(Pos.init(x, y)) <= 1) {
-        return mc;
+        return tile;
     }
-    return MapContents.unknown;
+    return MapTile.unknown;
 }
 
 //
@@ -161,8 +161,8 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
             for (0..zrogue.MAPSIZE_X) |x| {
                 const _x: Pos.Dim = @intCast(x);
                 const _y: Pos.Dim = @intCast(y);
-                const mc = try map.getChar(_x, _y);
-                try self.mvaddch(@intCast(_x), @intCast(_y + 1), mapToChar(mc));
+                const tile = try map.getTile(_x, _y);
+                try self.mvaddch(@intCast(_x), @intCast(_y + 1), mapToChar(tile));
             }
         }
     }
@@ -216,19 +216,19 @@ test "create a player" {
     // TODO: light, blindness
 
     // distant default
-    try expect(try render(&map, player, 0, 0) == MapContents.unknown);
+    try expect(try render(&map, player, 0, 0) == MapTile.unknown);
     // near stuff, including self
-    try expect(try render(&map, player, 6, 6) == MapContents.player);
-    try expect(try render(&map, player, 5, 5) == MapContents.wall);
-    try expect(try render(&map, player, 7, 7) == MapContents.floor);
+    try expect(try render(&map, player, 6, 6) == MapTile.player);
+    try expect(try render(&map, player, 5, 5) == MapTile.wall);
+    try expect(try render(&map, player, 7, 7) == MapTile.floor);
     // distant 'known' floor not rendered
     try map.setKnown(10, 10, true);
-    try expect(try render(&map, player, 10, 10) == MapContents.unknown);
+    try expect(try render(&map, player, 10, 10) == MapTile.unknown);
     // distant unknown feature
-    try expect(try render(&map, player, 20, 20) == MapContents.unknown);
+    try expect(try render(&map, player, 20, 20) == MapTile.unknown);
     // distant known feature
     try map.setKnown(19, 20, true);
-    try expect(try render(&map, player, 19, 20) == MapContents.wall);
+    try expect(try render(&map, player, 19, 20) == MapTile.wall);
 }
 
 test "fail to create a player" { // First allocation attempt

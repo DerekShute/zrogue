@@ -4,16 +4,17 @@ const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
 const Pos = zrogue.Pos;
 const ZrogueError = zrogue.ZrogueError;
-const MapContents = zrogue.MapContents;
+const MapTile = zrogue.MapTile;
 
 // ===================
 //
 // Spot on the map
 //
 // DOT map_Place -> Thing [label="refers"]
+// Dot map_Place -> MapTile [label="contains"]
 
 const Place = struct {
-    ch: MapContents = MapContents.unknown,
+    tile: MapTile = MapTile.unknown,
     flags: packed struct {
         lit: bool,
         known: bool,
@@ -23,26 +24,26 @@ const Place = struct {
     // Constructor, probably not idiomatic
 
     pub fn config(self: *Place) void {
-        self.ch = MapContents.unknown;
+        self.tile = MapTile.unknown;
         self.flags = .{ .lit = false, .known = false };
         self.monst = null;
     }
 
     // Methods
 
-    pub fn getChar(self: *Place) MapContents {
+    pub fn getTile(self: *Place) MapTile {
         if (self.monst) |monst| {
-            return monst.getChar();
+            return monst.getTile();
         }
-        return self.ch;
+        return self.tile;
     }
 
     pub fn passable(self: *Place) bool {
-        return self.ch.passable();
+        return self.tile.passable();
     }
 
-    pub fn setChar(self: *Place, tochar: MapContents) void {
-        self.ch = tochar;
+    pub fn setTile(self: *Place, to: MapTile) void {
+        self.tile = to;
     }
 
     pub fn getMonst(self: *Place) ?*Thing {
@@ -196,9 +197,9 @@ pub const Map = struct {
         return self.width;
     }
 
-    pub fn getChar(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapContents {
+    pub fn getTile(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapTile {
         const place = try self.toPlace(x, y);
-        return place.getChar();
+        return place.getTile();
     }
 
     pub fn passable(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
@@ -267,7 +268,7 @@ pub const Map = struct {
                 const _width: usize = @intCast(width);
                 const _startx: usize = @intCast(startx);
                 for (_starty.._endy + 1) |at| {
-                    places[_startx + at * _width].setChar(MapContents.wall);
+                    places[_startx + at * _width].setTile(MapTile.wall);
                 }
             }
 
@@ -277,7 +278,7 @@ pub const Map = struct {
                 const _endx: usize = @intCast(xrange[1]);
                 const _width: usize = @intCast(width);
                 for (_startx.._endx + 1) |at| {
-                    places[at + _starty * _width].setChar(MapContents.wall);
+                    places[at + _starty * _width].setTile(MapTile.wall);
                 }
             }
 
@@ -289,7 +290,7 @@ pub const Map = struct {
                 const _width: usize = @intCast(width);
                 for (_starty.._endy + 1) |c_y| {
                     for (_startx.._endx + 1) |c_x| {
-                        places[c_x + c_y * _width].setChar(MapContents.floor);
+                        places[c_x + c_y * _width].setTile(MapTile.floor);
                     }
                 }
             }
@@ -382,8 +383,8 @@ test "map smoke test" {
     // TODO set room dark, then ask again
 
     try expect(try map.isKnown(15, 15) == false);
-    try expect(try map.getChar(0, 0) == MapContents.unknown);
-    try expect(try map.getChar(10, 10) == MapContents.wall);
+    try expect(try map.getTile(0, 0) == MapTile.unknown);
+    try expect(try map.getTile(10, 10) == MapTile.wall);
 
     try map.setKnown(15, 15, true);
     try expect(try map.isKnown(15, 15) == true);
@@ -427,8 +428,8 @@ test "ask about thing at invalid map location" {
 test "ask about invalid character on the map" {
     var map: Map = try Map.config(std.testing.allocator, 10, 10);
     defer map.deinit();
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.getChar(20, 0));
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.getChar(0, 20));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.getTile(20, 0));
+    try std.testing.expectError(ZrogueError.MapOverFlow, map.getTile(0, 20));
 }
 
 test "draw an invalid room" {
@@ -456,8 +457,8 @@ test "draw an oversize room" {
 test "putting monsters places" {
     var map: Map = try Map.config(std.testing.allocator, 50, 50);
     defer map.deinit();
-    var thing = Thing{ .xy = Pos.init(0, 0), .ch = MapContents.player };
-    var thing2 = Thing{ .xy = Pos.init(0, 0), .ch = MapContents.player };
+    var thing = Thing{ .xy = Pos.init(0, 0), .tile = MapTile.player };
+    var thing2 = Thing{ .xy = Pos.init(0, 0), .tile = MapTile.player };
 
     var m: *Map = &map;
     try m.setMonster(&thing, 10, 10);

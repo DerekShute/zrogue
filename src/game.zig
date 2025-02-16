@@ -3,7 +3,6 @@ const zrogue = @import("zrogue.zig");
 const ThingAction = zrogue.ThingAction;
 const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
-const MapContents = zrogue.MapContents;
 
 const Map = @import("map.zig").Map;
 const Room = @import("map.zig").Room;
