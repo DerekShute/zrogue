@@ -34,10 +34,15 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
     unit_tests.linkLibC();
     unit_tests.linkSystemLibrary("ncursesw");
 
+    // Install the unit tests if asked to run the unit tests
+
+    const install_unit_tests = b.addInstallArtifact(unit_tests, .{});
     const run_unit_tests = b.addRunArtifact(unit_tests);
+    run_unit_tests.step.dependOn(&install_unit_tests.step);
 
     const test_step = b.step("test", "run unit tests");
     test_step.dependOn(&run_unit_tests.step);
