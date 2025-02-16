@@ -67,6 +67,10 @@ pub const Player = struct {
         try self.display.mvaddch(x, y, ch);
     }
 
+    inline fn setDisplayTile(self: *Player, x: u16, y: u16, t: MapTile) ZrogueError!void {
+        try self.display.setTile(x, y, t);
+    }
+
     inline fn getCommand(self: *Player) ZrogueError!Command {
         return self.input.getCommand();
     }
@@ -91,19 +95,6 @@ pub const Player = struct {
         return self.getPos().distance(pos);
     }
 };
-
-//
-// Convert map location to what it is displayed as
-//
-fn mapToChar(ch: MapTile) u8 {
-    const c: u8 = switch (ch) {
-        MapTile.unknown => ' ',
-        MapTile.floor => '.',
-        MapTile.wall => '#',
-        MapTile.player => '@',
-    };
-    return c;
-}
 
 //
 // ugly logic to figure out what is displayed at that location given
@@ -147,22 +138,24 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     //
     // Convert map to display
     //
+    // Shift down one row to make room for message bar
+    //
     for (0..@intCast(map.getHeight())) |y| {
         for (0..@intCast(map.getWidth())) |x| {
-            const mc = try render(map, self, @intCast(x), @intCast(y));
+            const t = try render(map, self, @intCast(x), @intCast(y));
 
-            // Shift down one row to make room for message bar
-            try self.mvaddch(@intCast(x), @intCast(y + 1), mapToChar(mc));
+            try self.setDisplayTile(@intCast(x), @intCast(y + 1), t);
         }
     }
 
     if (map.inRoom(self.getPos()) and map.isLit(self.getPos())) {
-        for (0..zrogue.MAPSIZE_Y) |y| {
-            for (0..zrogue.MAPSIZE_X) |x| {
+        // TODO: for size of room
+        for (0..@intCast(map.getHeight())) |y| {
+            for (0..@intCast(map.getWidth())) |x| {
                 const _x: Pos.Dim = @intCast(x);
                 const _y: Pos.Dim = @intCast(y);
                 const tile = try map.getTile(_x, _y);
-                try self.mvaddch(@intCast(_x), @intCast(_y + 1), mapToChar(tile));
+                try self.setDisplayTile(@intCast(_x), @intCast(_y + 1), tile);
             }
         }
     }
