@@ -164,10 +164,10 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
 
     switch (try self.getCommand()) {
         Command.quit => ret = ThingAction.init(ActionType.QuitAction),
-        Command.goWest => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(-1, 0)),
-        Command.goEast => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(1, 0)),
-        Command.goNorth => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(0, -1)),
-        Command.goSouth => ret = ThingAction.init_pos(ActionType.BumpAction, Pos.init(0, 1)),
+        Command.goWest => ret = ThingAction.init_pos(ActionType.MoveAction, Pos.init(-1, 0)),
+        Command.goEast => ret = ThingAction.init_pos(ActionType.MoveAction, Pos.init(1, 0)),
+        Command.goNorth => ret = ThingAction.init_pos(ActionType.MoveAction, Pos.init(0, -1)),
+        Command.goSouth => ret = ThingAction.init_pos(ActionType.MoveAction, Pos.init(0, 1)),
         Command.ascend => ret = ThingAction.init(ActionType.AscendAction),
         Command.descend => ret = ThingAction.init(ActionType.DescendAction),
         else => ret = ThingAction.init(ActionType.NoAction),

@@ -61,6 +61,8 @@ pub const MapTile = enum {
 pub const Pos = struct {
     pub const Dim = i16;
 
+    // TODO: directionals
+
     xy: [2]Dim = .{ -1, -1 },
 
     pub inline fn init(x: Dim, y: Dim) Pos {
@@ -117,13 +119,13 @@ pub const ActionType = enum {
     NoAction,
     QuitAction,
     AscendAction,
-    BumpAction, // Directional
     DescendAction,
+    MoveAction, // Directional
 };
 
 pub const ThingAction = struct {
     type: ActionType,
-    pos: Pos, // BumpAction (delta)
+    pos: Pos, // MoveAction (delta)
 
     pub inline fn init(t: ActionType) ThingAction {
         return .{ .type = t, .pos = Pos.init(0, 0) };
@@ -131,6 +133,10 @@ pub const ThingAction = struct {
 
     pub inline fn init_pos(t: ActionType, p: Pos) ThingAction {
         return .{ .type = t, .pos = p };
+    }
+
+    pub inline fn getPos(self: ThingAction) Pos {
+        return self.pos;
     }
 };
 
@@ -156,6 +162,16 @@ test "create a Pos and use its operations" {
     try expect(Pos.distance(Pos.init(1, 1), Pos.init(0, 0)) == 1);
     try expect(Pos.distance(Pos.init(1, 1), Pos.init(1, 1)) == 0);
     try expect(Pos.distance(Pos.init(-1, -1), Pos.init(0, 0)) == 1);
+}
+
+test "entity action" {
+    var action = ThingAction.init(ActionType.QuitAction);
+    const expect = std.testing.expect;
+
+    try expect(action.getPos().eql(Pos.init(0, 0)));
+
+    action = ThingAction.init_pos(ActionType.MoveAction, Pos.init(-1, 0));
+    try expect(action.getPos().eql(Pos.init(-1, 0)));
 }
 
 // EOF
