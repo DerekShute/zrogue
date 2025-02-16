@@ -16,7 +16,6 @@ const MapTile = zrogue.MapTile;
 const Place = struct {
     tile: MapTile = MapTile.unknown,
     flags: packed struct {
-        lit: bool,
         known: bool,
     },
     monst: ?*Thing,
@@ -25,7 +24,7 @@ const Place = struct {
 
     pub fn config(self: *Place) void {
         self.tile = MapTile.unknown;
-        self.flags = .{ .lit = false, .known = false };
+        self.flags = .{ .known = false };
         self.monst = null;
     }
 
@@ -61,10 +60,6 @@ const Place = struct {
         if (self.monst) |_| {
             self.monst = null;
         }
-    }
-
-    pub fn isLit(self: *Place) bool {
-        return self.flags.lit;
     }
 
     pub fn isKnown(self: *Place) bool {
