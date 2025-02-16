@@ -40,18 +40,18 @@ pub const Command = enum {
 //
 // TODO: union with monster types and objects?
 //
-pub const MapContents = enum {
+pub const MapTile = enum {
     unknown,
     wall,
     floor,
     player,
 
-    pub fn feature(self: MapContents) bool {
-        return (self == MapContents.wall); // TODO door, stairs
+    pub fn feature(self: MapTile) bool {
+        return (self == MapTile.wall); // TODO door, stairs
     }
 
-    pub fn passable(self: MapContents) bool {
-        return (self == MapContents.floor); // TODO door, stairs
+    pub fn passable(self: MapTile) bool {
+        return (self == MapTile.floor); // TODO door, stairs
     }
 };
 
