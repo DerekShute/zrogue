@@ -1,5 +1,7 @@
 const std = @import("std");
-const ZrogueError = @import("zrogue.zig").ZrogueError;
+const zrogue = @import("zrogue.zig");
+const MapTile = zrogue.MapTile;
+const ZrogueError = zrogue.ZrogueError;
 
 // ===================
 //
@@ -23,6 +25,7 @@ pub const DisplayProvider = struct {
         getmaxy: *const fn (ctx: *anyopaque) ZrogueError!u16,
         mvaddch: *const fn (ctx: *anyopaque, x: u16, y: u16, ch: u8) ZrogueError!void,
         refresh: *const fn (ctx: *anyopaque) ZrogueError!void,
+        setTile: *const fn (ctx: *anyopaque, x: u16, y: u16, t: MapTile) ZrogueError!void,
     };
 
     // Constructor and destructor
@@ -51,6 +54,10 @@ pub const DisplayProvider = struct {
 
     pub inline fn refresh(self: DisplayProvider) ZrogueError!void {
         return self.vtable.refresh(self.ptr);
+    }
+
+    pub inline fn setTile(self: DisplayProvider, x: u16, y: u16, t: MapTile) ZrogueError!void {
+        try self.vtable.setTile(self.ptr, x, y, t);
     }
 }; // DisplayProvider
 
@@ -97,6 +104,7 @@ pub const MockDisplayProvider = struct {
                 .getmaxy = getmaxy,
                 .mvaddch = mvaddch,
                 .refresh = refresh,
+                .setTile = setTile,
             },
         };
     }
@@ -146,6 +154,15 @@ pub const MockDisplayProvider = struct {
 
     fn refresh(ptr: *anyopaque) ZrogueError!void {
         _ = ptr;
+        return;
+    }
+
+    fn setTile(ptr: *anyopaque, x: u16, y: u16, t: MapTile) ZrogueError!void {
+        const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
+        _ = x;
+        _ = y;
+        _ = self;
+        _ = t;
         return;
     }
 }; // MockDisplayProvider

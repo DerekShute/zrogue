@@ -1,7 +1,8 @@
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
-const ZrogueError = zrogue.ZrogueError;
 const Command = zrogue.Command;
+const MapTile = zrogue.MapTile;
+const ZrogueError = zrogue.ZrogueError;
 const DisplayProvider = @import("display.zig").DisplayProvider;
 const InputProvider = @import("input.zig").InputProvider;
 const curses = @cImport(@cInclude("curses.h"));
@@ -18,6 +19,19 @@ fn checkError(res: c_int) ZrogueError!c_int {
         return ZrogueError.ImplementationError;
     }
     return res;
+}
+
+//
+// Convert map location to what it is displayed as
+//
+fn mapToChar(ch: MapTile) u8 {
+    const c: u8 = switch (ch) {
+        MapTile.unknown => ' ',
+        MapTile.floor => '.',
+        MapTile.wall => '#',
+        MapTile.player => '@',
+    };
+    return c;
 }
 
 //
@@ -56,6 +70,7 @@ pub const CursesDisplayProvider = struct {
                 .getmaxy = getmaxy,
                 .mvaddch = mvaddch,
                 .refresh = refresh,
+                .setTile = setTile,
             },
         };
     }
@@ -98,12 +113,21 @@ pub const CursesDisplayProvider = struct {
         return @intCast(try checkError(curses.getmaxx(global_win)));
     }
 
+    fn setTile(ptr: *anyopaque, x: u16, y: u16, t: MapTile) ZrogueError!void {
+        _ = ptr;
+        if (global_win == null) {
+            return ZrogueError.NotInitialized;
+        }
+        _ = try checkError(curses.mvaddch(y, x, mapToChar(t)));
+        return;
+    }
+
     fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) ZrogueError!void {
         _ = ptr;
         if (global_win == null) {
             return ZrogueError.NotInitialized;
         }
-        _ = try checkError(curses.mvaddch(y, x, ch)); // TODO not using windowed interface here
+        _ = try checkError(curses.mvaddch(y, x, ch));
         return;
     }
 
