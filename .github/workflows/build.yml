@@ -33,6 +33,15 @@ jobs:
       - name: Make visualize.svg
         run: make
 
+      # NOTE: does not actually work.
+      #
+      #    https://github.com/SimonKagstrom/kcov/issues/151
+      #
+      # You need to set the security to unconfined in order to utilize the
+      # personality() system call
+      #
+      #    docker run -it --rm --security-opt seccomp=unconfined -v $(pwd):/source kcov
+      #
       - name: Generate coverage
         uses: sudo-bot/action-kcov@latest
         with:
