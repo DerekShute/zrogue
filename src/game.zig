@@ -66,14 +66,9 @@ fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
         try map.removeMonster(pos.getX(), pos.getY());
         try map.setMonster(entity, new_x, new_y);
 
-        // TODO map edges
         // TODO if not blind
-        if ((map.inRoom(entity.getPos())) and (map.isLit(entity.getPos()))) {
-            // TODO how to do only once?
-            try map.setRegionKnown(map.room.getMinX(), map.room.getMinY(), map.room.getMaxX(), map.room.getMaxY());
-        } else {
-            try map.setRegionKnown(new_x - 1, new_y - 1, new_x + 1, new_y + 1);
-        }
+        try map.setRegionKnown(new_x - 1, new_y - 1, new_x + 1, new_y + 1);
+        try map.revealRoom(entity.getPos());
     } else {
         // TODO: entity 'bump' callback
         entity.addMessage("Ouch!");
