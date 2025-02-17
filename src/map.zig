@@ -127,6 +127,62 @@ pub const Room = struct {
         }
         return true;
     }
+
+    //
+    // TODO: can vtable this to have different types of room
+    pub fn draw(self: *Room, map: *Map) ZrogueError!void {
+        const Fns = struct {
+            fn vert(m: *Map, startx: Pos.Dim, yrange: [2]Pos.Dim) !void {
+                for (@intCast(yrange[0])..@intCast(yrange[1] + 1)) |y| {
+                    try m.setTile(startx, @intCast(y), MapTile.wall);
+                }
+            }
+
+            fn horiz(m: *Map, starty: Pos.Dim, xrange: [2]Pos.Dim) !void {
+                for (@intCast(xrange[0])..@intCast(xrange[1] + 1)) |x| {
+                    try m.setTile(@intCast(x), starty, MapTile.wall);
+                }
+            }
+
+            fn field(m: *Map, start: Pos, limit: Pos) !void {
+                const _startx: usize = @intCast(start.getX());
+                const _starty: usize = @intCast(start.getY());
+                const _endx: usize = @intCast(limit.getX());
+                const _endy: usize = @intCast(limit.getY());
+                for (_starty.._endy + 1) |y| {
+                    for (_startx.._endx + 1) |x| {
+                        try m.setTile(@intCast(x), @intCast(y), MapTile.floor);
+                    }
+                }
+            }
+        };
+
+        const minx = self.getMinX();
+        const miny = self.getMinY();
+        const maxx = self.getMaxX();
+        const maxy = self.getMaxY();
+
+        // Horizontal bars in the corners
+        try Fns.vert(map, minx, .{ miny + 1, maxy - 1 });
+        try Fns.vert(map, maxx, .{ miny + 1, maxy - 1 });
+        try Fns.horiz(map, miny, .{ minx, maxx });
+        try Fns.horiz(map, maxy, .{ minx, maxx });
+
+        // Floor
+        try Fns.field(map, Pos.init(minx + 1, miny + 1), Pos.init(maxx - 1, maxy - 1));
+    } // draw
+
+    // TODO: Vtable for different shaped rooms
+    pub fn reveal(self: *Room, map: *Map) !void {
+        const minx = self.getMinX();
+        const miny = self.getMinY();
+        const maxx = self.getMaxX();
+        const maxy = self.getMaxY();
+        // TODO do only once via self.flags.known
+        if (self.isLit()) {
+            try map.setRegionKnown(minx, miny, maxx, maxy);
+        }
+    }
 };
 
 // ===================
@@ -197,6 +253,11 @@ pub const Map = struct {
         return place.getTile();
     }
 
+    pub fn setTile(self: *Map, x: Pos.Dim, y: Pos.Dim, tile: MapTile) !void {
+        const place = try self.toPlace(x, y);
+        place.setTile(tile);
+    }
+
     pub fn passable(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
         const place = try self.toPlace(x, y);
         return place.passable();
@@ -255,41 +316,6 @@ pub const Map = struct {
 
     pub fn addRoom(self: *Map, room: Room) ZrogueError!void {
         var r = room; // force to var reference
-        const T = struct {
-            // End x or y is inclusive
-            fn vert(places: []Place, width: Pos.Dim, startx: Pos.Dim, yrange: [2]Pos.Dim) void {
-                const _starty: usize = @intCast(yrange[0]);
-                const _endy: usize = @intCast(yrange[1]);
-                const _width: usize = @intCast(width);
-                const _startx: usize = @intCast(startx);
-                for (_starty.._endy + 1) |at| {
-                    places[_startx + at * _width].setTile(MapTile.wall);
-                }
-            }
-
-            fn horiz(places: []Place, width: Pos.Dim, starty: Pos.Dim, xrange: [2]Pos.Dim) void {
-                const _starty: usize = @intCast(starty);
-                const _startx: usize = @intCast(xrange[0]);
-                const _endx: usize = @intCast(xrange[1]);
-                const _width: usize = @intCast(width);
-                for (_startx.._endx + 1) |at| {
-                    places[at + _starty * _width].setTile(MapTile.wall);
-                }
-            }
-
-            fn field(places: []Place, width: Pos.Dim, start: [2]Pos.Dim, limit: [2]Pos.Dim) void {
-                const _starty: usize = @intCast(start[1]);
-                const _endy: usize = @intCast(limit[1]);
-                const _startx: usize = @intCast(start[0]);
-                const _endx: usize = @intCast(limit[0]);
-                const _width: usize = @intCast(width);
-                for (_starty.._endy + 1) |c_y| {
-                    for (_startx.._endx + 1) |c_x| {
-                        places[c_x + c_y * _width].setTile(MapTile.floor);
-                    }
-                }
-            }
-        };
 
         if ((r.getMaxX() > self.width) or (r.getMaxY() > self.height)) {
             return ZrogueError.MapOverFlow;
@@ -300,17 +326,11 @@ pub const Map = struct {
             return ZrogueError.OutOfBounds;
         }
 
+        // TODO test for room alignment to room grid
+
         // TODO array of, and you know which index based on room's position
         self.room = r;
-
-        // Horizontal bars in the corners
-        T.vert(self.places, self.width, r.getMinX(), .{ r.getMinY() + 1, r.getMaxY() - 1 });
-        T.vert(self.places, self.width, r.getMaxX(), .{ r.getMinY() + 1, r.getMaxY() - 1 });
-        T.horiz(self.places, self.width, r.getMinY(), .{ r.getMinX(), r.getMaxX() });
-        T.horiz(self.places, self.width, r.getMaxY(), .{ r.getMinX(), r.getMaxX() });
-
-        // Floor
-        T.field(self.places, self.width, .{ r.getMinX() + 1, r.getMinY() + 1 }, .{ r.getMaxX() - 1, r.getMaxY() - 1 });
+        try r.draw(self);
     }
 
     pub fn isLit(self: *Map, p: Pos) bool {
@@ -318,6 +338,13 @@ pub const Map = struct {
             return self.room.isLit();
         }
         return false;
+    }
+
+    pub fn revealRoom(self: *Map, p: Pos) !void {
+        if (self.inRoom(p)) {
+            var r = self.room; // TODO one of many rooms
+            try r.reveal(self);
+        }
     }
 };
 
@@ -350,8 +377,6 @@ test "create a room and test properties" {
     try expect(room.isLit() == false);
 }
 
-// Rooms
-
 test "add a room and ask about it" {
     var map: Map = try Map.config(std.testing.allocator, 20, 20);
     defer map.deinit();
@@ -361,6 +386,22 @@ test "add a room and ask about it" {
     try expect(map.inRoom(Pos.init(7, 7)) == true);
     try expect(map.inRoom(Pos.init(19, 19)) == false);
     try expect(map.inRoom(Pos.init(-1, -1)) == false);
+}
+
+test "reveal room" {
+    var map: Map = try Map.config(std.testing.allocator, 20, 20);
+    defer map.deinit();
+
+    const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
+    try map.addRoom(r1);
+    try expect(try map.isKnown(7, 7) == false);
+    try expect(try map.isKnown(4, 4) == false);
+    try expect(try map.isKnown(11, 11) == false);
+    try map.revealRoom(Pos.init(7, 7));
+    try expect(try map.isKnown(5, 5) == true);
+    try expect(try map.isKnown(10, 10) == true);
+    try expect(try map.isKnown(4, 4) == false);
+    try expect(try map.isKnown(11, 11) == false);
 }
 
 // Map
@@ -385,6 +426,10 @@ test "map smoke test" {
     try expect(try map.isKnown(15, 15) == true);
     try map.setKnown(15, 15, false);
     try expect(try map.isKnown(15, 15) == false);
+
+    // Explicit set tile inside a known room
+    try map.setTile(17, 17, MapTile.wall);
+    try expect(try map.getTile(17, 17) == MapTile.wall);
 
     try map.setRegionKnown(12, 12, 15, 15);
     try expect(try map.isKnown(12, 12) == true);
