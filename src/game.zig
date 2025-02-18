@@ -14,7 +14,7 @@ const Thing = @import("thing.zig").Thing;
 //
 
 pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
-    var map: Map = try Map.config(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X, zrogue.ROOMS_X, zrogue.ROOMS_Y);
+    var map: Map = try Map.config(allocator, zrogue.MAPSIZE_X, zrogue.MAPSIZE_Y, zrogue.ROOMS_X, zrogue.ROOMS_Y);
     defer map.deinit();
 
     try map.setMonster(player_thing, 10, 10);
@@ -22,6 +22,8 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
     var room = Room.config(Pos.init(5, 5), Pos.init(15, 15));
     room.setDark();
     try map.addRoom(room);
+
+    try map.addRoom(Room.config(Pos.init(60, 10), Pos.init(70, 20)));
 
     player_thing.addMessage("Welcome to the dungeon!");
 
