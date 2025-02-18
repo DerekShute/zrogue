@@ -19,6 +19,9 @@ pub const STAT_ROW = DISPLAY_MINY; // TODO: technically, 'bottom'
 pub const MAPSIZE_X = DISPLAY_MINX;
 pub const MAPSIZE_Y = DISPLAY_MINY - 2; // Minus message and stat rows
 
+pub const ROOMS_X = 1;
+pub const ROOMS_Y = 1;
+
 pub const MESSAGE_MAXSIZE = DISPLAY_MINX;
 
 //
