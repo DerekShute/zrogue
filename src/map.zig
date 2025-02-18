@@ -51,7 +51,7 @@ const Place = struct {
 
     pub fn setMonst(self: *Place, new_monst: *Thing) !void {
         if (self.monst) |_| {
-            return error.AlreadyOccupied; // TODO collect errors
+            return error.AlreadyInUse;
         }
         self.monst = new_monst;
     }
@@ -204,7 +204,7 @@ pub const Map = struct {
 
     // Allocate and teardown
 
-    pub fn config(allocator: std.mem.Allocator, height: Pos.Dim, width: Pos.Dim, roomsx: Pos.Dim, roomsy: Pos.Dim) !Map {
+    pub fn config(allocator: std.mem.Allocator, width: Pos.Dim, height: Pos.Dim, roomsx: Pos.Dim, roomsy: Pos.Dim) !Map {
         if ((height <= 0) or (width <= 0) or (roomsx <= 0) or (roomsy <= 0)) {
             return error.Underflow;
         }
@@ -326,8 +326,13 @@ pub const Map = struct {
     // rooms
 
     pub fn getRoom(self: *Map, p: Pos) *Room {
-        _ = p; // TODO: lookup.  Also write-once
-        return &self.rooms[0];
+        const xsize = @divTrunc(self.width, self.roomsx); // spaces per column
+        const ysize = @divTrunc(self.height, self.roomsy); // spaces per row
+        const column = @divTrunc(p.getX(), xsize);
+        const row = @divTrunc(p.getY(), ysize);
+
+        const loc: usize = @intCast(row * self.roomsy + column);
+        return &self.rooms[loc];
     }
 
     pub fn inRoom(self: *Map, p: Pos) bool {
@@ -349,9 +354,10 @@ pub const Map = struct {
 
         // TODO test for room alignment to room grid
 
-        // TODO array of, and you know which index based on room's position
-
         var sr = self.getRoom(Pos.init(r.getMinX(), r.getMinY()));
+        if (sr.getMinX() != -1) { // already set
+            return ZrogueError.AlreadyInUse;
+        }
         sr.* = r;
         try sr.draw(self);
     }
@@ -436,8 +442,8 @@ test "map smoke test" {
 
     try map.addRoom(Room.config(Pos.init(10, 10), Pos.init(20, 20)));
 
-    try std.testing.expect(map.getHeight() == 100);
-    try std.testing.expect(map.getWidth() == 50);
+    try std.testing.expect(map.getHeight() == 50);
+    try std.testing.expect(map.getWidth() == 100);
 
     try expect(map.isLit(Pos.init(15, 15)) == true);
     // TODO set room dark, then ask again
@@ -526,6 +532,29 @@ test "draw an oversize room" {
     try std.testing.expectError(ZrogueError.MapOverFlow, map.addRoom(r2));
 }
 
+test "map multiple rooms" {
+    var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
+    defer map.deinit();
+
+    const r1 = Room.config(Pos.init(0, 0), Pos.init(10, 10));
+    try map.addRoom(r1);
+    const r2 = Room.config(Pos.init(50, 25), Pos.init(60, 35));
+    try map.addRoom(r2);
+}
+
+test "map invalid multiple rooms" {
+    var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
+    defer map.deinit();
+
+    // Can't overlap the rooms and can't overwrite
+
+    const r1 = Room.config(Pos.init(0, 0), Pos.init(10, 10));
+    try map.addRoom(r1);
+    try std.testing.expectError(ZrogueError.AlreadyInUse, map.addRoom(r1));
+    const r2 = Room.config(Pos.init(1, 1), Pos.init(12, 12));
+    try std.testing.expectError(ZrogueError.AlreadyInUse, map.addRoom(r2));
+}
+
 // Monsters
 
 test "putting monsters places" {
@@ -538,7 +567,7 @@ test "putting monsters places" {
     try m.setMonster(&thing, 10, 10);
     try std.testing.expect(thing.atXY(10, 10));
 
-    try std.testing.expectError(error.AlreadyOccupied, map.setMonster(&thing2, 10, 10));
+    try std.testing.expectError(error.AlreadyInUse, map.setMonster(&thing2, 10, 10));
 }
 
 // EOF
