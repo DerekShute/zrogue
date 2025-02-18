@@ -196,17 +196,29 @@ pub const Room = struct {
 pub const Map = struct {
     allocator: std.mem.Allocator,
     places: []Place,
-    room: Room, // TODO array of them
+    rooms: []Room,
     height: Pos.Dim,
     width: Pos.Dim,
+    roomsx: Pos.Dim,
+    roomsy: Pos.Dim,
 
     // Allocate and teardown
 
-    pub fn config(allocator: std.mem.Allocator, height: Pos.Dim, width: Pos.Dim) !Map {
+    pub fn config(allocator: std.mem.Allocator, height: Pos.Dim, width: Pos.Dim, roomsx: Pos.Dim, roomsy: Pos.Dim) !Map {
+        if ((height <= 0) or (width <= 0) or (roomsx <= 0) or (roomsy <= 0)) {
+            return error.Underflow;
+        }
+
         const places = try allocator.alloc(Place, @intCast(height * width));
         errdefer allocator.free(places);
         for (places) |*place| {
             place.config();
+        }
+
+        const rooms = try allocator.alloc(Room, @intCast(roomsx * roomsy));
+        errdefer allocator.free(rooms);
+        for (rooms) |*room| {
+            room.* = Room.config(Pos.init(-1, -1), Pos.init(-1, -1));
         }
 
         return .{
@@ -214,7 +226,9 @@ pub const Map = struct {
             .height = height,
             .width = width,
             .places = places,
-            .room = undefined,
+            .rooms = rooms,
+            .roomsx = roomsx,
+            .roomsy = roomsy,
         };
     }
 
@@ -223,6 +237,7 @@ pub const Map = struct {
         if (self.places.len != 0) {
             allocator.free(self.places);
         }
+        allocator.free(self.rooms);
     }
 
     // Utility
@@ -310,8 +325,14 @@ pub const Map = struct {
 
     // rooms
 
+    pub fn getRoom(self: *Map, p: Pos) *Room {
+        _ = p; // TODO: lookup.  Also write-once
+        return &self.rooms[0];
+    }
+
     pub fn inRoom(self: *Map, p: Pos) bool {
-        return self.room.isInside(p);
+        const room = self.getRoom(p);
+        return room.isInside(p);
     }
 
     pub fn addRoom(self: *Map, room: Room) ZrogueError!void {
@@ -329,21 +350,24 @@ pub const Map = struct {
         // TODO test for room alignment to room grid
 
         // TODO array of, and you know which index based on room's position
-        self.room = r;
-        try r.draw(self);
+
+        var sr = self.getRoom(Pos.init(r.getMinX(), r.getMinY()));
+        sr.* = r;
+        try sr.draw(self);
     }
 
     pub fn isLit(self: *Map, p: Pos) bool {
-        if (self.room.isInside(p)) {
-            return self.room.isLit();
+        const room = self.getRoom(p);
+        if (room.isInside(p)) {
+            return room.isLit();
         }
         return false;
     }
 
     pub fn revealRoom(self: *Map, p: Pos) !void {
-        if (self.inRoom(p)) {
-            var r = self.room; // TODO one of many rooms
-            try r.reveal(self);
+        const room = self.getRoom(p);
+        if (room.isInside(p)) {
+            try room.reveal(self);
         }
     }
 };
@@ -378,7 +402,7 @@ test "create a room and test properties" {
 }
 
 test "add a room and ask about it" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20);
+    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
@@ -389,7 +413,7 @@ test "add a room and ask about it" {
 }
 
 test "reveal room" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20);
+    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
@@ -407,7 +431,7 @@ test "reveal room" {
 // Map
 
 test "map smoke test" {
-    var map: Map = try Map.config(std.testing.allocator, 100, 50);
+    var map: Map = try Map.config(std.testing.allocator, 100, 50, 1, 1);
     defer map.deinit();
 
     try map.addRoom(Room.config(Pos.init(10, 10), Pos.init(20, 20)));
@@ -438,20 +462,30 @@ test "map smoke test" {
     try expect(try map.isKnown(11, 11) == false);
 }
 
-test "fails to allocate any of map" { // first allocation attempt
+test "fails to allocate places of map" { // first allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    try std.testing.expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10));
+    try std.testing.expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10, 1, 1));
 }
 
-test "allocate and free zero size" {
-    // Not sure what the allocator does for 'allocate zero' but here you are
+test "fails to allocate rooms of map" { // first allocation attempt
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
+    try std.testing.expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10, 10, 10));
+}
 
-    var map: Map = try Map.config(std.testing.allocator, 0, 0);
-    defer map.deinit();
+test "allocate invalid size map" {
+    const allocator = std.testing.allocator;
+    try std.testing.expectError(error.Underflow, Map.config(allocator, 0, 10, 10, 10));
+    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 0, 10, 10));
+    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 10, 0, 10));
+    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 10, 10, 0));
+    try std.testing.expectError(error.Underflow, Map.config(allocator, -1, 10, 10, 10));
+    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, -1, 10, 10));
+    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 10, -1, 10));
+    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 10, 10, -1));
 }
 
 test "ask about valid map location" {
-    var map: Map = try Map.config(std.testing.allocator, 10, 10);
+    var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
 
     const thing = try map.getMonster(4, 4);
@@ -459,21 +493,21 @@ test "ask about valid map location" {
 }
 
 test "ask about thing at invalid map location" {
-    var map: Map = try Map.config(std.testing.allocator, 10, 10);
+    var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
     try std.testing.expectError(ZrogueError.MapOverFlow, map.getMonster(0, 20));
     try std.testing.expectError(ZrogueError.MapOverFlow, map.getMonster(20, 0));
 }
 
 test "ask about invalid character on the map" {
-    var map: Map = try Map.config(std.testing.allocator, 10, 10);
+    var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
     try std.testing.expectError(ZrogueError.MapOverFlow, map.getTile(20, 0));
     try std.testing.expectError(ZrogueError.MapOverFlow, map.getTile(0, 20));
 }
 
 test "draw an invalid room" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20);
+    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     const r1 = Room.config(Pos.init(15, 15), Pos.init(4, 18));
@@ -483,7 +517,7 @@ test "draw an invalid room" {
 }
 
 test "draw an oversize room" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20);
+    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     const r1 = Room.config(Pos.init(0, 0), Pos.init(0, 100));
@@ -495,7 +529,7 @@ test "draw an oversize room" {
 // Monsters
 
 test "putting monsters places" {
-    var map: Map = try Map.config(std.testing.allocator, 50, 50);
+    var map: Map = try Map.config(std.testing.allocator, 50, 50, 1, 1);
     defer map.deinit();
     var thing = Thing{ .xy = Pos.init(0, 0), .tile = MapTile.player };
     var thing2 = Thing{ .xy = Pos.init(0, 0), .tile = MapTile.player };

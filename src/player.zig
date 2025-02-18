@@ -197,7 +197,7 @@ test "create a player" {
     //
     // Try out rendering
     //
-    var map: Map = try Map.config(std.testing.allocator, 30, 30);
+    var map: Map = try Map.config(std.testing.allocator, 30, 30, 1, 1);
     defer map.deinit();
 
     try map.setMonster(player.toThing(), 6, 6);

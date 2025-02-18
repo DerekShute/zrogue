@@ -14,7 +14,7 @@ const Thing = @import("thing.zig").Thing;
 //
 
 pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
-    var map: Map = try Map.config(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X);
+    var map: Map = try Map.config(allocator, zrogue.MAPSIZE_Y, zrogue.MAPSIZE_X, zrogue.ROOMS_X, zrogue.ROOMS_Y);
     defer map.deinit();
 
     try map.setMonster(player_thing, 10, 10);
