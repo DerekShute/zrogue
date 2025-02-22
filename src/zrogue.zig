@@ -101,6 +101,45 @@ pub const Pos = struct {
 };
 
 //
+// Regions
+//
+pub const Region = struct {
+    from: Pos,
+    to: Pos,
+
+    pub const Iterator = struct {
+        r: *Region,
+        x: Pos.Dim,
+        y: Pos.Dim,
+
+        pub fn next(self: *Region.Iterator) ?Pos {
+            const oldx = self.x;
+            const oldy = self.y;
+            if (self.y > self.r.to.getY()) {
+                return null;
+            } else if (self.x >= self.r.to.getX()) { // next row
+                self.y = self.y + 1;
+                self.x = self.r.from.getX();
+            } else {
+                self.x = self.x + 1; // next column
+            }
+            return Pos.init(oldx, oldy);
+        }
+    };
+
+    pub fn config(from: Pos, to: Pos) !Region {
+        if ((from.getX() > to.getX()) or (from.getY() > to.getY())) {
+            return ZrogueError.OutOfBounds;
+        }
+        return .{ .from = from, .to = to };
+    }
+
+    pub fn iterator(self: *Region) Region.Iterator {
+        return .{ .r = self, .x = self.from.getX(), .y = self.from.getY() };
+    }
+};
+
+//
 // Common Error set
 //
 pub const ZrogueError = error{
@@ -177,4 +216,40 @@ test "entity action" {
     try expect(action.getPos().eql(Pos.init(-1, 0)));
 }
 
+test "invalid regions" {
+    const expectError = std.testing.expectError;
+
+    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(5, 5), Pos.init(4, 4)));
+}
+
+test "regions and region iterators" {
+    const ARRAYDIM = 14;
+    var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
+    const expect = std.testing.expect;
+
+    // Construct the iteration
+    var r = try Region.config(Pos.init(2, 7), Pos.init(9, 11));
+    var i = r.iterator();
+    while (i.next()) |pos| {
+        const f: usize = @intCast(pos.getX() + pos.getY() * ARRAYDIM);
+        try expect(pos.getX() >= 0);
+        try expect(pos.getX() <= ARRAYDIM);
+        try expect(pos.getY() >= 0);
+        try expect(pos.getY() <= ARRAYDIM);
+        a[f] = 1;
+    }
+
+    // Rigorously consider what should have been touched
+
+    for (0..ARRAYDIM) |y| {
+        for (0..ARRAYDIM) |x| {
+            const val = a[x + y * ARRAYDIM];
+            if ((x >= 2) and (x <= 9) and (y >= 7) and (y <= 11)) {
+                try expect(val == 1);
+            } else {
+                try expect(val == 0);
+            }
+        }
+    }
+}
 // EOF
