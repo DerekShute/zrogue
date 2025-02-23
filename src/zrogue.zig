@@ -130,6 +130,10 @@ pub const Region = struct {
     };
 
     pub fn config(from: Pos, to: Pos) !Region {
+        if ((from.getX() < 0) or (from.getY() < 0) or (to.getX() < 0) or (to.getY() < 0)) {
+            return ZrogueError.OutOfBounds;
+        }
+
         if ((from.getX() > to.getX()) or (from.getY() > to.getY())) {
             return ZrogueError.OutOfBounds;
         }
@@ -230,6 +234,10 @@ test "invalid regions" {
     const expectError = std.testing.expectError;
 
     try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(5, 5), Pos.init(4, 4)));
+    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(-1, 4), Pos.init(5, 5)));
+    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(4, -1), Pos.init(5, 5)));
+    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(4, 4), Pos.init(-1, 5)));
+    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(4, 4), Pos.init(5, -1)));
 }
 
 test "region" {
@@ -240,6 +248,9 @@ test "region" {
     var r = try Region.config(min, max);
     try expect(min.eql(r.getMin()));
     try expect(max.eql(r.getMax()));
+
+    // We will call 1x1 valid for now. 1x1 at 0,0 is the uninitialized room
+    _ = try Region.config(Pos.init(0, 0), Pos.init(0, 0));
 }
 
 test "region iterator" {

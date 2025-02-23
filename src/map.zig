@@ -86,6 +86,7 @@ pub const Room = struct {
     // Constructor
 
     pub fn config(tl: Pos, br: Pos) !Room {
+        // (0,0) - (0,0) is reserved as the special 'uninitialized' room
         return .{
             .r = try Region.config(tl, br),
             .flags = .{
@@ -221,7 +222,7 @@ pub const Map = struct {
         const rooms = try allocator.alloc(Room, @intCast(roomsx * roomsy));
         errdefer allocator.free(rooms);
         for (rooms) |*room| {
-            room.* = try Room.config(Pos.init(-1, -1), Pos.init(-1, -1));
+            room.* = try Room.config(Pos.init(0, 0), Pos.init(0, 0));
         }
 
         return .{
@@ -368,9 +369,10 @@ pub const Map = struct {
             return ZrogueError.OutOfBounds;
         }
 
-        if (sr.getMinX() != -1) { // already set
+        if (sr.getMaxX() != 0) { // already set?
             return ZrogueError.AlreadyInUse;
         }
+
         sr.* = r;
         try sr.draw(self);
     }
