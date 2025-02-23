@@ -14,9 +14,6 @@ const ActionHandler = *const fn (self: *Thing, map: *Map) ZrogueError!ThingActio
 //
 // Structure for monsters, player, and objects
 //
-// DOT Thing -> MessageLog [label="receives"]
-// DOT Thing -> ActionHandler [label="receives"]
-//
 pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
     // TODO: timer, action queue
@@ -81,5 +78,11 @@ pub const Thing = struct {
     // TODO: setX, setY, moveRelative, getX, getY, getXY, etc
 
 };
+
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+
+pub var thing_fields = genFields(Thing);
 
 // EOF
