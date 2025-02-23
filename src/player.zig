@@ -149,7 +149,7 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     }
 
     if (map.inRoom(self.getPos()) and map.isLit(self.getPos())) {
-        var r = map.getRoomRegion(self.getPos());
+        var r = map.getRoomRegion(self.getPos()) catch unreachable; // Known
         var ri = r.iterator();
 
         while (ri.next()) |pos| {
