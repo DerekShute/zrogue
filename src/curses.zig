@@ -26,10 +26,10 @@ fn checkError(res: c_int) ZrogueError!c_int {
 //
 fn mapToChar(ch: MapTile) u8 {
     const c: u8 = switch (ch) {
-        MapTile.unknown => ' ',
-        MapTile.floor => '.',
-        MapTile.wall => '#',
-        MapTile.player => '@',
+        .unknown => ' ',
+        .floor => '.',
+        .wall => '#',
+        .player => '@',
     };
     return c;
 }

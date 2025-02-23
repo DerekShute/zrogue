@@ -21,7 +21,7 @@ pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
     // TODO: timer, action queue
     xy: Pos = Pos.init(-1, -1),
-    tile: MapTile = MapTile.floor, // Extremely provisional of course
+    tile: MapTile = .floor, // Extremely provisional of course
     doaction: ActionHandler = undefined,
     log: ?*MessageLog = null,
 

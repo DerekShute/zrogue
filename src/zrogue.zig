@@ -52,11 +52,11 @@ pub const MapTile = enum {
     player,
 
     pub fn feature(self: MapTile) bool {
-        return (self == MapTile.wall); // TODO door, stairs
+        return (self == .wall); // TODO door, stairs
     }
 
     pub fn passable(self: MapTile) bool {
-        return (self == MapTile.floor); // TODO door, stairs
+        return (self == .floor); // TODO door, stairs
     }
 };
 
