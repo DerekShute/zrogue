@@ -137,6 +137,14 @@ pub const Region = struct {
     pub fn iterator(self: *Region) Region.Iterator {
         return .{ .r = self, .x = self.from.getX(), .y = self.from.getY() };
     }
+
+    pub fn getMin(self: *Region) Pos {
+        return self.from;
+    }
+
+    pub fn getMax(self: *Region) Pos {
+        return self.to;
+    }
 };
 
 //
@@ -222,7 +230,17 @@ test "invalid regions" {
     try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(5, 5), Pos.init(4, 4)));
 }
 
-test "regions and region iterators" {
+test "region" {
+    const expect = std.testing.expect;
+    const min = Pos.init(2, 7);
+    const max = Pos.init(9, 11);
+
+    var r = try Region.config(min, max);
+    try expect(min.eql(r.getMin()));
+    try expect(max.eql(r.getMax()));
+}
+
+test "region iterator" {
     const ARRAYDIM = 14;
     var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
     const expect = std.testing.expect;

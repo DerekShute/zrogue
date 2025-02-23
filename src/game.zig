@@ -19,11 +19,11 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
 
     try map.setMonster(player_thing, 10, 10);
 
-    var room = Room.config(Pos.init(5, 5), Pos.init(15, 15));
+    var room = try Room.config(Pos.init(5, 5), Pos.init(15, 15));
     room.setDark();
     try map.addRoom(room);
 
-    try map.addRoom(Room.config(Pos.init(60, 10), Pos.init(70, 20)));
+    try map.addRoom(try Room.config(Pos.init(60, 10), Pos.init(70, 20)));
 
     player_thing.addMessage("Welcome to the dungeon!");
 
