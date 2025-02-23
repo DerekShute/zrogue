@@ -258,6 +258,76 @@ pub const Map = struct {
         return &self.places[loc];
     }
 
+    // Internal structs
+
+    const Corridor = struct {
+        cur: Pos,
+        dest: Pos,
+        mid: Pos.Dim,
+
+        pub fn config(s: Pos, e: Pos, m: Pos.Dim) Corridor {
+            return .{
+                .cur = s,
+                .dest = e,
+                .mid = m,
+            };
+        }
+
+        pub fn nextSouth(self: *Corridor) ?Pos {
+            // Southward tunnel
+
+            const ret = self.cur;
+            var x = self.cur.getX();
+            var y = self.cur.getY();
+
+            if (y > self.dest.getY()) {
+                return null;
+            }
+
+            if (y == self.mid) { // Move South unless at midpoint
+                if (x == self.dest.getX()) {
+                    y = y + 1;
+                } else if (x < self.dest.getX()) {
+                    x = x + 1;
+                } else {
+                    x = x - 1;
+                }
+            } else {
+                y = y + 1;
+            }
+
+            self.cur = Pos.init(x, y);
+            return ret;
+        }
+
+        pub fn nextEast(self: *Corridor) ?Pos {
+            // Eastward tunnel
+
+            const ret = self.cur;
+            var x = self.cur.getX();
+            var y = self.cur.getY();
+
+            if (x > self.dest.getX()) {
+                return null;
+            }
+
+            if (x == self.mid) { // Move East unless at midpoint
+                if (y == self.dest.getY()) {
+                    x = x + 1;
+                } else if (y < self.dest.getY()) {
+                    y = y + 1;
+                } else {
+                    y = y - 1;
+                }
+            } else {
+                x = x + 1;
+            }
+
+            self.cur = Pos.init(x, y);
+            return ret;
+        }
+    };
+
     // Methods
 
     pub fn getHeight(self: *Map) Pos.Dim {
@@ -281,6 +351,28 @@ pub const Map = struct {
     pub fn passable(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
         const place = try self.toPlace(x, y);
         return place.passable();
+    }
+
+    pub fn dig(self: *Map, start: Pos, end: Pos) !void {
+        // Inclusive of start and end positions
+
+        // TODO: order for easterly or southerly dig.  Does not test for
+        // directly below
+        if (self.isRoomAdjacent(start, end)) { // next : dig East
+            const mid = @divTrunc(start.getX() + end.getX(), 2);
+            var i = Corridor.config(start, end, mid);
+            while (i.nextEast()) |p| {
+                const place = try self.toPlace(p.getX(), p.getY());
+                place.setTile(MapTile.floor);
+            }
+        } else { // below : dig South
+            const mid = @divTrunc(start.getY() + end.getY(), 2);
+            var i = Corridor.config(start, end, mid);
+            while (i.nextSouth()) |p| {
+                const place = try self.toPlace(p.getX(), p.getY());
+                place.setTile(MapTile.floor);
+            }
+        }
     }
 
     // monsters
@@ -326,7 +418,7 @@ pub const Map = struct {
 
     // rooms
 
-    fn getRoom(self: *Map, p: Pos) ?*Room {
+    fn getRoomNum(self: *Map, p: Pos) ?usize {
         if ((p.getX() < 0) or (p.getY() < 0)) {
             return null;
         }
@@ -341,7 +433,30 @@ pub const Map = struct {
             return null;
         }
 
-        return &self.rooms[loc];
+        return loc;
+    }
+
+    fn isRoomAdjacent(self: *Map, p1: Pos, p2: Pos) bool {
+        const r1 = self.getRoomNum(p1);
+        const r2 = self.getRoomNum(p2);
+
+        if (r1) |r1num| {
+            if (r2) |r2num| {
+                if ((r1num > r2num) and (r1num - r2num == 1)) {
+                    return true;
+                } else if ((r2num > r1num) and (r2num - r1num == 1)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    fn getRoom(self: *Map, p: Pos) ?*Room {
+        if (self.getRoomNum(p)) |loc| {
+            return &self.rooms[loc];
+        }
+        return null;
     }
 
     pub fn inRoom(self: *Map, p: Pos) bool {
