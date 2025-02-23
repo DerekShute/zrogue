@@ -373,6 +373,9 @@ pub const Map = struct {
                 place.setTile(MapTile.floor);
             }
         }
+
+        try self.setTile(start.getX(), start.getY(), .door);
+        try self.setTile(end.getX(), end.getY(), .door);
     }
 
     // monsters
@@ -608,6 +611,9 @@ test "map smoke test" {
     try map.setTile(17, 17, .wall);
     try expect(try map.getTile(17, 17) == .wall);
 
+    try map.setTile(18, 18, .door);
+    try expect(try map.getTile(18, 18) == .door);
+
     try map.setRegionKnown(12, 12, 15, 15);
     try expect(try map.isKnown(12, 12) == true);
     try expect(try map.isKnown(15, 15) == true);
@@ -737,6 +743,49 @@ test "map invalid multiple rooms" {
     try expectError(ZrogueError.AlreadyInUse, map.addRoom(r1));
     const r2 = try Room.config(Pos.init(1, 1), Pos.init(12, 12));
     try expectError(ZrogueError.AlreadyInUse, map.addRoom(r2));
+}
+
+// Corridors
+
+test "dig corridors" {
+    var map: Map = try Map.config(std.testing.allocator, 40, 40, 2, 2);
+    defer map.deinit();
+
+    // These don't have to make sense as part of actual rooms
+
+    // Eastward dig
+    try map.dig(Pos.init(4, 4), Pos.init(20, 10));
+    try expect(try map.getTile(12, 7) == .floor); // halfway
+    try expect(try map.getTile(12, 4) == .floor);
+    try expect(try map.getTile(12, 10) == .floor);
+    try expect(try map.getTile(4, 4) == .door);
+    try expect(try map.getTile(20, 10) == .door);
+
+    // Southward dig
+    try map.dig(Pos.init(10, 8), Pos.init(3, 14));
+    try expect(try map.getTile(6, 11) == .floor); // halfway
+    try expect(try map.getTile(3, 11) == .floor);
+    try expect(try map.getTile(10, 11) == .floor);
+    try expect(try map.getTile(10, 8) == .door);
+    try expect(try map.getTile(3, 14) == .door);
+}
+
+test "dig unusual corridors" {
+    var map: Map = try Map.config(std.testing.allocator, 20, 20, 2, 2);
+    defer map.deinit();
+
+    try map.dig(Pos.init(5, 10), Pos.init(5, 12)); // One tile
+    try expect(try map.getTile(5, 11) == .floor);
+
+    try map.dig(Pos.init(10, 5), Pos.init(15, 5)); // straight East
+    try expect(try map.getTile(11, 5) == .floor);
+    try expect(try map.getTile(13, 5) == .floor);
+    try expect(try map.getTile(14, 5) == .floor);
+
+    try map.dig(Pos.init(16, 8), Pos.init(16, 13)); // straight South
+    try expect(try map.getTile(16, 9) == .floor);
+    try expect(try map.getTile(16, 10) == .floor);
+    try expect(try map.getTile(16, 12) == .floor);
 }
 
 // Monsters

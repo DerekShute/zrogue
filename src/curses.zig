@@ -29,6 +29,7 @@ fn mapToChar(ch: MapTile) u8 {
         .unknown => ' ',
         .floor => '.',
         .wall => '#',
+        .door => '+',
         .player => '@',
     };
     return c;
