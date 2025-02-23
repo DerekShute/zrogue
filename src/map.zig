@@ -3,6 +3,7 @@ const expect = std.testing.expect;
 const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
 const Pos = zrogue.Pos;
+const Region = zrogue.Region;
 const ZrogueError = zrogue.ZrogueError;
 const MapTile = zrogue.MapTile;
 
@@ -77,18 +78,16 @@ const Place = struct {
 //
 
 pub const Room = struct {
-    topleft: Pos,
-    bottomright: Pos,
+    r: Region,
     flags: packed struct {
         lit: bool,
     },
 
     // Constructor
 
-    pub fn config(tl: Pos, br: Pos) Room {
+    pub fn config(tl: Pos, br: Pos) !Room {
         return .{
-            .topleft = tl,
-            .bottomright = br,
+            .r = try Region.config(tl, br),
             .flags = .{
                 .lit = true,
             },
@@ -98,19 +97,23 @@ pub const Room = struct {
     // Methods
 
     pub fn getMinX(self: *Room) Pos.Dim {
-        return self.topleft.getX();
+        const min = self.r.getMin();
+        return min.getX();
     }
 
     pub fn getMaxX(self: *Room) Pos.Dim {
-        return self.bottomright.getX();
+        const max = self.r.getMax();
+        return max.getX();
     }
 
     pub fn getMinY(self: *Room) Pos.Dim {
-        return self.topleft.getY();
+        const min = self.r.getMin();
+        return min.getY();
     }
 
     pub fn getMaxY(self: *Room) Pos.Dim {
-        return self.bottomright.getY();
+        const max = self.r.getMax();
+        return max.getY();
     }
 
     pub fn isLit(self: *Room) bool {
@@ -122,7 +125,7 @@ pub const Room = struct {
     }
 
     pub fn isInside(self: *Room, p: Pos) bool {
-        if ((p.getX() < self.topleft.getX()) or (p.getX() > self.bottomright.getX()) or (p.getY() < self.topleft.getY()) or (p.getY() > self.bottomright.getY())) {
+        if ((p.getX() < self.getMinX()) or (p.getX() > self.getMaxX()) or (p.getY() < self.getMinY()) or (p.getY() > self.getMaxY())) {
             return false;
         }
         return true;
@@ -218,7 +221,7 @@ pub const Map = struct {
         const rooms = try allocator.alloc(Room, @intCast(roomsx * roomsy));
         errdefer allocator.free(rooms);
         for (rooms) |*room| {
-            room.* = Room.config(Pos.init(-1, -1), Pos.init(-1, -1));
+            room.* = try Room.config(Pos.init(-1, -1), Pos.init(-1, -1));
         }
 
         return .{
@@ -347,10 +350,8 @@ pub const Map = struct {
             return ZrogueError.MapOverFlow;
         }
 
-        // TODO 'removed' room of 1x1 size is allowed
-        if ((r.getMaxX() < r.getMinX()) or (r.getMaxY() < r.getMinY())) {
-            return ZrogueError.OutOfBounds;
-        }
+        // Rooms have a validated Region inside, so no need to test...
+        // ...unless paranoid
 
         // TODO test for room alignment to room grid
 
@@ -385,7 +386,7 @@ pub const Map = struct {
 // Rooms
 
 test "create a room and test properties" {
-    var room: Room = Room.config(Pos.init(10, 10), Pos.init(20, 20));
+    var room: Room = try Room.config(Pos.init(10, 10), Pos.init(20, 20));
 
     try expect(room.getMaxX() == 20);
     try expect(room.getMaxY() == 20);
@@ -411,7 +412,7 @@ test "add a room and ask about it" {
     var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
-    const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
+    const r1 = try Room.config(Pos.init(5, 5), Pos.init(10, 10));
     try map.addRoom(r1);
     try expect(map.inRoom(Pos.init(7, 7)) == true);
     try expect(map.inRoom(Pos.init(19, 19)) == false);
@@ -422,7 +423,7 @@ test "reveal room" {
     var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
-    const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
+    const r1 = try Room.config(Pos.init(5, 5), Pos.init(10, 10));
     try map.addRoom(r1);
     try expect(try map.isKnown(7, 7) == false);
     try expect(try map.isKnown(4, 4) == false);
@@ -440,7 +441,7 @@ test "map smoke test" {
     var map: Map = try Map.config(std.testing.allocator, 100, 50, 1, 1);
     defer map.deinit();
 
-    try map.addRoom(Room.config(Pos.init(10, 10), Pos.init(20, 20)));
+    try map.addRoom(try Room.config(Pos.init(10, 10), Pos.init(20, 20)));
 
     try std.testing.expect(map.getHeight() == 50);
     try std.testing.expect(map.getWidth() == 100);
@@ -512,23 +513,23 @@ test "ask about invalid character on the map" {
     try std.testing.expectError(ZrogueError.MapOverFlow, map.getTile(0, 20));
 }
 
-test "draw an invalid room" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
-    defer map.deinit();
+test "Create an invalid room" {
+
+    // Room API prevents describing invalid rooms
 
     const r1 = Room.config(Pos.init(15, 15), Pos.init(4, 18));
-    try std.testing.expectError(ZrogueError.OutOfBounds, map.addRoom(r1));
+    try std.testing.expectError(ZrogueError.OutOfBounds, r1);
     const r2 = Room.config(Pos.init(15, 15), Pos.init(18, 4));
-    try std.testing.expectError(ZrogueError.OutOfBounds, map.addRoom(r2));
+    try std.testing.expectError(ZrogueError.OutOfBounds, r2);
 }
 
 test "draw an oversize room" {
     var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
-    const r1 = Room.config(Pos.init(0, 0), Pos.init(0, 100));
+    const r1 = try Room.config(Pos.init(0, 0), Pos.init(0, 100));
     try std.testing.expectError(ZrogueError.MapOverFlow, map.addRoom(r1));
-    const r2 = Room.config(Pos.init(0, 0), Pos.init(100, 0));
+    const r2 = try Room.config(Pos.init(0, 0), Pos.init(100, 0));
     try std.testing.expectError(ZrogueError.MapOverFlow, map.addRoom(r2));
 }
 
@@ -536,9 +537,9 @@ test "map multiple rooms" {
     var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit();
 
-    const r1 = Room.config(Pos.init(0, 0), Pos.init(10, 10));
+    const r1 = try Room.config(Pos.init(0, 0), Pos.init(10, 10));
     try map.addRoom(r1);
-    const r2 = Room.config(Pos.init(50, 25), Pos.init(60, 35));
+    const r2 = try Room.config(Pos.init(50, 25), Pos.init(60, 35));
     try map.addRoom(r2);
 }
 
@@ -548,10 +549,10 @@ test "map invalid multiple rooms" {
 
     // Can't overlap the rooms and can't overwrite
 
-    const r1 = Room.config(Pos.init(0, 0), Pos.init(10, 10));
+    const r1 = try Room.config(Pos.init(0, 0), Pos.init(10, 10));
     try map.addRoom(r1);
     try std.testing.expectError(ZrogueError.AlreadyInUse, map.addRoom(r1));
-    const r2 = Room.config(Pos.init(1, 1), Pos.init(12, 12));
+    const r2 = try Room.config(Pos.init(1, 1), Pos.init(12, 12));
     try std.testing.expectError(ZrogueError.AlreadyInUse, map.addRoom(r2));
 }
 
