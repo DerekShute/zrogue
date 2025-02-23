@@ -52,9 +52,6 @@ var global_win: ?*curses.WINDOW = null;
 //
 // DisplayProvider implementation for Curses
 //
-// DOT CursesDisplayProvider -> DisplayProvider [label="implements"]
-// DOT CursesDisplayProvider -> DisplayVTable [label="interface"]
-//
 pub const CursesDisplayProvider = struct {
     allocator: std.mem.Allocator,
     x: u16,
@@ -146,9 +143,6 @@ pub const CursesDisplayProvider = struct {
 //
 // InputProvider implementation for Curses
 //
-// DOT CursesInputProvider -> InputProvider [label="implements"]
-// DOT CursesInputProvider -> InputVTable [label="interface"]
-//
 pub const CursesInputProvider = struct {
     //
     // Constructor
@@ -189,9 +183,6 @@ pub const CursesInputProvider = struct {
 // ===================
 //
 // Return from the config routine, handing off the two providers
-//
-// DOT CursesInitReturn -> CursesDisplayProvider [label="contains"]
-// DOT CursesInitReturn -> CursesInputProvider [label="contains"]
 //
 pub const CursesInitReturn = struct {
     d: CursesDisplayProvider,

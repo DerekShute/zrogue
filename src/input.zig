@@ -7,8 +7,6 @@ const Command = zrogue.Command;
 //
 // Input provider - pull commands out of the player/user
 //
-// DOT InputProvider -> InputVTable
-//
 pub const InputProvider = struct {
     // Type-erased pointer to the display implementation
     ptr: *anyopaque,
@@ -32,10 +30,6 @@ pub const InputProvider = struct {
 //
 // MockInputProvider for testing purposes
 //
-
-// DOT MockInputProvider -> DisplayProvider [label="implements"]
-// DOT MockInputConfig -> MockInputProvider [label="configures"]
-
 pub const MockInputProvider = struct {
     commandlist: []Command,
     index: u16 = 0,
@@ -91,5 +85,9 @@ test "Basic use of mock input provider" {
     try std.testing.expect(try i.getCommand() == Command.quit);
     try std.testing.expectError(ZrogueError.IndexOverflow, i.getCommand());
 }
+
+// Visualize
+const genFields = @import("visual.zig").genFields;
+pub var input_fields = genFields(InputProvider);
 
 // EOF

@@ -25,12 +25,15 @@ jobs:
       - name: Test
         run: zig build test
 
-      - name: make visualization
+      - name: make structure graph
         run: make
 
       - uses: actions/upload-artifact@v4
         with:
           name: visualization
-          path: visualize.svg
+          path: |
+            zig-out/visual.svg
+            zig-out/visual.dot
+            zig-out/visual.yml            
 
 # EOF

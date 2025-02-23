@@ -12,9 +12,6 @@ const MapTile = zrogue.MapTile;
 //
 // Spot on the map
 //
-// DOT map_Place -> Thing [label="refers"]
-// Dot map_Place -> MapTile [label="contains"]
-
 const Place = struct {
     tile: MapTile = .unknown,
     flags: packed struct {
@@ -193,10 +190,6 @@ pub const Room = struct {
 // ===================
 //
 // Map (global)
-//
-// DOT Map -> map_Place [label="contains"]
-// DOT Map -> map_Room [label="contains"]
-// DOT Map -> std_mem_Allocator [label="receives"]
 //
 pub const Map = struct {
     allocator: std.mem.Allocator,
@@ -802,5 +795,13 @@ test "putting monsters places" {
 
     try expectError(error.AlreadyInUse, map.setMonster(&thing2, 10, 10));
 }
+
+// Visualize
+
+const genFields = @import("visual.zig").genFields;
+
+pub var map_fields = genFields(Map);
+pub var place_fields = genFields(Place);
+pub var room_fields = genFields(Room);
 
 // EOF

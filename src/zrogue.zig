@@ -284,4 +284,13 @@ test "region iterator" {
         }
     }
 }
+
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+
+pub var region_fields = genFields(Region);
+pub var pos_fields = genFields(Pos);
+pub var action_fields = genFields(ThingAction);
+
 // EOF

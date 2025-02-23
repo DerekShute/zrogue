@@ -7,8 +7,6 @@ const ZrogueError = zrogue.ZrogueError;
 //
 // Provides the display interface
 //
-// DOT DisplayProvider -> DisplayVTable
-//
 pub const DisplayProvider = struct {
 
     // Type-erased pointer to the display implementation
@@ -64,9 +62,6 @@ pub const DisplayProvider = struct {
 //
 // MockDisplayProvider for testing purposes
 //
-
-// DOT MockDisplayProvider -> DisplayProvider [label="implements"]
-// DOT MockDisplayConfig -> MockDisplayProvider [label="configures"]
 
 pub const MockDisplayProvider = struct {
     initialized: bool,
@@ -192,5 +187,10 @@ test "Method use after endwin" {
     try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxx());
     try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxy());
 }
+
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+pub var display_fields = genFields(DisplayProvider);
 
 // EOF

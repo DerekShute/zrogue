@@ -16,12 +16,6 @@ const MessageLog = @import("message_log.zig").MessageLog;
 //
 // Player: Player abstraction
 //
-// DOT Player -> Thing [label="implements"]
-// DOT Player -> InputProvider [label="receives"]
-// DOT Player -> DisplayProvider [label="receives"]
-// DOT Player -> std_mem_Allocator [label="receives"]
-// DOT Player -> MessageLog [label="contains"]
-//
 pub const Player = struct {
     thing: Thing, // NOTE: Must be first, for pointer coercion from *Thing
     allocator: std.mem.Allocator,
@@ -243,5 +237,11 @@ test "fail to fully create a player" { // right now there are two allocations
 
     try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), input, display));
 }
+
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+
+pub var player_fields = genFields(Player);
 
 // EOF

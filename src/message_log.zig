@@ -5,8 +5,6 @@ const zrogue = @import("zrogue.zig");
 //
 // Record of messages sent to an entity (presumably a player)
 //
-// DOT MessageLog -> std_mem_Allocator [label="receives"]
-//
 // TODO: Right now, depth of one
 //
 pub const MessageLog = struct {
@@ -83,5 +81,10 @@ test "allocate and add messages" {
     try std.testing.expect(!std.mem.eql(u8, log.get(), "SECOND MESSAGE2"));
     try std.testing.expect(!std.mem.eql(u8, log.get(), "SECOND MESSA"));
 }
+
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+pub var log_fields = genFields(MessageLog);
 
 // EOF
