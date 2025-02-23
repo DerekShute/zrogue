@@ -19,8 +19,10 @@ pub const STAT_ROW = DISPLAY_MINY; // TODO: technically, 'bottom'
 pub const MAPSIZE_X = DISPLAY_MINX;
 pub const MAPSIZE_Y = DISPLAY_MINY - 2; // Minus message and stat rows
 
+// Original Rogue uses a 3x3 grid but that feels cramped at least right now
+
 pub const ROOMS_X = 3;
-pub const ROOMS_Y = 3;
+pub const ROOMS_Y = 2;
 
 pub const MESSAGE_MAXSIZE = DISPLAY_MINX;
 
