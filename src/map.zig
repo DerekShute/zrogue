@@ -1,5 +1,6 @@
 const std = @import("std");
 const expect = std.testing.expect;
+const expectError = std.testing.expectError;
 const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
 const Pos = zrogue.Pos;
@@ -325,34 +326,40 @@ pub const Map = struct {
 
     // rooms
 
-    fn getRoom(self: *Map, p: Pos) *Room {
+    fn getRoom(self: *Map, p: Pos) ?*Room {
+        if ((p.getX() < 0) or (p.getY() < 0)) {
+            return null;
+        }
+
         const xsize = @divTrunc(self.width, self.roomsx); // spaces per column
         const ysize = @divTrunc(self.height, self.roomsy); // spaces per row
         const column = @divTrunc(p.getX(), xsize);
         const row = @divTrunc(p.getY(), ysize);
         const loc: usize = @intCast(row * self.roomsy + column);
 
-        // TODO: validate calculation
+        if (loc > self.rooms.len) {
+            return null;
+        }
 
         return &self.rooms[loc];
     }
 
     pub fn inRoom(self: *Map, p: Pos) bool {
-        const room = self.getRoom(p);
-        return room.isInside(p);
+        if (self.getRoom(p)) |room| {
+            return room.isInside(p);
+        }
+        return false; // TODO ugh
     }
 
-    pub fn getRoomRegion(self: *Map, p: Pos) Region {
-        const room = self.getRoom(p);
-        return room.getRegion();
+    pub fn getRoomRegion(self: *Map, p: Pos) !Region {
+        if (self.getRoom(p)) |room| {
+            return room.getRegion();
+        }
+        return ZrogueError.OutOfBounds;
     }
 
     pub fn addRoom(self: *Map, room: Room) ZrogueError!void {
         var r = room; // force to var reference
-
-        if ((r.getMaxX() > self.width) or (r.getMaxY() > self.height)) {
-            return ZrogueError.MapOverFlow;
-        }
 
         // TODO We will need to support 1x1 "removed" rooms eventually...
         if ((r.getMaxX() - r.getMinX() <= 1) or (r.getMaxY() - r.getMinY() <= 1)) {
@@ -362,33 +369,43 @@ pub const Map = struct {
         // Rooms have a validated Region inside, so no need to test...
         // ...unless paranoid
 
+        // getRoom() validates coordinates
+
         // Make sure that the region fits in one 'grid' location
         var sr = self.getRoom(Pos.init(r.getMinX(), r.getMinY()));
         const sr2 = self.getRoom(Pos.init(r.getMaxX(), r.getMaxY()));
-        if (sr != sr2) {
+        if ((sr == null) or (sr2 == null)) {
+            return ZrogueError.OutOfBounds;
+        } else if (sr != sr2) {
             return ZrogueError.OutOfBounds;
         }
 
-        if (sr.getMaxX() != 0) { // already set?
+        // sr proven non-null above
+
+        if (sr.?.getMaxX() != 0) { // already set?
             return ZrogueError.AlreadyInUse;
         }
 
-        sr.* = r;
-        try sr.draw(self);
+        sr.?.* = r;
+        try sr.?.draw(self);
     }
 
     pub fn isLit(self: *Map, p: Pos) bool {
-        const room = self.getRoom(p);
-        if (room.isInside(p)) {
-            return room.isLit();
+        if (self.getRoom(p)) |room| {
+            if (room.isInside(p)) {
+                return room.isLit();
+            }
         }
-        return false;
+        return false; // TODO ugh
     }
 
     pub fn revealRoom(self: *Map, p: Pos) !void {
-        const room = self.getRoom(p);
-        if (room.isInside(p)) {
-            try room.reveal(self);
+        if (self.getRoom(p)) |room| {
+            if (room.isInside(p)) {
+                try room.reveal(self);
+            }
+        } else {
+            return ZrogueError.OutOfBounds;
         }
     }
 };
@@ -485,24 +502,24 @@ test "map smoke test" {
 
 test "fails to allocate places of map" { // first allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    try std.testing.expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10, 1, 1));
+    try expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10, 1, 1));
 }
 
 test "fails to allocate rooms of map" { // first allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
-    try std.testing.expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10, 10, 10));
+    try expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10, 10, 10));
 }
 
 test "allocate invalid size map" {
     const allocator = std.testing.allocator;
-    try std.testing.expectError(error.Underflow, Map.config(allocator, 0, 10, 10, 10));
-    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 0, 10, 10));
-    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 10, 0, 10));
-    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 10, 10, 0));
-    try std.testing.expectError(error.Underflow, Map.config(allocator, -1, 10, 10, 10));
-    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, -1, 10, 10));
-    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 10, -1, 10));
-    try std.testing.expectError(error.Underflow, Map.config(allocator, 10, 10, 10, -1));
+    try expectError(error.Underflow, Map.config(allocator, 0, 10, 10, 10));
+    try expectError(error.Underflow, Map.config(allocator, 10, 0, 10, 10));
+    try expectError(error.Underflow, Map.config(allocator, 10, 10, 0, 10));
+    try expectError(error.Underflow, Map.config(allocator, 10, 10, 10, 0));
+    try expectError(error.Underflow, Map.config(allocator, -1, 10, 10, 10));
+    try expectError(error.Underflow, Map.config(allocator, 10, -1, 10, 10));
+    try expectError(error.Underflow, Map.config(allocator, 10, 10, -1, 10));
+    try expectError(error.Underflow, Map.config(allocator, 10, 10, 10, -1));
 }
 
 test "ask about valid map location" {
@@ -516,15 +533,15 @@ test "ask about valid map location" {
 test "ask about thing at invalid map location" {
     var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.getMonster(0, 20));
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.getMonster(20, 0));
+    try expectError(ZrogueError.MapOverFlow, map.getMonster(0, 20));
+    try expectError(ZrogueError.MapOverFlow, map.getMonster(20, 0));
 }
 
 test "ask about invalid character on the map" {
     var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.getTile(20, 0));
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.getTile(0, 20));
+    try expectError(ZrogueError.MapOverFlow, map.getTile(20, 0));
+    try expectError(ZrogueError.MapOverFlow, map.getTile(0, 20));
 }
 
 test "Create an invalid room" {
@@ -532,25 +549,41 @@ test "Create an invalid room" {
     // Room API prevents describing invalid rooms
 
     const r1 = Room.config(Pos.init(15, 15), Pos.init(4, 18));
-    try std.testing.expectError(ZrogueError.OutOfBounds, r1);
+    try expectError(ZrogueError.OutOfBounds, r1);
     const r2 = Room.config(Pos.init(15, 15), Pos.init(18, 4));
-    try std.testing.expectError(ZrogueError.OutOfBounds, r2);
+    try expectError(ZrogueError.OutOfBounds, r2);
 }
 
-// TODO test inquire about room at invalid location
+test "inquire about room at invalid location" {
+    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
+    defer map.deinit();
+
+    try expectError(ZrogueError.OutOfBounds, map.getRoomRegion(Pos.init(21, 21)));
+    try expectError(ZrogueError.OutOfBounds, map.getRoomRegion(Pos.init(-1, -1)));
+    try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(-1, -1)));
+    try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(100, 100)));
+
+    // The rest are inquiries that we default to 'false' for insane callers
+    // commence groaning now
+
+    try expect(map.inRoom(Pos.init(100, 100)) == false);
+    try expect(map.inRoom(Pos.init(-1, -1)) == false);
+    try expect(map.inRoom(Pos.init(-1, -1)) == false);
+    try expect(map.isLit(Pos.init(-1, -1)) == false);
+    try expect(map.isLit(Pos.init(100, 100)) == false);
+}
 
 test "draw an oversize room" {
     var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(0, 0), Pos.init(0, 100));
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.addRoom(r1));
+    try expectError(ZrogueError.MapOverFlow, map.addRoom(r1));
     const r2 = try Room.config(Pos.init(0, 0), Pos.init(100, 0));
-    try std.testing.expectError(ZrogueError.MapOverFlow, map.addRoom(r2));
+    try expectError(ZrogueError.MapOverFlow, map.addRoom(r2));
 }
 
 test "create a room that breaks the grid" {
-    const expectError = std.testing.expectError;
     var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit();
 
@@ -561,7 +594,6 @@ test "create a room that breaks the grid" {
 test "one tile (removed) room" {
     // TODO This concept is necessary for mapgen but causes problems now
 
-    const expectError = std.testing.expectError;
     var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
 
@@ -587,9 +619,9 @@ test "map invalid multiple rooms" {
 
     const r1 = try Room.config(Pos.init(0, 0), Pos.init(10, 10));
     try map.addRoom(r1);
-    try std.testing.expectError(ZrogueError.AlreadyInUse, map.addRoom(r1));
+    try expectError(ZrogueError.AlreadyInUse, map.addRoom(r1));
     const r2 = try Room.config(Pos.init(1, 1), Pos.init(12, 12));
-    try std.testing.expectError(ZrogueError.AlreadyInUse, map.addRoom(r2));
+    try expectError(ZrogueError.AlreadyInUse, map.addRoom(r2));
 }
 
 // Monsters
@@ -602,9 +634,9 @@ test "putting monsters places" {
 
     var m: *Map = &map;
     try m.setMonster(&thing, 10, 10);
-    try std.testing.expect(thing.atXY(10, 10));
+    try expect(thing.atXY(10, 10));
 
-    try std.testing.expectError(error.AlreadyInUse, map.setMonster(&thing2, 10, 10));
+    try expectError(error.AlreadyInUse, map.setMonster(&thing2, 10, 10));
 }
 
 // EOF
