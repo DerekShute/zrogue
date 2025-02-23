@@ -152,14 +152,10 @@ pub const Room = struct {
             }
 
             fn field(m: *Map, start: Pos, limit: Pos) !void {
-                const _startx: usize = @intCast(start.getX());
-                const _starty: usize = @intCast(start.getY());
-                const _endx: usize = @intCast(limit.getX());
-                const _endy: usize = @intCast(limit.getY());
-                for (_starty.._endy + 1) |y| {
-                    for (_startx.._endx + 1) |x| {
-                        try m.setTile(@intCast(x), @intCast(y), MapTile.floor);
-                    }
+                var r = try Region.config(start, limit);
+                var ri = r.iterator();
+                while (ri.next()) |pos| {
+                    try m.setTile(pos.getX(), pos.getY(), MapTile.floor);
                 }
             }
         };
