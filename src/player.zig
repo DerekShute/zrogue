@@ -36,7 +36,7 @@ pub const Player = struct {
         errdefer log.deinit();
 
         p.allocator = allocator;
-        p.thing = Thing.config(0, 0, MapTile.player, playerAction, log);
+        p.thing = Thing.config(0, 0, .player, playerAction, log);
         p.input = input;
         p.display = display;
         p.log = log;
@@ -112,7 +112,7 @@ fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
     } else if (player.getDistance(Pos.init(x, y)) <= 1) {
         return tile;
     }
-    return MapTile.unknown;
+    return .unknown;
 }
 
 //
@@ -209,19 +209,19 @@ test "create a player" {
     // TODO: light, blindness
 
     // distant default
-    try expect(try render(&map, player, 0, 0) == MapTile.unknown);
+    try expect(try render(&map, player, 0, 0) == .unknown);
     // near stuff, including self
-    try expect(try render(&map, player, 6, 6) == MapTile.player);
-    try expect(try render(&map, player, 5, 5) == MapTile.wall);
-    try expect(try render(&map, player, 7, 7) == MapTile.floor);
+    try expect(try render(&map, player, 6, 6) == .player);
+    try expect(try render(&map, player, 5, 5) == .wall);
+    try expect(try render(&map, player, 7, 7) == .floor);
     // distant 'known' floor not rendered
     try map.setKnown(10, 10, true);
-    try expect(try render(&map, player, 10, 10) == MapTile.unknown);
+    try expect(try render(&map, player, 10, 10) == .unknown);
     // distant unknown feature
-    try expect(try render(&map, player, 20, 20) == MapTile.unknown);
+    try expect(try render(&map, player, 20, 20) == .unknown);
     // distant known feature
     try map.setKnown(19, 20, true);
-    try expect(try render(&map, player, 19, 20) == MapTile.wall);
+    try expect(try render(&map, player, 19, 20) == .wall);
 }
 
 test "fail to create a player" { // First allocation attempt

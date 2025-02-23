@@ -15,7 +15,7 @@ const MapTile = zrogue.MapTile;
 // Dot map_Place -> MapTile [label="contains"]
 
 const Place = struct {
-    tile: MapTile = MapTile.unknown,
+    tile: MapTile = .unknown,
     flags: packed struct {
         known: bool,
     },
@@ -24,7 +24,7 @@ const Place = struct {
     // Constructor, probably not idiomatic
 
     pub fn config(self: *Place) void {
-        self.tile = MapTile.unknown;
+        self.tile = .wall;
         self.flags = .{ .known = false };
         self.monst = null;
     }
@@ -141,13 +141,13 @@ pub const Room = struct {
         const Fns = struct {
             fn vert(m: *Map, startx: Pos.Dim, yrange: [2]Pos.Dim) !void {
                 for (@intCast(yrange[0])..@intCast(yrange[1] + 1)) |y| {
-                    try m.setTile(startx, @intCast(y), MapTile.wall);
+                    try m.setTile(startx, @intCast(y), .wall);
                 }
             }
 
             fn horiz(m: *Map, starty: Pos.Dim, xrange: [2]Pos.Dim) !void {
                 for (@intCast(xrange[0])..@intCast(xrange[1] + 1)) |x| {
-                    try m.setTile(@intCast(x), starty, MapTile.wall);
+                    try m.setTile(@intCast(x), starty, .wall);
                 }
             }
 
@@ -155,7 +155,7 @@ pub const Room = struct {
                 var r = try Region.config(start, limit);
                 var ri = r.iterator();
                 while (ri.next()) |pos| {
-                    try m.setTile(pos.getX(), pos.getY(), MapTile.floor);
+                    try m.setTile(pos.getX(), pos.getY(), .floor);
                 }
             }
         };
@@ -451,8 +451,8 @@ test "map smoke test" {
     // TODO set room dark, then ask again
 
     try expect(try map.isKnown(15, 15) == false);
-    try expect(try map.getTile(0, 0) == MapTile.unknown);
-    try expect(try map.getTile(10, 10) == MapTile.wall);
+    try expect(try map.getTile(0, 0) == .wall);
+    try expect(try map.getTile(10, 10) == .wall);
 
     try map.setKnown(15, 15, true);
     try expect(try map.isKnown(15, 15) == true);
@@ -460,8 +460,8 @@ test "map smoke test" {
     try expect(try map.isKnown(15, 15) == false);
 
     // Explicit set tile inside a known room
-    try map.setTile(17, 17, MapTile.wall);
-    try expect(try map.getTile(17, 17) == MapTile.wall);
+    try map.setTile(17, 17, .wall);
+    try expect(try map.getTile(17, 17) == .wall);
 
     try map.setRegionKnown(12, 12, 15, 15);
     try expect(try map.isKnown(12, 12) == true);
@@ -562,8 +562,8 @@ test "map invalid multiple rooms" {
 test "putting monsters places" {
     var map: Map = try Map.config(std.testing.allocator, 50, 50, 1, 1);
     defer map.deinit();
-    var thing = Thing{ .xy = Pos.init(0, 0), .tile = MapTile.player };
-    var thing2 = Thing{ .xy = Pos.init(0, 0), .tile = MapTile.player };
+    var thing = Thing{ .xy = Pos.init(0, 0), .tile = .player };
+    var thing2 = Thing{ .xy = Pos.init(0, 0), .tile = .player };
 
     var m: *Map = &map;
     try m.setMonster(&thing, 10, 10);
