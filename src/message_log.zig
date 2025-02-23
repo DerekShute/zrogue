@@ -84,4 +84,9 @@ test "allocate and add messages" {
     try std.testing.expect(!std.mem.eql(u8, log.get(), "SECOND MESSA"));
 }
 
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+pub var log_fields = genFields(MessageLog);
+
 // EOF

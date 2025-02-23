@@ -92,4 +92,8 @@ test "Basic use of mock input provider" {
     try std.testing.expectError(ZrogueError.IndexOverflow, i.getCommand());
 }
 
+// Visualize
+const genFields = @import("visual.zig").genFields;
+pub var input_fields = genFields(InputProvider);
+
 // EOF

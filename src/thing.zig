@@ -82,4 +82,10 @@ pub const Thing = struct {
 
 };
 
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+
+pub var thing_fields = genFields(Thing);
+
 // EOF

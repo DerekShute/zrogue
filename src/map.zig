@@ -803,4 +803,12 @@ test "putting monsters places" {
     try expectError(error.AlreadyInUse, map.setMonster(&thing2, 10, 10));
 }
 
+// Visualize
+
+const genFields = @import("visual.zig").genFields;
+
+pub var map_fields = genFields(Map);
+pub var place_fields = genFields(Place);
+pub var room_fields = genFields(Room);
+
 // EOF

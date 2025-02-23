@@ -244,4 +244,10 @@ test "fail to fully create a player" { // right now there are two allocations
     try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), input, display));
 }
 
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+
+pub var player_fields = genFields(Player);
+
 // EOF

@@ -41,6 +41,27 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "run unit tests");
     test_step.dependOn(&run_unit_tests.step);
+
+    //
+    // Generate Visualization
+    //
+
+    const viz = b.addExecutable(.{
+        .name = "viz",
+        .root_source_file = b.path("visualize.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    viz.linkLibC();
+    viz.linkSystemLibrary("ncursesw");
+    b.installArtifact(viz);
+
+    const viz_cmd = b.addRunArtifact(viz);
+    viz_cmd.step.dependOn(b.getInstallStep());
+
+    const viz_step = b.step("visual", "Create Visualization");
+    viz_step.dependOn(&viz_cmd.step);
 }
 
 // EOF

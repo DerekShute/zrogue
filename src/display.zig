@@ -193,4 +193,9 @@ test "Method use after endwin" {
     try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxy());
 }
 
+// Visualization
+
+const genFields = @import("visual.zig").genFields;
+pub var display_fields = genFields(DisplayProvider);
+
 // EOF
