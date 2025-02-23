@@ -324,13 +324,15 @@ pub const Map = struct {
 
     // rooms
 
-    pub fn getRoom(self: *Map, p: Pos) *Room {
+    fn getRoom(self: *Map, p: Pos) *Room {
         const xsize = @divTrunc(self.width, self.roomsx); // spaces per column
         const ysize = @divTrunc(self.height, self.roomsy); // spaces per row
         const column = @divTrunc(p.getX(), xsize);
         const row = @divTrunc(p.getY(), ysize);
-
         const loc: usize = @intCast(row * self.roomsy + column);
+
+        // TODO: validate calculation
+
         return &self.rooms[loc];
     }
 
@@ -351,12 +353,21 @@ pub const Map = struct {
             return ZrogueError.MapOverFlow;
         }
 
+        // TODO We will need to support 1x1 "removed" rooms eventually...
+        if ((r.getMaxX() - r.getMinX() <= 1) or (r.getMaxY() - r.getMinY() <= 1)) {
+            return ZrogueError.MapOverFlow;
+        }
+
         // Rooms have a validated Region inside, so no need to test...
         // ...unless paranoid
 
-        // TODO test for room alignment to room grid
-
+        // Make sure that the region fits in one 'grid' location
         var sr = self.getRoom(Pos.init(r.getMinX(), r.getMinY()));
+        const sr2 = self.getRoom(Pos.init(r.getMaxX(), r.getMaxY()));
+        if (sr != sr2) {
+            return ZrogueError.OutOfBounds;
+        }
+
         if (sr.getMinX() != -1) { // already set
             return ZrogueError.AlreadyInUse;
         }
@@ -524,6 +535,8 @@ test "Create an invalid room" {
     try std.testing.expectError(ZrogueError.OutOfBounds, r2);
 }
 
+// TODO test inquire about room at invalid location
+
 test "draw an oversize room" {
     var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
@@ -534,13 +547,33 @@ test "draw an oversize room" {
     try std.testing.expectError(ZrogueError.MapOverFlow, map.addRoom(r2));
 }
 
+test "create a room that breaks the grid" {
+    const expectError = std.testing.expectError;
+    var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
+    defer map.deinit();
+
+    const r1 = try Room.config(Pos.init(10, 10), Pos.init(90, 90));
+    try expectError(ZrogueError.OutOfBounds, map.addRoom(r1));
+}
+
+test "one tile (removed) room" {
+    // TODO This concept is necessary for mapgen but causes problems now
+
+    const expectError = std.testing.expectError;
+    var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
+    defer map.deinit();
+
+    const r1 = try Room.config(Pos.init(5, 5), Pos.init(5, 5));
+    try expectError(ZrogueError.MapOverFlow, map.addRoom(r1));
+}
+
 test "map multiple rooms" {
     var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(0, 0), Pos.init(10, 10));
     try map.addRoom(r1);
-    const r2 = try Room.config(Pos.init(50, 25), Pos.init(60, 35));
+    const r2 = try Room.config(Pos.init(60, 20), Pos.init(70, 30));
     try map.addRoom(r2);
 }
 
