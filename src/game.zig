@@ -17,13 +17,13 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
     var map: Map = try Map.config(allocator, zrogue.MAPSIZE_X, zrogue.MAPSIZE_Y, zrogue.ROOMS_X, zrogue.ROOMS_Y);
     defer map.deinit();
 
-    try map.setMonster(player_thing, 10, 10);
+    try map.setMonster(player_thing, 6, 6);
 
-    var room = try Room.config(Pos.init(5, 5), Pos.init(15, 15));
+    var room = try Room.config(Pos.init(2, 2), Pos.init(9, 9));
     room.setDark();
     try map.addRoom(room);
 
-    try map.addRoom(try Room.config(Pos.init(60, 10), Pos.init(70, 20)));
+    try map.addRoom(try Room.config(Pos.init(60, 12), Pos.init(70, 20)));
 
     player_thing.addMessage("Welcome to the dungeon!");
 
