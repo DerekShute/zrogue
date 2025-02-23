@@ -96,6 +96,10 @@ pub const Room = struct {
 
     // Methods
 
+    pub fn getRegion(self: *Room) Region {
+        return self.r;
+    }
+
     pub fn getMinX(self: *Room) Pos.Dim {
         const min = self.r.getMin();
         return min.getX();
@@ -337,6 +341,11 @@ pub const Map = struct {
     pub fn inRoom(self: *Map, p: Pos) bool {
         const room = self.getRoom(p);
         return room.isInside(p);
+    }
+
+    pub fn getRoomRegion(self: *Map, p: Pos) Region {
+        const room = self.getRoom(p);
+        return room.getRegion();
     }
 
     pub fn addRoom(self: *Map, room: Room) ZrogueError!void {

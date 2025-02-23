@@ -149,14 +149,14 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     }
 
     if (map.inRoom(self.getPos()) and map.isLit(self.getPos())) {
-        // TODO: for size of room
-        for (0..@intCast(map.getHeight())) |y| {
-            for (0..@intCast(map.getWidth())) |x| {
-                const _x: Pos.Dim = @intCast(x);
-                const _y: Pos.Dim = @intCast(y);
-                const tile = try map.getTile(_x, _y);
-                try self.setDisplayTile(@intCast(_x), @intCast(_y + 1), tile);
-            }
+        var r = map.getRoomRegion(self.getPos());
+        var ri = r.iterator();
+
+        while (ri.next()) |pos| {
+            const x = pos.getX();
+            const y = pos.getY();
+            const tile = try map.getTile(x, y);
+            try self.setDisplayTile(@intCast(x), @intCast(y + 1), tile);
         }
     }
 
