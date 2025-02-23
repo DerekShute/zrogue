@@ -314,15 +314,11 @@ pub const Map = struct {
     }
 
     pub fn setRegionKnown(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
-        const _minx: usize = @intCast(x);
-        const _miny: usize = @intCast(y);
-        const _maxx: usize = @intCast(maxx + 1);
-        const _maxy: usize = @intCast(maxy + 1);
-        for (_miny.._maxy) |_y| {
-            for (_minx.._maxx) |_x| {
-                const place = try self.toPlace(@intCast(_x), @intCast(_y));
-                place.setKnown(true);
-            }
+        var r = try Region.config(Pos.init(x, y), Pos.init(maxx, maxy));
+        var ri = r.iterator();
+        while (ri.next()) |pos| {
+            const place = try self.toPlace(pos.getX(), pos.getY());
+            place.setKnown(true);
         }
     }
 
