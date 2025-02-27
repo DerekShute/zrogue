@@ -22,6 +22,7 @@ pub const Player = struct {
     input: InputProvider = undefined,
     display: DisplayProvider = undefined,
     log: *MessageLog,
+    purse: u16,
 
     pub fn init(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !*Player {
         const p: *Player = try allocator.create(Player);
@@ -30,6 +31,7 @@ pub const Player = struct {
         errdefer log.deinit();
 
         p.allocator = allocator;
+        p.purse = 0;
         p.thing = Thing.config(0, 0, .player, playerAction, log);
         p.input = input;
         p.display = display;
@@ -128,6 +130,17 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
     }
 
     self.clearMessage();
+
+    // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
+
+    var stats: [80]u8 = undefined; // does this need to be allocated?  size?
+
+    // We know that error.NoSpaceLeft can't happen here
+    const line = std.fmt.bufPrint(&stats, "Level: 1  Gold: {:<5}  Hp: some", .{self.purse}) catch unreachable;
+
+    for (0.., line) |x, c| {
+        try self.mvaddch(@intCast(x), @intCast(map.getHeight() + 1), c);
+    }
 
     //
     // Convert map to display
