@@ -12,12 +12,16 @@ pub fn genFields(comptime T: type) []const []const u8 {
     switch (typeInfo) {
         .Struct => |structInfo| {
             const field_count = structInfo.fields.len;
-            var field_names: [field_count + 1][]const u8 = undefined;
-            field_names[0] = comptimePrint("{s}:", .{@typeName(T)});
-            for (structInfo.fields, 0..) |field, i| {
-                field_names[i + 1] = comptimePrint("  {s}: \"{}\"", .{ field.name, field.type });
+            const decls_count = structInfo.decls.len;
+            var names: [field_count + decls_count + 1][]const u8 = undefined;
+            names[0] = comptimePrint("{s}:", .{@typeName(T)});
+            for (structInfo.fields, 1..) |field, i| {
+                names[i] = comptimePrint("  {s}: \"{}\"", .{ field.name, field.type });
             }
-            const frozen = field_names;
+            for (structInfo.decls, field_count + 1..) |decl, i| {
+                names[i] = comptimePrint("  {s}: \"(decl)\"", .{decl.name});
+            }
+            const frozen = names;
             return &frozen;
         },
         else => @compileError("Only structs are supported!"),
