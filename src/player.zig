@@ -156,16 +156,17 @@ fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
 
     try self.refresh();
 
-    switch (try self.getCommand()) {
-        Command.quit => ret = ThingAction.init(ActionType.QuitAction),
-        Command.goWest => ret = ThingAction.init_pos(ActionType.MoveAction, Pos.init(-1, 0)),
-        Command.goEast => ret = ThingAction.init_pos(ActionType.MoveAction, Pos.init(1, 0)),
-        Command.goNorth => ret = ThingAction.init_pos(ActionType.MoveAction, Pos.init(0, -1)),
-        Command.goSouth => ret = ThingAction.init_pos(ActionType.MoveAction, Pos.init(0, 1)),
-        Command.ascend => ret = ThingAction.init(ActionType.AscendAction),
-        Command.descend => ret = ThingAction.init(ActionType.DescendAction),
-        else => ret = ThingAction.init(ActionType.NoAction),
-    }
+    ret = switch (try self.getCommand()) {
+        .quit => ThingAction.init(ActionType.QuitAction),
+        .goWest => ThingAction.init_pos(ActionType.MoveAction, Pos.init(-1, 0)),
+        .goEast => ThingAction.init_pos(ActionType.MoveAction, Pos.init(1, 0)),
+        .goNorth => ThingAction.init_pos(ActionType.MoveAction, Pos.init(0, -1)),
+        .goSouth => ThingAction.init_pos(ActionType.MoveAction, Pos.init(0, 1)),
+        .ascend => ThingAction.init(ActionType.AscendAction),
+        .descend => ThingAction.init(ActionType.DescendAction),
+        .takeItem => ThingAction.init_pos(ActionType.TakeAction, self.getPos()),
+        else => ThingAction.init(ActionType.NoAction),
+    };
 
     return ret;
 }

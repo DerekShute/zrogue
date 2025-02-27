@@ -38,6 +38,7 @@ pub const Command = enum {
     goSouth,
     ascend,
     descend,
+    takeItem,
 };
 
 //
@@ -178,18 +179,19 @@ pub const ActionType = enum {
     AscendAction,
     DescendAction,
     MoveAction, // Directional
+    TakeAction, // Positional
 };
 
 pub const ThingAction = struct {
-    type: ActionType,
+    kind: ActionType,
     pos: Pos, // MoveAction (delta)
 
     pub inline fn init(t: ActionType) ThingAction {
-        return .{ .type = t, .pos = Pos.init(0, 0) };
+        return .{ .kind = t, .pos = Pos.init(0, 0) };
     }
 
     pub inline fn init_pos(t: ActionType, p: Pos) ThingAction {
-        return .{ .type = t, .pos = p };
+        return .{ .kind = t, .pos = p };
     }
 
     pub inline fn getPos(self: ThingAction) Pos {

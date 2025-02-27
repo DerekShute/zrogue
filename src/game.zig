@@ -3,6 +3,7 @@ const zrogue = @import("zrogue.zig");
 const ThingAction = zrogue.ThingAction;
 const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
+const ZrogueError = zrogue.ZrogueError;
 
 const Map = @import("map.zig").Map;
 const Room = @import("map.zig").Room;
@@ -33,21 +34,31 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
 
     // TODO: master copy of the map versus player copy
     var action = ThingAction.init(ActionType.NoAction);
-    while (action.type != ActionType.QuitAction) {
+    while (action.kind != ActionType.QuitAction) {
         action = try player_thing.doAction(&map);
-        switch (action.type) {
-            ActionType.QuitAction => continue, // TODO: 'quitting' message
-            ActionType.AscendAction => try ascendAction(player_thing, &action, &map),
-            ActionType.DescendAction => try descendAction(player_thing, &action, &map),
-            ActionType.MoveAction => try moveAction(player_thing, &action, &map),
-            ActionType.NoAction => continue,
-        }
+        // TODO: actFn a field in action, callback to player or Thing?
+        const actFn: ActionGameHandler = switch (action.kind) {
+            .AscendAction => ascendAction,
+            .DescendAction => descendAction,
+            .MoveAction => moveAction,
+            .TakeAction => takeAction,
+            .NoAction, .QuitAction => doNothingAction,
+        };
+        try actFn(player_thing, &action, &map);
     }
 }
 
 //
 // Action development here
 //
+
+const ActionGameHandler = *const fn (self: *Thing, do_action: *ThingAction, map: *Map) ZrogueError!void;
+
+fn doNothingAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+    _ = do_action;
+    _ = map;
+    _ = entity;
+}
 
 fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
     _ = do_action;
@@ -79,6 +90,12 @@ fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
         // TODO: entity 'bump' callback
         entity.addMessage("Ouch!");
     }
+}
+
+fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+    _ = do_action;
+    _ = map;
+    entity.addMessage("Nothing here to take!");
 }
 
 // EOF
