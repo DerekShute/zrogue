@@ -50,6 +50,7 @@ test "run the game" {
     const display = md.provider();
     defer display.endwin();
 
+    // TODO: need a recording to iterate through
     var commandlist = [_]Command{
         Command.goWest,
         Command.goEast,
@@ -57,6 +58,7 @@ test "run the game" {
         Command.goSouth,
         Command.ascend,
         Command.descend,
+        Command.takeItem,
         Command.wait,
         Command.quit,
     };

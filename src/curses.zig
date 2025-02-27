@@ -173,6 +173,7 @@ pub const CursesInputProvider = struct {
             curses.KEY_DOWN => Command.goSouth,
             '>' => Command.descend,
             '<' => Command.ascend,
+            ',' => Command.takeItem,
             'q' => Command.quit,
             else => Command.wait,
         };
