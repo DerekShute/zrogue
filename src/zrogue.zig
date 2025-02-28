@@ -51,6 +51,7 @@ pub const MapTile = enum {
     wall,
     floor,
     door,
+    gold,
     player,
 
     pub fn feature(self: MapTile) bool {
@@ -58,7 +59,9 @@ pub const MapTile = enum {
     }
 
     pub fn passable(self: MapTile) bool {
-        return ((self == .floor) or (self == .door)); // TODO stairs
+        // Everything not solid is passable
+        // TODO, is < floor (what about monsters, player?)
+        return ((self != .wall) and (self != .unknown));
     }
 };
 

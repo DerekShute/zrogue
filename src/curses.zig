@@ -28,6 +28,7 @@ fn mapToChar(ch: MapTile) u8 {
     const c: u8 = switch (ch) {
         .unknown => ' ',
         .floor => '.',
+        .gold => '$',
         .wall => '#',
         .door => '+',
         .player => '@',
