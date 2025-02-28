@@ -6,6 +6,7 @@ comptime {
     _ = @import("src/curses.zig");
     _ = @import("src/display.zig");
     _ = @import("src/input.zig");
+    _ = @import("src/item.zig");
     _ = @import("src/map.zig");
     _ = @import("src/main.zig");
     _ = @import("src/thing.zig");

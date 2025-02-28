@@ -12,7 +12,7 @@ const ActionHandler = *const fn (self: *Thing, map: *Map) ZrogueError!ThingActio
 
 // ===================
 //
-// Structure for monsters, player, and objects
+// Structure for monsters and player
 //
 pub const Thing = struct {
     // TODO: parent and parent type and whether this turns into an interface
