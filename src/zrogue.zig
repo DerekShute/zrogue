@@ -172,7 +172,7 @@ pub const ZrogueError = error{
 };
 
 //
-// Results of the Thing.doAction() method, which drives what the game loop
+// Results of the Thing.getAction() method, which drives what the game loop
 // does next: keep going, plant a tombstone, declare victory, etc.
 //
 // TODO: within ThingAction
@@ -197,7 +197,7 @@ pub const ThingAction = struct {
         return .{ .kind = t, .pos = p };
     }
 
-    pub inline fn getPos(self: ThingAction) Pos {
+    pub inline fn getPos(self: *ThingAction) Pos {
         return self.pos;
     }
 };

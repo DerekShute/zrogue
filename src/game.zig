@@ -37,7 +37,7 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
     // TODO: master copy of the map versus player copy
     var action = ThingAction.init(ActionType.NoAction);
     while (action.kind != ActionType.QuitAction) {
-        action = try player_thing.doAction(&map);
+        action = try player_thing.getAction(&map);
         // TODO: actFn a field in action, callback to player or Thing?
         const actFn: ActionGameHandler = switch (action.kind) {
             .AscendAction => ascendAction,
