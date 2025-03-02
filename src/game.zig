@@ -1,14 +1,14 @@
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
+const Item = @import("item.zig").Item;
+const Map = @import("map.zig").Map;
+const Room = @import("map.zig").Room;
+const Thing = @import("thing.zig").Thing;
+
 const ThingAction = zrogue.ThingAction;
 const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
 const ZrogueError = zrogue.ZrogueError;
-
-const Map = @import("map.zig").Map;
-const Room = @import("map.zig").Room;
-
-const Thing = @import("thing.zig").Thing;
 
 //
 // Game loop
@@ -29,6 +29,8 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
 
     try map.addRoom(try Room.config(Pos.init(4, 12), Pos.init(20, 19)));
     try map.dig(Pos.init(4, 9), Pos.init(18, 12));
+
+    try map.addItem(Item.config(10, 16, .gold));
 
     player_thing.addMessage("Welcome to the dungeon!");
 

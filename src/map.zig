@@ -1,6 +1,8 @@
 const std = @import("std");
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
+const Item = @import("item.zig").Item;
+const Manager = @import("manager.zig").Manager;
 const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
 const Pos = zrogue.Pos;
@@ -10,12 +12,19 @@ const MapTile = zrogue.MapTile;
 
 // ===================
 //
+// Item Management on map
+//
+const ItemManager = Manager(Item);
+
+// ===================
+//
 // Spot on the map
 //
 const Place = struct {
     tile: MapTile = .unknown,
     flags: packed struct {
         known: bool,
+        // TODO: 'has object'
     },
     monst: ?*Thing,
 
@@ -30,6 +39,7 @@ const Place = struct {
     // Methods
 
     pub fn getTile(self: *Place) MapTile {
+        // TODO: this probably falls apart when monsters are on list
         if (self.monst) |monst| {
             return monst.getTile();
         }
@@ -193,6 +203,7 @@ pub const Room = struct {
 //
 pub const Map = struct {
     allocator: std.mem.Allocator,
+    items: ItemManager,
     places: []Place,
     rooms: []Room,
     height: Pos.Dim,
@@ -221,6 +232,7 @@ pub const Map = struct {
 
         return .{
             .allocator = allocator,
+            .items = ItemManager.config(allocator),
             .height = height,
             .width = width,
             .places = places,
@@ -232,6 +244,7 @@ pub const Map = struct {
 
     pub fn deinit(self: *Map) void {
         const allocator = self.allocator;
+        self.items.deinit();
         if (self.places.len != 0) {
             allocator.free(self.places);
         }
@@ -333,7 +346,17 @@ pub const Map = struct {
 
     pub fn getTile(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapTile {
         const place = try self.toPlace(x, y);
-        return place.getTile();
+        var tile = place.getTile();
+
+        // Monster tile takes precedence and we only see an object if it is
+        // on the visible floor
+        if (tile == .floor) {
+            // TODO: set bit in Place to see if even worth looking
+            if (self.getItem(Pos.init(x, y))) |item| {
+                tile = item.getTile();
+            }
+        }
+        return tile;
     }
 
     pub fn setTile(self: *Map, x: Pos.Dim, y: Pos.Dim, tile: MapTile) !void {
@@ -369,6 +392,28 @@ pub const Map = struct {
 
         try self.setTile(start.getX(), start.getY(), .door);
         try self.setTile(end.getX(), end.getY(), .door);
+    }
+
+    // items
+
+    pub fn addItem(self: *Map, item: Item) !void {
+        _ = try self.items.node(item);
+    }
+
+    pub fn getItem(self: *Map, pos: Pos) ?*Item {
+        // TODO: first found
+        var it = self.items.iterator();
+
+        while (it.next()) |item| {
+            if (pos.eql(item.getPos())) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    pub fn removeItem(self: *Map, item: *Item) void {
+        self.items.deinitNode(item);
     }
 
     // monsters
@@ -781,6 +826,34 @@ test "dig unusual corridors" {
     try expect(try map.getTile(16, 12) == .floor);
 }
 
+// Items
+
+test "put item on map" {
+    var map: Map = try Map.config(std.testing.allocator, 50, 50, 1, 1);
+    defer map.deinit();
+
+    try map.addItem(Item.config(25, 25, .gold));
+
+    const item = map.getItem(Pos.init(25, 25));
+    if (item) |i| { // Convenience
+        try expect(i.getTile() == .gold);
+        const p = i.getPos();
+        try expect(p.getX() == 25);
+        try expect(p.getY() == 25);
+    } else {
+        unreachable;
+    }
+
+    try map.setTile(25, 25, .floor); // Must be floor to show it
+    try expect(try map.getTile(25, 25) == .gold);
+
+    // Monster's tile has precedence
+
+    var thing = Thing{ .xy = Pos.init(0, 0), .tile = .player };
+    try map.setMonster(&thing, 25, 25);
+    try expect(try map.getTile(25, 25) == .player);
+}
+
 // Monsters
 
 test "putting monsters places" {
@@ -803,5 +876,6 @@ const genFields = @import("visual.zig").genFields;
 pub var map_fields = genFields(Map);
 pub var place_fields = genFields(Place);
 pub var room_fields = genFields(Room);
+pub var items_fields = genFields(ItemManager);
 
 // EOF
