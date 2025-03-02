@@ -9,6 +9,16 @@ jobs:
   # 2024-12-24 : kcov v42 wants libopcodes-2.38-system and this is no longer
   # what is in place on the runners
 
+  lint:
+    runs-on: ubuntu-latest
+    name: Static Analysis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v1
+      - uses: nektro/actions-setup-zigmod@v1
+      - run: zigmod aq install 1/nektro/ziglint
+      - run: ~/.zigmod/bin/ziglint -skip todo
+
   build-and-test:
     runs-on: ubuntu-latest
     name: Build and Test
