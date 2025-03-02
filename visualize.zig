@@ -29,6 +29,7 @@ fn printer(array: []const []const u8) void {
 
 pub fn main() !void {
     std.debug.print("---\n", .{});
+    printer(map.items_fields);
     printer(map.map_fields);
     printer(map.room_fields);
     printer(map.place_fields);

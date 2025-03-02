@@ -38,6 +38,12 @@ pub fn Manager(comptime T: type) type {
             };
         }
 
+        pub fn deinit(self: *Self) void {
+            while (self.list.pop()) |n| {
+                self.allocator.destroy(n);
+            }
+        }
+
         pub fn node(self: *Self, t: T) !*T {
             var n = try self.allocator.create(L.Node);
 
@@ -57,7 +63,6 @@ pub fn Manager(comptime T: type) type {
             return .{ .curr = self.list.first };
         }
 
-        // TODO: deinit() to clean entire list
         // TODO: search ?
     };
 }
@@ -74,6 +79,7 @@ const Frotz = struct {
 test "basic tests" {
     const FrotzManager = Manager(Frotz);
     var fm = FrotzManager.config(std.testing.allocator);
+    defer fm.deinit();
 
     const f = try fm.node(.{ .i = 0, .j = 1.1 });
     errdefer fm.deinitNode(f);
@@ -100,6 +106,16 @@ test "basic tests" {
     }
 
     try expect(i == 4); // Last one seen plus one
+}
+
+test "clean the list" {
+    const FrotzManager = Manager(Frotz);
+    var fm = FrotzManager.config(std.testing.allocator);
+    defer fm.deinit();
+
+    for (0..10) |x| {
+        _ = try fm.node(.{ .i = @intCast(x), .j = 1.1 });
+    }
 }
 
 //
