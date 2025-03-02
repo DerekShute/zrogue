@@ -1,4 +1,5 @@
 const std = @import("std");
+const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
 const zrogue = @import("zrogue.zig");
 
@@ -18,8 +19,9 @@ pub const Thing = struct {
     vtable: *const VTable = undefined,
 
     pub const VTable = struct {
-        getAction: *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction,
         addMessage: ?*const fn (self: *Thing, msg: []const u8) void,
+        getAction: *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction,
+        takeItem: ?*const fn (self: *Thing, item: *Item, map: *Map) void,
     };
 
     pub fn config(tile: MapTile, vtable: *const Thing.VTable) Thing {
@@ -48,14 +50,20 @@ pub const Thing = struct {
 
     // VTable
 
+    pub fn addMessage(self: *Thing, msg: []const u8) void {
+        if (self.vtable.addMessage) |cb| {
+            cb(self, msg);
+        }
+    }
+
     pub fn getAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
         // TODO in theory a completely passive Thing
         return try self.vtable.getAction(self, map);
     }
 
-    pub fn addMessage(self: *Thing, msg: []const u8) void {
-        if (self.vtable.addMessage) |cb| {
-            cb(self, msg);
+    pub fn takeItem(self: *Thing, item: *Item, map: *Map) void {
+        if (self.vtable.takeItem) |cb| {
+            cb(self, item, map);
         }
     }
 };
