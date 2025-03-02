@@ -1,16 +1,18 @@
 const std = @import("std");
 const DisplayProvider = @import("display.zig").DisplayProvider;
 const InputProvider = @import("input.zig").InputProvider;
+const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
+const MessageLog = @import("message_log.zig").MessageLog;
+const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
+
 const ZrogueError = zrogue.ZrogueError;
 const ActionType = zrogue.ActionType;
 const Command = zrogue.Command;
 const MapTile = zrogue.MapTile;
 const Pos = zrogue.Pos;
 const ThingAction = zrogue.ThingAction;
-const Thing = @import("thing.zig").Thing;
-const MessageLog = @import("message_log.zig").MessageLog;
 
 // ===================
 //
@@ -26,7 +28,8 @@ pub const Player = struct {
 
     const vtable = Thing.VTable{
         .getAction = playerGetAction,
-        .addMessage = playerAnddMessage,
+        .addMessage = playerAddMessage,
+        .takeItem = playerTakeItem,
     };
 
     pub fn init(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !*Player {
@@ -191,6 +194,14 @@ fn playerGetAction(ptr: *Thing, map: *Map) !ThingAction {
     };
 
     return ret;
+}
+
+fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
+    const self: *Player = @ptrCast(@alignCast(ptr));
+
+    self.log.add("You pick up the gold!");
+    map.removeItem(item);
+    self.purse = self.purse + 1; // TODO quantity/value
 }
 
 //

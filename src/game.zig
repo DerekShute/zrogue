@@ -95,9 +95,12 @@ fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
 }
 
 fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
-    _ = do_action;
-    _ = map;
-    entity.addMessage("Nothing here to take!");
+    const item = map.getItem(do_action.getPos());
+    if (item) |i| {
+        entity.takeItem(i, map);
+    } else {
+        entity.addMessage("Nothing here to take!");
+    }
 }
 
 // EOF
