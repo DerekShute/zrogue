@@ -24,6 +24,11 @@ pub const Player = struct {
     log: *MessageLog,
     purse: u16,
 
+    const vtable = Thing.VTable{
+        .getAction = playerGetAction,
+        .addMessage = playerAnddMessage,
+    };
+
     pub fn init(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !*Player {
         const p: *Player = try allocator.create(Player);
         errdefer allocator.destroy(p);
@@ -32,7 +37,7 @@ pub const Player = struct {
 
         p.allocator = allocator;
         p.purse = 0;
-        p.thing = Thing.config(0, 0, .player, playerAction, log);
+        p.thing = Thing.config(.player, &vtable);
         p.input = input;
         p.display = display;
         p.log = log;
@@ -69,10 +74,6 @@ pub const Player = struct {
 
     inline fn getCommand(self: *Player) ZrogueError!Command {
         return self.input.getCommand();
-    }
-
-    inline fn addMessage(self: *Player, msg: []const u8) void {
-        self.log.add(msg);
     }
 
     inline fn getMessage(self: *Player) []u8 {
@@ -112,11 +113,19 @@ fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
 }
 
 //
-// Action callback
+// Vtable callbacks
 //
-// Map is the _visible_ or _known_ map presented to the player
+// playerXX by convention
 //
-fn playerAction(ptr: *Thing, map: *Map) !ThingAction {
+
+fn playerAddMessage(ptr: *Thing, msg: []const u8) void {
+    const self: *Player = @ptrCast(@alignCast(ptr));
+    self.log.add(msg);
+}
+
+fn playerGetAction(ptr: *Thing, map: *Map) !ThingAction {
+    // Map is the _visible_ or _known_ map presented to the player
+
     const self: *Player = @ptrCast(@alignCast(ptr));
     var ret = ThingAction.init(ActionType.NoAction);
     const message = self.getMessage();

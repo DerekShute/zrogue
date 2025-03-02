@@ -1,34 +1,32 @@
 const std = @import("std");
 const Map = @import("map.zig").Map;
 const zrogue = @import("zrogue.zig");
+
 const ZrogueError = zrogue.ZrogueError;
 const ThingAction = zrogue.ThingAction;
-const ActionType = zrogue.ActionType;
 const MapTile = zrogue.MapTile;
 const Pos = zrogue.Pos;
-const MessageLog = @import("message_log.zig").MessageLog;
-
-const ActionHandler = *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction;
 
 // ===================
 //
 // Structure for monsters and player
 //
 pub const Thing = struct {
-    // TODO: parent and parent type and whether this turns into an interface
     // TODO: timer, action queue
-    xy: Pos = Pos.init(-1, -1),
-    tile: MapTile = .floor, // Extremely provisional of course
-    doaction: ActionHandler = undefined,
-    log: ?*MessageLog = null,
+    xy: Pos = undefined,
+    tile: MapTile = undefined,
+    vtable: *const VTable = undefined,
 
-    // msglog: monsters don't have it
-    pub fn config(x: Pos.Dim, y: Pos.Dim, tile: MapTile, action: ActionHandler, msglog: ?*MessageLog) Thing {
+    pub const VTable = struct {
+        getAction: *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction,
+        addMessage: ?*const fn (self: *Thing, msg: []const u8) void,
+    };
+
+    pub fn config(tile: MapTile, vtable: *const Thing.VTable) Thing {
         return Thing{
-            .xy = Pos.init(x, y),
+            .xy = Pos.init(-1, -1),
             .tile = tile,
-            .doaction = action,
-            .log = msglog,
+            .vtable = vtable,
         };
     }
 
@@ -48,36 +46,23 @@ pub const Thing = struct {
         return self.xy.eql(Pos.init(x, y));
     }
 
-    pub fn doAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
-        return try self.doaction(self, map); // Why no synctactic sugar here?
-    }
+    // VTable
 
-    //
-    // Log messages to the thing (if something was set)
-    //
+    pub fn getAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
+        // TODO in theory a completely passive Thing
+        return try self.vtable.getAction(self, map);
+    }
 
     pub fn addMessage(self: *Thing, msg: []const u8) void {
-        if (self.log) |log| {
-            log.add(msg);
+        if (self.vtable.addMessage) |cb| {
+            cb(self, msg);
         }
     }
-
-    pub fn getMessage(self: *Thing) []u8 {
-        if (self.log) |log| {
-            return log.get();
-        }
-        return ""; // TODO sure why not
-    }
-
-    pub fn clearMessage(self: *Thing) void {
-        if (self.log) |log| {
-            return log.clear();
-        }
-    }
-
-    // TODO: setX, setY, moveRelative, getX, getY, getXY, etc
-
 };
+
+// Unit Tests
+
+// TODO: need a mock version
 
 // Visualization
 
