@@ -15,7 +15,7 @@ const ZrogueError = zrogue.ZrogueError;
 //
 
 pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
-    var map: Map = try Map.config(allocator, zrogue.MAPSIZE_X, zrogue.MAPSIZE_Y, zrogue.ROOMS_X, zrogue.ROOMS_Y);
+    var map = try Map.init(allocator, zrogue.MAPSIZE_X, zrogue.MAPSIZE_Y, zrogue.ROOMS_X, zrogue.ROOMS_Y);
     defer map.deinit();
 
     try map.setMonster(player_thing, 6, 6);
@@ -37,7 +37,7 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
     // TODO: master copy of the map versus player copy
     var action = ThingAction.init(ActionType.NoAction);
     while (action.kind != ActionType.QuitAction) {
-        action = try player_thing.getAction(&map);
+        action = try player_thing.getAction(map);
         // TODO: actFn a field in action, callback to player or Thing?
         const actFn: ActionGameHandler = switch (action.kind) {
             .AscendAction => ascendAction,
@@ -46,7 +46,7 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
             .TakeAction => takeAction,
             .NoAction, .QuitAction => doNothingAction,
         };
-        try actFn(player_thing, &action, &map);
+        try actFn(player_thing, &action, map);
     }
 }
 
