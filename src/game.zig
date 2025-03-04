@@ -5,6 +5,8 @@ const Map = @import("map.zig").Map;
 const Room = @import("map.zig").Room;
 const Thing = @import("thing.zig").Thing;
 
+const new_level = @import("new_level.zig");
+
 const ThingAction = zrogue.ThingAction;
 const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
@@ -15,24 +17,18 @@ const ZrogueError = zrogue.ZrogueError;
 //
 
 pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
-    var map = try Map.init(allocator, zrogue.MAPSIZE_X, zrogue.MAPSIZE_Y, zrogue.ROOMS_X, zrogue.ROOMS_Y);
-    defer map.deinit();
-
-    try map.setMonster(player_thing, 6, 6);
-
-    var room = try Room.config(Pos.init(2, 2), Pos.init(9, 9));
-    room.setDark();
-    try map.addRoom(room);
-
-    try map.addRoom(try Room.config(Pos.init(27, 5), Pos.init(35, 10)));
-    try map.dig(Pos.init(9, 5), Pos.init(27, 8));
-
-    try map.addRoom(try Room.config(Pos.init(4, 12), Pos.init(20, 19)));
-    try map.dig(Pos.init(4, 9), Pos.init(18, 12));
-
-    try map.addItem(Item.config(10, 16, .gold));
+    const config = new_level.LevelConfig{
+        .allocator = allocator,
+        .player = player_thing,
+        .xSize = zrogue.MAPSIZE_X,
+        .ySize = zrogue.MAPSIZE_Y,
+        .mapgen = .TEST,
+    };
 
     player_thing.addMessage("Welcome to the dungeon!");
+
+    var map = try new_level.createLevel(config);
+    defer map.deinit();
 
     // TODO: master copy of the map versus player copy
     var action = ThingAction.init(ActionType.NoAction);
