@@ -200,7 +200,7 @@ pub const Room = struct {
 
 // ===================
 //
-// Map (global)
+// Map
 //
 pub const Map = struct {
     const PlaceGrid = Grid(Place);
@@ -216,10 +216,12 @@ pub const Map = struct {
 
     // Allocate and teardown
 
-    pub fn config(allocator: std.mem.Allocator, width: Pos.Dim, height: Pos.Dim, roomsx: Pos.Dim, roomsy: Pos.Dim) !Map {
+    pub fn init(allocator: std.mem.Allocator, width: Pos.Dim, height: Pos.Dim, roomsx: Pos.Dim, roomsy: Pos.Dim) !*Map {
         if ((height <= 0) or (width <= 0) or (roomsx <= 0) or (roomsy <= 0)) {
             return error.Underflow;
         }
+        const m: *Map = try allocator.create(Map);
+        errdefer allocator.destroy(m);
 
         const places = try PlaceGrid.config(allocator, @intCast(width), @intCast(height));
         errdefer places.deinit();
@@ -235,16 +237,18 @@ pub const Map = struct {
             room.* = try Room.config(Pos.init(0, 0), Pos.init(0, 0));
         }
 
-        return .{
-            .allocator = allocator,
-            .items = ItemManager.config(allocator),
-            .height = height,
-            .width = width,
-            .places = places,
-            .rooms = rooms,
-            .roomsx = roomsx,
-            .roomsy = roomsy,
-        };
+        m.allocator = allocator;
+        m.items = ItemManager.config(allocator);
+        m.height = height;
+        m.width = width;
+        m.places = places;
+        m.rooms = rooms;
+        m.roomsx = roomsx;
+        m.roomsy = roomsy;
+
+        // Can call Map.deinit after this point
+
+        return m;
     }
 
     pub fn deinit(self: *Map) void {
@@ -252,6 +256,7 @@ pub const Map = struct {
         self.items.deinit();
         self.places.deinit();
         allocator.free(self.rooms);
+        allocator.destroy(self);
     }
 
     // Utility
@@ -592,7 +597,7 @@ test "create a room and test properties" {
 }
 
 test "add a room and ask about it" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
+    var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(5, 5), Pos.init(10, 10));
@@ -603,7 +608,7 @@ test "add a room and ask about it" {
 }
 
 test "reveal room" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
+    var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(5, 5), Pos.init(10, 10));
@@ -621,7 +626,7 @@ test "reveal room" {
 // Map
 
 test "map smoke test" {
-    var map: Map = try Map.config(std.testing.allocator, 100, 50, 1, 1);
+    var map = try Map.init(std.testing.allocator, 100, 50, 1, 1);
     defer map.deinit();
 
     try map.addRoom(try Room.config(Pos.init(10, 10), Pos.init(20, 20)));
@@ -655,30 +660,38 @@ test "map smoke test" {
     try expect(try map.isKnown(11, 11) == false);
 }
 
-test "fails to allocate places of map" { // first allocation attempt
+test "fails to allocate map" { // first allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    try expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10, 1, 1));
+    const allocator = failing.allocator();
+    try expectError(error.OutOfMemory, Map.init(allocator, 10, 10, 1, 1));
 }
 
-test "fails to allocate rooms of map" { // first allocation attempt
+test "fails to allocate places of map" { // second allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
-    try expectError(error.OutOfMemory, Map.config(failing.allocator(), 10, 10, 10, 10));
+    const allocator = failing.allocator();
+    try expectError(error.OutOfMemory, Map.init(allocator, 10, 10, 1, 1));
+}
+
+test "fails to allocate rooms of map" { // third allocation attempt
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 2 });
+    const allocator = failing.allocator();
+    try expectError(error.OutOfMemory, Map.init(allocator, 10, 10, 10, 10));
 }
 
 test "allocate invalid size map" {
     const allocator = std.testing.allocator;
-    try expectError(error.Underflow, Map.config(allocator, 0, 10, 10, 10));
-    try expectError(error.Underflow, Map.config(allocator, 10, 0, 10, 10));
-    try expectError(error.Underflow, Map.config(allocator, 10, 10, 0, 10));
-    try expectError(error.Underflow, Map.config(allocator, 10, 10, 10, 0));
-    try expectError(error.Underflow, Map.config(allocator, -1, 10, 10, 10));
-    try expectError(error.Underflow, Map.config(allocator, 10, -1, 10, 10));
-    try expectError(error.Underflow, Map.config(allocator, 10, 10, -1, 10));
-    try expectError(error.Underflow, Map.config(allocator, 10, 10, 10, -1));
+    try expectError(error.Underflow, Map.init(allocator, 0, 10, 10, 10));
+    try expectError(error.Underflow, Map.init(allocator, 10, 0, 10, 10));
+    try expectError(error.Underflow, Map.init(allocator, 10, 10, 0, 10));
+    try expectError(error.Underflow, Map.init(allocator, 10, 10, 10, 0));
+    try expectError(error.Underflow, Map.init(allocator, -1, 10, 10, 10));
+    try expectError(error.Underflow, Map.init(allocator, 10, -1, 10, 10));
+    try expectError(error.Underflow, Map.init(allocator, 10, 10, -1, 10));
+    try expectError(error.Underflow, Map.init(allocator, 10, 10, 10, -1));
 }
 
 test "ask about valid map location" {
-    var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
+    var map = try Map.init(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
 
     const thing = try map.getMonster(4, 4);
@@ -686,14 +699,14 @@ test "ask about valid map location" {
 }
 
 test "ask about thing at invalid map location" {
-    var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
+    var map = try Map.init(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
     try expectError(ZrogueError.IndexOverflow, map.getMonster(0, 20));
     try expectError(ZrogueError.IndexOverflow, map.getMonster(20, 0));
 }
 
 test "ask about invalid character on the map" {
-    var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
+    var map = try Map.init(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
     try expectError(ZrogueError.IndexOverflow, map.getTile(20, 0));
     try expectError(ZrogueError.IndexOverflow, map.getTile(0, 20));
@@ -710,7 +723,7 @@ test "Create an invalid room" {
 }
 
 test "inquire about room at invalid location" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
+    var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     try expectError(ZrogueError.OutOfBounds, map.getRoomRegion(Pos.init(21, 21)));
@@ -729,7 +742,7 @@ test "inquire about room at invalid location" {
 }
 
 test "draw an oversize room" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20, 1, 1);
+    var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(0, 0), Pos.init(0, 100));
@@ -739,7 +752,7 @@ test "draw an oversize room" {
 }
 
 test "create a room that breaks the grid" {
-    var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
+    var map = try Map.init(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(10, 10), Pos.init(90, 90));
@@ -749,7 +762,7 @@ test "create a room that breaks the grid" {
 test "one tile (removed) room" {
     // TODO This concept is necessary for mapgen but causes problems now
 
-    var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
+    var map = try Map.init(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(5, 5), Pos.init(5, 5));
@@ -757,7 +770,7 @@ test "one tile (removed) room" {
 }
 
 test "map multiple rooms" {
-    var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
+    var map = try Map.init(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(0, 0), Pos.init(10, 10));
@@ -767,7 +780,7 @@ test "map multiple rooms" {
 }
 
 test "map invalid multiple rooms" {
-    var map: Map = try Map.config(std.testing.allocator, 100, 100, 2, 2);
+    var map = try Map.init(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit();
 
     // Can't overlap the rooms and can't overwrite
@@ -782,7 +795,7 @@ test "map invalid multiple rooms" {
 // Corridors
 
 test "dig corridors" {
-    var map: Map = try Map.config(std.testing.allocator, 40, 40, 2, 2);
+    var map = try Map.init(std.testing.allocator, 40, 40, 2, 2);
     defer map.deinit();
 
     // These don't have to make sense as part of actual rooms
@@ -805,7 +818,7 @@ test "dig corridors" {
 }
 
 test "dig unusual corridors" {
-    var map: Map = try Map.config(std.testing.allocator, 20, 20, 2, 2);
+    var map = try Map.init(std.testing.allocator, 20, 20, 2, 2);
     defer map.deinit();
 
     try map.dig(Pos.init(5, 10), Pos.init(5, 12)); // One tile
@@ -825,7 +838,7 @@ test "dig unusual corridors" {
 // Items
 
 test "put item on map" {
-    var map: Map = try Map.config(std.testing.allocator, 50, 50, 1, 1);
+    var map = try Map.init(std.testing.allocator, 50, 50, 1, 1);
     defer map.deinit();
 
     try map.addItem(Item.config(25, 25, .gold));
@@ -853,13 +866,12 @@ test "put item on map" {
 // Monsters
 
 test "putting monsters places" {
-    var map: Map = try Map.config(std.testing.allocator, 50, 50, 1, 1);
+    var map = try Map.init(std.testing.allocator, 50, 50, 1, 1);
     defer map.deinit();
     var thing = Thing{ .xy = Pos.init(0, 0), .tile = .player };
     var thing2 = Thing{ .xy = Pos.init(0, 0), .tile = .player };
 
-    var m: *Map = &map;
-    try m.setMonster(&thing, 10, 10);
+    try map.setMonster(&thing, 10, 10);
     try expect(thing.atXY(10, 10));
 
     try expectError(error.AlreadyInUse, map.setMonster(&thing2, 10, 10));
