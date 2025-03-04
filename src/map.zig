@@ -147,6 +147,8 @@ pub const Room = struct {
 
     //
     // TODO: can vtable this to have different types of room
+    //
+    // TODO: this is a mapgen function
     pub fn draw(self: *Room, map: *Map) ZrogueError!void {
         const Fns = struct {
             fn vert(m: *Map, startx: Pos.Dim, yrange: [2]Pos.Dim) !void {
@@ -265,6 +267,7 @@ pub const Map = struct {
         return try self.places.find(@intCast(x), @intCast(y));
     }
 
+    // TODO: mapgen operation
     // Internal structs
 
     const Corridor = struct {
@@ -370,8 +373,11 @@ pub const Map = struct {
         return place.passable();
     }
 
+    // TODO: this is a mapgen function
     pub fn dig(self: *Map, start: Pos, end: Pos) !void {
         // Inclusive of start and end positions
+
+        // TODO: midpoint is randomly determined column/row between endpoints
 
         // TODO: order for easterly or southerly dig.  Does not test for
         // directly below
