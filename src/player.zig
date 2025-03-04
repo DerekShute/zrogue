@@ -225,7 +225,7 @@ test "create a player" {
     //
     // Try out rendering
     //
-    var map: Map = try Map.config(std.testing.allocator, 30, 30, 1, 1);
+    var map = try Map.init(std.testing.allocator, 30, 30, 1, 1);
     defer map.deinit();
 
     try map.setMonster(player.toThing(), 6, 6);
@@ -237,19 +237,19 @@ test "create a player" {
     // TODO: light, blindness
 
     // distant default
-    try expect(try render(&map, player, 0, 0) == .unknown);
+    try expect(try render(map, player, 0, 0) == .unknown);
     // near stuff, including self
-    try expect(try render(&map, player, 6, 6) == .player);
-    try expect(try render(&map, player, 5, 5) == .wall);
-    try expect(try render(&map, player, 7, 7) == .floor);
+    try expect(try render(map, player, 6, 6) == .player);
+    try expect(try render(map, player, 5, 5) == .wall);
+    try expect(try render(map, player, 7, 7) == .floor);
     // distant 'known' floor not rendered
     try map.setKnown(10, 10, true);
-    try expect(try render(&map, player, 10, 10) == .unknown);
+    try expect(try render(map, player, 10, 10) == .unknown);
     // distant unknown feature
-    try expect(try render(&map, player, 20, 20) == .unknown);
+    try expect(try render(map, player, 20, 20) == .unknown);
     // distant known feature
     try map.setKnown(19, 20, true);
-    try expect(try render(&map, player, 19, 20) == .wall);
+    try expect(try render(map, player, 19, 20) == .wall);
 }
 
 test "fail to create a player" { // First allocation attempt
