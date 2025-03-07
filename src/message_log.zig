@@ -84,7 +84,7 @@ test "allocate and add messages" {
 
 // Visualization
 
-const genFields = @import("visual.zig").genFields;
+const genFields = @import("utils/visual.zig").genFields;
 pub var log_fields = genFields(MessageLog);
 
 // EOF

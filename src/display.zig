@@ -190,7 +190,7 @@ test "Method use after endwin" {
 
 // Visualization
 
-const genFields = @import("visual.zig").genFields;
+const genFields = @import("utils/visual.zig").genFields;
 pub var display_fields = genFields(DisplayProvider);
 
 // EOF

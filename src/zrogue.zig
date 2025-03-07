@@ -292,7 +292,7 @@ test "region iterator" {
 
 // Visualization
 
-const genFields = @import("visual.zig").genFields;
+const genFields = @import("utils/visual.zig").genFields;
 
 pub var region_fields = genFields(Region);
 pub var pos_fields = genFields(Pos);

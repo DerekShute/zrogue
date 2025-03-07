@@ -871,7 +871,7 @@ test "putting monsters places" {
 
 // Visualize
 
-const genFields = @import("visual.zig").genFields;
+const genFields = @import("utils/visual.zig").genFields;
 
 pub var map_fields = genFields(Map);
 pub var place_fields = genFields(Place);

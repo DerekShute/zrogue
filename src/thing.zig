@@ -74,7 +74,7 @@ pub const Thing = struct {
 
 // Visualization
 
-const genFields = @import("visual.zig").genFields;
+const genFields = @import("utils/visual.zig").genFields;
 
 pub var thing_fields = genFields(Thing);
 

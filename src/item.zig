@@ -48,7 +48,7 @@ test "create an item" {
 // Visualization
 //
 
-const genFields = @import("visual.zig").genFields;
+const genFields = @import("utils/visual.zig").genFields;
 pub const fields = genFields(Item);
 
 // EOF
