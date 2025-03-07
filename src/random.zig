@@ -20,9 +20,9 @@ pub const Randomizer = struct {
         };
     }
 
-    pub fn roll(self: Randomizer, comptime maxval: IntType) IntType {
+    pub fn roll(self: Randomizer, maxval: IntType) IntType {
         // 0 <= x < maxval
-        // TODO maxval known at comptime and must be nonzero
+        // TODO maxval must be nonzero
         return self.gen.int(IntType) % maxval;
     }
 
@@ -34,41 +34,41 @@ pub const Randomizer = struct {
 // Unit tests
 
 // This is swiped from std/Random/test.zig -- it is not exposed
-const SequentialPrng = struct {
-    next_value: u8,
+pub const FixedPrng = struct {
+    value: u8,
 
-    pub fn init() SequentialPrng {
+    pub fn init() FixedPrng {
         return .{
-            .next_value = 0,
+            .value = 0,
         };
     }
 
-    pub fn random(self: *SequentialPrng) Random {
+    pub fn random(self: *FixedPrng) Random {
         return Random.init(self, fill);
     }
 
-    pub fn fill(self: *SequentialPrng, buf: []u8) void {
+    pub fn fill(self: *FixedPrng, buf: []u8) void {
         for (buf) |*b| {
-            b.* = self.next_value;
+            b.* = self.value;
         }
-        self.next_value +%= 1;
     }
 };
 
 test "use randomizer" {
-    var rng = SequentialPrng.init();
+    var rng = FixedPrng.init();
     const random = rng.random();
 
     const r = Randomizer.config(random);
 
-    rng.next_value = 10;
+    rng.value = 10;
     try expect(r.roll(20) == 10);
-    rng.next_value = 20;
     for (0..10) |i| {
+        rng.value = @intCast(20 + i);
         try expect(r.roll(10) == i);
     }
-    rng.next_value = 5;
+    rng.value = 5;
     try expect(r.roll(6) == 5);
+    rng.value = 6;
     try expect(r.roll(6) == 0);
 }
 
