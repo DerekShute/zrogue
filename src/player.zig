@@ -274,7 +274,7 @@ test "fail to fully create a player" { // right now there are two allocations
 
 // Visualization
 
-const genFields = @import("visual.zig").genFields;
+const genFields = @import("utils/visual.zig").genFields;
 
 pub var player_fields = genFields(Player);
 

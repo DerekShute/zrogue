@@ -87,7 +87,7 @@ test "Basic use of mock input provider" {
 }
 
 // Visualize
-const genFields = @import("visual.zig").genFields;
+const genFields = @import("utils/visual.zig").genFields;
 pub var input_fields = genFields(InputProvider);
 
 // EOF
