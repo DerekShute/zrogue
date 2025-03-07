@@ -42,3 +42,18 @@ This is all propped up using formatted comments, manually inserted, which is
 almost certainly going to become out of date the second I lose interest.
 
 If this is useful then I can experiment with control flow visualization.
+
+# What, you want to use this?
+
+Color me shocked!  Shocked and flattered!
+
+I'm only interested in it running from Ubuntu 22.04+ and this only from PuTTY
+from Windows, because that's my admittedly primitive/awful operating
+environment.  Other use might run into keypress-translation issues and ncurses
+support.
+
+In terms of what I think is necessary to get it going, from Ubuntu
+
+libncurses-dev gcc g++
+
+and I use the zig snap as documented.
