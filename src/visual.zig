@@ -10,7 +10,7 @@ const comptimePrint = std.fmt.comptimePrint;
 pub fn genFields(comptime T: type) []const []const u8 {
     const typeInfo = @typeInfo(T);
     switch (typeInfo) {
-        .Struct => |structInfo| {
+        .@"struct" => |structInfo| {
             const field_count = structInfo.fields.len;
             const decls_count = structInfo.decls.len;
             var names: [field_count + decls_count + 1][]const u8 = undefined;
