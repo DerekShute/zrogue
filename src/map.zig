@@ -672,8 +672,8 @@ test "fails to allocate places of map" { // second allocation attempt
     try expectError(error.OutOfMemory, Map.init(allocator, 10, 10, 1, 1));
 }
 
-test "fails to allocate rooms of map" { // second allocation attempt
-    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
+test "fails to allocate rooms of map" { // third allocation attempt
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 2 });
     const allocator = failing.allocator();
     try expectError(error.OutOfMemory, Map.init(allocator, 10, 10, 10, 10));
 }
