@@ -1,5 +1,6 @@
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
+const Grid = @import("utils/grig.zig").Grid;
 const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
 const randomizer = @import("random.zig");
@@ -57,6 +58,17 @@ fn isRoomAdjacent(width: i16, i: i16, j: i16) bool {
     return false;
 }
 
+fn getNewRoom(rnd: Randomizer, ingraph: []bool) usize {
+    var i = MAXROOMS + 1;
+    while (true) {
+        i = rnd(MAXROOMS);
+        if (ingraph[r1]) {
+            return i;
+        }
+    }
+    unreachable;
+}
+
 // ========================================================
 //
 // Public/interface routines
@@ -103,16 +115,32 @@ fn createTestLevel(config: LevelConfig) !*Map {
 
 pub const createLevel = createTestLevel;
 
+const Passages = struct {
+    // connection graph is [i][j] = bool and you need to set connections
+    // such that if X connects Y, then Y connects X
+    connected: bool = false,
+};
+
+const ConnectivityGrid = Grid(Passages);
 //
 // Randomly-generated level
 //
 
 pub fn createRogueLevel(config: LevelConfig) !*Map {
     const MAX_EVER = 99;
+    const MAXROOMS = config.xRooms * config.yRooms;
+    const rnd = config.randomizer;
     var map = try Map.init(config.allocator, config.xSize, config.ySize, config.xRooms, config.yRooms);
     errdefer map.deinit();
 
     const maxrooms = config.xRooms * config.yRooms;
+    var connections = ConnectivityGrid(config.allocator, config.xRooms, config.yRooms);
+    defer connections.deinit();
+
+    const it = connections.iterator();
+    while (it.next()) |p| {
+        p.connected = false;
+    }
 
     // For all rooms
     //  * create room
@@ -122,12 +150,69 @@ pub fn createRogueLevel(config: LevelConfig) !*Map {
     // Connect passages
 
     // TODO if >= MAX_EVER then error
-    var ingraph = [_]bool{0} ** MAX_EVER; // Rooms connected to graph
+    var ingraph = [_]bool{false} ** MAX_EVER; // Rooms connected to graph
 
-    // connection graph is [i][j] = bool and you need to set connections
-    // such that if X connects Y, then Y connects X
+    // starting with one room, connect it to a random adjacent room and then
+    // pick a new room to start with
 
-    // Count connections themselves?  For 3x3 this is 12
+    var r1 = rnd(MAXROOMS); // 0..8
+    ingraph[r1] = TRUE;
+    var roomcount = 1;
+
+    // Find an adjacent room to connect with
+
+    while (roomcount <= MAXROOMS) {
+        var j = 0;
+        for (0..MAXROOMS) |r2| {
+            if (isRoomAdjacent(config.xRooms, r1, r2)) { // Is adjacent
+                if (!ingraph[r2]) { // Not considered yet
+                    j += 1;
+                    if (rnd(j) == 0) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (j != 0) { // Adjacent room outside the graph is found
+            ingraph[r2] = true;
+            connectRooms(r1, r2);
+            // set connected r1 -> r2, r2 -> r1
+            roomcount += 1;
+            continue;
+        }
+
+        // No adjacent rooms outside of graph: start over with a new room
+        var inside = false;
+        while (!inside) {
+            r1 = rnd(MAXROOMS);
+            inside = ingraph[r1];
+        }
+    } // While roomcount < MAXROOMS
+
+    //  Add passages randomly some number of times
+
+    roomcount = rnd(5);
+    while (roomcount > 0) {
+        r1 = rnd(MAXROOMS);
+        // Find adjacent room not already connected
+        j = 0;
+        for (0..MAXROOMS) |r2| {
+            if (isRoomAdjacent(config.xRooms, r1, r2)) { // Is adjacent
+                if (notConnected(r1, r2)) {
+                    j += 1;
+                    if (rnd(j) == 0) {
+                        break;
+                    }
+                }
+            }
+            if (j == 0) {
+                connectRooms(r1, r2);
+                // set connected r1 -> r2, r2 -> r1
+            }
+        }
+    }
+
+    // Assign passages numbers to passages[].  I don't know why yet.
 
     return map;
 }
