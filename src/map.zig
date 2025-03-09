@@ -1,6 +1,7 @@
 const std = @import("std");
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
+const Grid = @import("utils/grid.zig").Grid;
 const Item = @import("item.zig").Item;
 const Manager = @import("utils/list_manager.zig").Manager;
 const Thing = @import("thing.zig").Thing;
@@ -202,9 +203,11 @@ pub const Room = struct {
 // Map (global)
 //
 pub const Map = struct {
+    const PlaceGrid = Grid(Place);
+
     allocator: std.mem.Allocator,
     items: ItemManager,
-    places: []Place,
+    places: PlaceGrid,
     rooms: []Room,
     height: Pos.Dim,
     width: Pos.Dim,
@@ -218,9 +221,11 @@ pub const Map = struct {
             return error.Underflow;
         }
 
-        const places = try allocator.alloc(Place, @intCast(height * width));
-        errdefer allocator.free(places);
-        for (places) |*place| {
+        const places = try PlaceGrid.config(allocator, @intCast(width), @intCast(height));
+        errdefer places.deinit();
+
+        var p = places.iterator();
+        while (p.next()) |place| {
             place.config();
         }
 
@@ -245,23 +250,14 @@ pub const Map = struct {
     pub fn deinit(self: *Map) void {
         const allocator = self.allocator;
         self.items.deinit();
-        if (self.places.len != 0) {
-            allocator.free(self.places);
-        }
+        self.places.deinit();
         allocator.free(self.rooms);
     }
 
     // Utility
 
-    fn toPlace(self: *Map, x: Pos.Dim, y: Pos.Dim) ZrogueError!*Place {
-        // TODO: sign check
-        if (x >= self.width)
-            return ZrogueError.MapOverFlow;
-        if (y >= self.height)
-            return ZrogueError.MapOverFlow;
-
-        const loc: usize = @intCast(x + y * self.width);
-        return &self.places[loc];
+    fn toPlace(self: *Map, x: Pos.Dim, y: Pos.Dim) !*Place {
+        return try self.places.find(@intCast(x), @intCast(y));
     }
 
     // Internal structs
@@ -519,7 +515,7 @@ pub const Map = struct {
 
         // TODO We will need to support 1x1 "removed" rooms eventually...
         if ((r.getMaxX() - r.getMinX() <= 1) or (r.getMaxY() - r.getMinY() <= 1)) {
-            return ZrogueError.MapOverFlow;
+            return ZrogueError.IndexOverflow;
         }
 
         // Rooms have a validated Region inside, so no need to test...
@@ -692,15 +688,15 @@ test "ask about valid map location" {
 test "ask about thing at invalid map location" {
     var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
-    try expectError(ZrogueError.MapOverFlow, map.getMonster(0, 20));
-    try expectError(ZrogueError.MapOverFlow, map.getMonster(20, 0));
+    try expectError(ZrogueError.IndexOverflow, map.getMonster(0, 20));
+    try expectError(ZrogueError.IndexOverflow, map.getMonster(20, 0));
 }
 
 test "ask about invalid character on the map" {
     var map: Map = try Map.config(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
-    try expectError(ZrogueError.MapOverFlow, map.getTile(20, 0));
-    try expectError(ZrogueError.MapOverFlow, map.getTile(0, 20));
+    try expectError(ZrogueError.IndexOverflow, map.getTile(20, 0));
+    try expectError(ZrogueError.IndexOverflow, map.getTile(0, 20));
 }
 
 test "Create an invalid room" {
@@ -737,9 +733,9 @@ test "draw an oversize room" {
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(0, 0), Pos.init(0, 100));
-    try expectError(ZrogueError.MapOverFlow, map.addRoom(r1));
+    try expectError(ZrogueError.IndexOverflow, map.addRoom(r1));
     const r2 = try Room.config(Pos.init(0, 0), Pos.init(100, 0));
-    try expectError(ZrogueError.MapOverFlow, map.addRoom(r2));
+    try expectError(ZrogueError.IndexOverflow, map.addRoom(r2));
 }
 
 test "create a room that breaks the grid" {
@@ -757,7 +753,7 @@ test "one tile (removed) room" {
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(5, 5), Pos.init(5, 5));
-    try expectError(ZrogueError.MapOverFlow, map.addRoom(r1));
+    try expectError(ZrogueError.IndexOverflow, map.addRoom(r1));
 }
 
 test "map multiple rooms" {
