@@ -22,8 +22,6 @@ pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
         .player = player_thing,
         .xSize = zrogue.MAPSIZE_X,
         .ySize = zrogue.MAPSIZE_Y,
-        .xRooms = zrogue.ROOMS_X,
-        .yRooms = zrogue.ROOMS_Y,
     };
 
     player_thing.addMessage("Welcome to the dungeon!");

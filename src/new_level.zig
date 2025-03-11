@@ -20,15 +20,13 @@ pub const LevelConfig = struct {
     player: ?*Thing = null,
     xSize: Pos.Dim = -1,
     ySize: Pos.Dim = -1,
-    xRooms: Pos.Dim = -1,
-    yRooms: Pos.Dim = -1,
 };
 
 //
 // Fixed things at fixed locations for deterministic behavior
 //
 pub fn createTestLevel(config: LevelConfig) !*Map {
-    var map = try Map.init(config.allocator, config.xSize, config.ySize, config.xRooms, config.yRooms);
+    var map = try Map.init(config.allocator, config.xSize, config.ySize, 3, 2);
     errdefer map.deinit();
 
     var room = try Room.config(Pos.init(2, 2), Pos.init(9, 9));
@@ -69,8 +67,6 @@ test "use test level" {
         .allocator = allocator,
         .xSize = zrogue.MAPSIZE_X,
         .ySize = zrogue.MAPSIZE_Y,
-        .xRooms = zrogue.ROOMS_X,
-        .yRooms = zrogue.ROOMS_Y,
     };
 
     const map = try createTestLevel(config);
