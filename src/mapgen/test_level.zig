@@ -1,12 +1,13 @@
 const std = @import("std");
 const mapgen = @import("mapgen.zig");
+const zrogue = @import("../zrogue.zig");
 
 const Item = @import("../item.zig").Item;
 const LevelConfig = mapgen.LevelConfig;
 const Map = @import("../map.zig").Map;
+const Pos = zrogue.Pos;
 const Room = @import("../map.zig").Room;
 const Thing = @import("../thing.zig").Thing;
-const Pos = @import("../zrogue.zig").Pos;
 
 //
 // Fixed things at fixed locations for deterministic behavior
@@ -32,6 +33,22 @@ pub fn createTestLevel(config: LevelConfig) !*Map {
     }
 
     return map;
+}
+
+//
+// Unit tests
+//
+
+test "use test level" {
+    const config = LevelConfig{
+        .allocator = std.testing.allocator,
+        .xSize = zrogue.MAPSIZE_X,
+        .ySize = zrogue.MAPSIZE_Y,
+        .mapgen = .TEST,
+    };
+
+    const map = try createTestLevel(config);
+    defer map.deinit();
 }
 
 // EOF

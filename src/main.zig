@@ -7,6 +7,7 @@ const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 
 const Player = @import("player.zig").Player;
+const LevelConfig = @import("new_level.zig").LevelConfig;
 
 //
 // Main entrypoint
@@ -32,7 +33,17 @@ pub fn main() !void {
 
     const player = try Player.init(allocator, input, display);
     defer player.deinit();
-    try game.run(allocator, player.toThing());
+
+    // TODO: command line option to force the test map
+    const config = LevelConfig{
+        .allocator = allocator,
+        .player = player.toThing(),
+        .xSize = zrogue.MAPSIZE_X,
+        .ySize = zrogue.MAPSIZE_Y,
+        .mapgen = .ROGUE,
+    };
+
+    try game.run(config);
 }
 
 //
@@ -67,7 +78,16 @@ test "run the game" {
 
     const player = try Player.init(allocator, input, display);
     defer player.deinit();
-    try game.run(allocator, player.toThing());
+
+    const config = LevelConfig{
+        .allocator = allocator,
+        .player = player.toThing(),
+        .xSize = zrogue.MAPSIZE_X,
+        .ySize = zrogue.MAPSIZE_Y,
+        .mapgen = .TEST,
+    };
+
+    try game.run(config);
 
     // TODO: must be a way to test for all leaks (of display still init, etc.)
 }
