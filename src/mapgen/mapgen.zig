@@ -15,6 +15,7 @@ pub const LevelConfig = struct {
     ySize: Pos.Dim = -1,
     mapgen: enum {
         TEST,
+        ROGUE,
     },
 };
 
@@ -23,6 +24,7 @@ pub const LevelConfig = struct {
 //
 
 pub const createTestLevel = @import("test_level.zig").createTestLevel;
+pub const createRogueLevel = @import("rogue_level.zig").createRogueLevel;
 
 // TODO: common functions...
 // * dig corridor given endpoint and some point in the middle

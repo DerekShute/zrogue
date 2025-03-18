@@ -16,15 +16,8 @@ const ZrogueError = zrogue.ZrogueError;
 // Game loop
 //
 
-pub fn run(allocator: std.mem.Allocator, player_thing: *Thing) !void {
-    const config = new_level.LevelConfig{
-        .allocator = allocator,
-        .player = player_thing,
-        .xSize = zrogue.MAPSIZE_X,
-        .ySize = zrogue.MAPSIZE_Y,
-        .mapgen = .TEST,
-    };
-
+pub fn run(config: new_level.LevelConfig) !void {
+    var player_thing = config.player.?;
     player_thing.addMessage("Welcome to the dungeon!");
 
     var map = try new_level.createLevel(config);
