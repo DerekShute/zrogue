@@ -864,7 +864,7 @@ test "put item on map" {
 
     // Monster's tile has precedence
 
-    var thing = Thing{ .xy = Pos.init(0, 0), .tile = .player };
+    var thing = Thing{ .p = Pos.init(0, 0), .tile = .player };
     try map.setMonster(&thing, 25, 25);
     try expect(try map.getTile(25, 25) == .player);
 }
@@ -874,8 +874,8 @@ test "put item on map" {
 test "putting monsters places" {
     var map = try Map.init(std.testing.allocator, 50, 50, 1, 1);
     defer map.deinit();
-    var thing = Thing{ .xy = Pos.init(0, 0), .tile = .player };
-    var thing2 = Thing{ .xy = Pos.init(0, 0), .tile = .player };
+    var thing = Thing{ .p = Pos.init(0, 0), .tile = .player };
+    var thing2 = Thing{ .p = Pos.init(0, 0), .tile = .player };
 
     try map.setMonster(&thing, 10, 10);
     try expect(thing.atXY(10, 10));
