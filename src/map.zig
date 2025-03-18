@@ -106,30 +106,6 @@ pub const Room = struct {
 
     // Methods
 
-    pub fn getRegion(self: *Room) Region {
-        return self.r;
-    }
-
-    pub fn getMinX(self: *Room) Pos.Dim {
-        const min = self.r.getMin();
-        return min.getX();
-    }
-
-    pub fn getMaxX(self: *Room) Pos.Dim {
-        const max = self.r.getMax();
-        return max.getX();
-    }
-
-    pub fn getMinY(self: *Room) Pos.Dim {
-        const min = self.r.getMin();
-        return min.getY();
-    }
-
-    pub fn getMaxY(self: *Room) Pos.Dim {
-        const max = self.r.getMax();
-        return max.getY();
-    }
-
     pub fn isLit(self: *Room) bool {
         return self.flags.lit;
     }
@@ -198,6 +174,8 @@ pub const Room = struct {
             try map.setRegionKnown(minx, miny, maxx, maxy);
         }
     }
+
+    pub usingnamespace Region.Methods(@This());
 };
 
 // ===================
