@@ -11,25 +11,23 @@ const Pos = zrogue.Pos;
 // Objects, gear, etc.
 //
 pub const Item = struct {
-    xy: Pos = Pos.init(-1, -1),
+    p: Pos = undefined,
     tile: MapTile = .unknown,
     // TODO: note if in player inventory
     // TODO: 'known' : identified to know # of charges / bonuses
 
     pub fn config(x: Pos.Dim, y: Pos.Dim, tile: MapTile) Item {
         return .{
-            .xy = Pos.init(x, y),
+            .p = Pos.init(x, y),
             .tile = tile,
         };
-    }
-
-    pub fn getPos(self: *Item) Pos {
-        return self.xy;
     }
 
     pub fn getTile(self: *Item) MapTile {
         return self.tile;
     }
+
+    pub usingnamespace Pos.Methods(@This());
 };
 
 //

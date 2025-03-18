@@ -14,7 +14,7 @@ const Pos = zrogue.Pos;
 //
 pub const Thing = struct {
     // TODO: timer, action queue
-    xy: Pos = undefined,
+    p: Pos = undefined,
     tile: MapTile = undefined,
     vtable: *const VTable = undefined,
 
@@ -26,26 +26,14 @@ pub const Thing = struct {
 
     pub fn config(tile: MapTile, vtable: *const Thing.VTable) Thing {
         return Thing{
-            .xy = Pos.init(-1, -1),
+            .p = Pos.init(-1, -1),
             .tile = tile,
             .vtable = vtable,
         };
     }
 
-    pub fn getPos(self: *Thing) Pos {
-        return self.xy;
-    }
-
-    pub fn setXY(self: *Thing, x: Pos.Dim, y: Pos.Dim) void {
-        self.xy = Pos.init(x, y);
-    }
-
     pub fn getTile(self: *Thing) MapTile {
         return self.tile;
-    }
-
-    pub fn atXY(self: *Thing, x: Pos.Dim, y: Pos.Dim) bool {
-        return self.xy.eql(Pos.init(x, y));
     }
 
     // VTable
@@ -66,6 +54,8 @@ pub const Thing = struct {
             cb(self, item, map);
         }
     }
+
+    pub usingnamespace Pos.Methods(@This());
 };
 
 // Unit Tests

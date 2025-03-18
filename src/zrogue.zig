@@ -100,6 +100,42 @@ pub const Pos = struct {
         const maxy = @abs(pos1.getY() - pos2.getY());
         return if (maxx > maxy) @intCast(maxx) else @intCast(maxy);
     }
+
+    //
+    // Pos.Methods: mixin for clients of Pos to lift up common functions
+    //
+    // use this as follows:  pub usingnamespace PosMethods(@This());
+    //
+    pub fn Methods(comptime Self: type) type {
+
+        // assumes a field 'p: Pos' in whatever Self pulls this in
+
+        return struct {
+            pub fn getX(self: *Self) Pos.Dim {
+                return self.p.getX();
+            }
+
+            pub fn getY(self: *Self) Pos.Dim {
+                return self.p.getY();
+            }
+
+            pub fn getPos(self: *Self) Pos {
+                return self.p;
+            }
+
+            pub fn distance(self: *Self, other: anytype) Pos.Dim {
+                return Pos.distance(self.getPos(), other.getPos());
+            }
+
+            pub fn atXY(self: *Self, x: Pos.Dim, y: Pos.Dim) bool {
+                return self.p.eql(Pos.init(x, y));
+            }
+
+            pub fn setXY(self: *Self, x: Pos.Dim, y: Pos.Dim) void {
+                self.p = Pos.init(x, y);
+            }
+        };
+    }
 };
 
 //
@@ -218,6 +254,22 @@ test "create a Pos and use its operations" {
     try expect(Pos.distance(Pos.init(1, 1), Pos.init(0, 0)) == 1);
     try expect(Pos.distance(Pos.init(1, 1), Pos.init(1, 1)) == 0);
     try expect(Pos.distance(Pos.init(-1, -1), Pos.init(0, 0)) == 1);
+}
+
+test "Pos methods" {
+    const expect = std.testing.expect;
+
+    const Frotz = struct {
+        p: Pos = undefined,
+
+        pub usingnamespace Pos.Methods(@This());
+    };
+
+    var x = Frotz{ .p = Pos.init(25, -25) };
+
+    try expect(x.getX() == 25);
+    try expect(x.getY() == -25);
+    try expect(x.atXY(25, -25));
 }
 
 test "entity action" {
