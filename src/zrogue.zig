@@ -104,7 +104,7 @@ pub const Pos = struct {
     //
     // Pos.Methods: mixin for clients of Pos to lift up common functions
     //
-    // use this as follows:  pub usingnamespace PosMethods(@This());
+    // use this as follows:  pub usingnamespace Pos.Methods(@This());
     //
     pub fn Methods(comptime Self: type) type {
 
@@ -186,6 +186,42 @@ pub const Region = struct {
 
     pub fn getMax(self: *Region) Pos {
         return self.to;
+    }
+
+    //
+    // Region.Methods: mixin for clients of Region to lift up common functions
+    //
+    // use this as follows:  pub usingnamespace Region.Methods(@This());
+    //
+    pub fn Methods(comptime Self: type) type {
+
+        // assumes a field 'r: Region' in whatever Self pulls this in
+
+        return struct {
+            pub fn getRegion(self: *Self) Region {
+                return self.r;
+            }
+
+            pub fn getMinX(self: *Self) Pos.Dim {
+                const min = self.r.getMin();
+                return min.getX();
+            }
+
+            pub fn getMaxX(self: *Self) Pos.Dim {
+                const max = self.r.getMax();
+                return max.getX();
+            }
+
+            pub fn getMinY(self: *Self) Pos.Dim {
+                const min = self.r.getMin();
+                return min.getY();
+            }
+
+            pub fn getMaxY(self: *Self) Pos.Dim {
+                const max = self.r.getMax();
+                return max.getY();
+            }
+        };
     }
 };
 
@@ -292,14 +328,24 @@ test "invalid regions" {
     try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(4, 4), Pos.init(5, -1)));
 }
 
-test "region" {
+test "Region and region methods" {
     const expect = std.testing.expect;
     const min = Pos.init(2, 7);
     const max = Pos.init(9, 11);
 
+    const Frotz = struct {
+        r: Region = undefined,
+
+        pub usingnamespace Region.Methods(@This());
+    };
+
     var r = try Region.config(min, max);
     try expect(min.eql(r.getMin()));
     try expect(max.eql(r.getMax()));
+
+    var x = Frotz{ .r = try Region.config(min, max) };
+    try expect(x.getMinX() == 2);
+    try expect(x.getMaxX() == 9);
 
     // We will call 1x1 valid for now. 1x1 at 0,0 is the uninitialized room
     _ = try Region.config(Pos.init(0, 0), Pos.init(0, 0));
