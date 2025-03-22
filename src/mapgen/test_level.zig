@@ -21,10 +21,11 @@ pub fn createTestLevel(config: LevelConfig) !*Map {
     try mapgen.addRoom(map, room);
 
     try mapgen.addRoom(map, try Room.config(Pos.init(27, 5), Pos.init(35, 10)));
-    try map.dig(Pos.init(9, 5), Pos.init(27, 8));
+    try mapgen.addEastCorridor(map, Pos.init(9, 5), Pos.init(27, 8), 13);
 
     try mapgen.addRoom(map, try Room.config(Pos.init(4, 12), Pos.init(20, 19)));
-    try map.dig(Pos.init(4, 9), Pos.init(18, 12));
+
+    try mapgen.addSouthCorridor(map, Pos.init(4, 9), Pos.init(18, 12), 10);
 
     try map.addItem(Item.config(10, 16, .gold));
 
