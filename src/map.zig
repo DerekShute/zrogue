@@ -309,7 +309,7 @@ pub const Map = struct {
         return place.passable();
     }
 
-    // TODO: this is a mapgen function
+    // TODO REMOVE THIS AND TESTS
     pub fn dig(self: *Map, start: Pos, end: Pos) !void {
         // Inclusive of start and end positions
 
@@ -402,7 +402,7 @@ pub const Map = struct {
 
     // rooms
 
-    fn getRoomNum(self: *Map, p: Pos) ?usize {
+    pub fn getRoomNum(self: *Map, p: Pos) ?usize {
         if ((p.getX() < 0) or (p.getY() < 0)) {
             return null;
         } else if ((p.getX() >= self.width) or (p.getY() >= self.height)) {

@@ -83,6 +83,26 @@ pub fn addRoom(m: *Map, room: Room) ZrogueError!void {
     drawField(m, s, e, .floor) catch unreachable;
 }
 
+// Corridors
+
+pub fn addSouthCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) !void {
+    // TODO: the start and end should be validated
+    try drawVertLine(m, start, mid, .floor);
+    try drawHorizLine(m, Pos.init(start.getX(), mid), end.getX(), .floor);
+    try drawVertLine(m, Pos.init(end.getX(), mid), end.getY(), .floor);
+    try m.setTile(start.getX(), start.getY(), .door);
+    try m.setTile(end.getX(), end.getY(), .door);
+}
+
+pub fn addEastCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) !void {
+    // TODO: the start and end should be validated
+    try drawHorizLine(m, start, mid, .floor);
+    try drawVertLine(m, Pos.init(mid, start.getY()), end.getY(), .floor);
+    try drawHorizLine(m, Pos.init(mid, end.getY()), end.getX(), .floor);
+    try m.setTile(start.getX(), start.getY(), .door);
+    try m.setTile(end.getX(), end.getY(), .door);
+}
+
 // TODO: common functions...
 // * dig corridor given endpoint and some point in the middle
 // * locate a place for a door
@@ -125,5 +145,7 @@ test "mapgen smoke test" {
     try expect(try m.isKnown(16, 16) == false);
     try expect(try m.isKnown(11, 11) == false);
 }
+
+// TODO Corridor tests
 
 // EOF
