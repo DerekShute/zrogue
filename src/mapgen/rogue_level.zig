@@ -63,6 +63,7 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: Randomizer) !Room {
 }
 
 // TODO: this is partially redundant
+// TODO: into Map?  It assumes a room grid
 fn isRoomAdjacent(i: i16, j: i16) bool {
     const i_row = @divTrunc(i, rooms_dim);
     const j_row = @divTrunc(j, rooms_dim);
@@ -90,31 +91,30 @@ fn isConnected(graph: []bool, r1: i16, r2: i16) bool {
 }
 
 // Dig a passage
-// TODO: this is half of Map.dig() and should pull in the rest
-fn connectRooms(map: *Map, rn1: usize, rn2: usize) void {
+
+fn connectRooms(map: *Map, rn1: usize, rn2: usize) !void {
     const i = @min(rn1, rn2); // Western or Northern
     const j = @max(rn1, rn2); // Eastern or Southern
-
-    var r1 = map.rooms[i]; // TODO: ugh
+    var r1 = map.rooms[i]; // TODO huge ugh
     var r2 = map.rooms[j];
 
-    // figure out a point in the walls between the rooms
     // TODO: randomization
 
-    var r1_x: Pos.Dim = r1.getMaxX();
-    var r1_y: Pos.Dim = r1.getMaxY();
-    var r2_x: Pos.Dim = r2.getMinX();
-    var r2_y: Pos.Dim = r2.getMinY();
-
     if (j == i + 1) { // Eastward dig
-        r1_y = @divTrunc(r1.getMinY() + r1.getMaxY(), 2);
-        r2_y = @divTrunc(r2.getMinY() + r2.getMaxY(), 2);
+        const r1_x = r1.getMaxX();
+        const r1_y = @divTrunc(r1.getMinY() + r1.getMaxY(), 2);
+        const r2_x = r2.getMinX();
+        const r2_y = @divTrunc(r2.getMinY() + r2.getMaxY(), 2);
+        const mid = @divTrunc(r1_x + r2_x, 2);
+        try mapgen.addEastCorridor(map, Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y), mid);
     } else { // Southward dig
-        r1_x = @divTrunc(r1.getMinX() + r1.getMaxX(), 2);
-        r2_x = @divTrunc(r2.getMinX() + r2.getMaxX(), 2);
+        const r1_x = @divTrunc(r1.getMinX() + r1.getMaxX(), 2);
+        const r1_y = r1.getMaxY();
+        const r2_x = @divTrunc(r2.getMinX() + r2.getMaxX(), 2);
+        const r2_y = r2.getMinY();
+        const mid = @divTrunc(r1_y + r2_y, 2);
+        try mapgen.addSouthCorridor(map, Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y), mid);
     }
-    std.debug.print("digging from {},{} to {},{}\n", .{ r1_x, r1_y, r2_x, r2_y });
-    map.dig(Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y)) catch unreachable; // TODO incorrect
 }
 
 // ========================================================
@@ -165,7 +165,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
         }
         if (r2 < 1000) { // Found adjacent room not already in graph
             ingraph[@intCast(r2)] = true;
-            connectRooms(map, r1, r2); // TODO
+            try connectRooms(map, r1, r2);
             setConnected(&connections, @intCast(r1), @intCast(r2));
             roomcount += 1;
         } else {
