@@ -403,10 +403,9 @@ pub const Map = struct {
     // rooms
 
     fn getRoomNum(self: *Map, p: Pos) ?usize {
-        // TODO does not actually test x and y -- can that be fooled with
-        // a column 1000 row 0 or something?
-
         if ((p.getX() < 0) or (p.getY() < 0)) {
+            return null;
+        } else if ((p.getX() >= self.width) or (p.getY() >= self.height)) {
             return null;
         }
 
@@ -649,10 +648,18 @@ test "inquire about room at invalid location" {
     try expectError(ZrogueError.OutOfBounds, map.getRoomRegion(Pos.init(-1, -1)));
     try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(-1, -1)));
     try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(100, 100)));
+    try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(0, 40)));
+    try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(40, 0)));
+
+    try expect(map.getRoomNum(Pos.init(19, 0)) == 0);
+    try expect(map.getRoomNum(Pos.init(20, 0)) == null);
+    try expect(map.getRoomNum(Pos.init(0, 20)) == null);
+    try expect(map.getRoomNum(Pos.init(0, 19)) == 0);
 
     // The rest are inquiries that we default to 'false' for insane callers
     // commence groaning now
 
+    try expect(map.inRoom(Pos.init(20, 0)) == false);
     try expect(map.inRoom(Pos.init(100, 100)) == false);
     try expect(map.inRoom(Pos.init(-1, -1)) == false);
     try expect(map.inRoom(Pos.init(-1, -1)) == false);
