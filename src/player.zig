@@ -212,6 +212,7 @@ const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
 const MockInputProvider = @import("input.zig").MockInputProvider;
 const expect = std.testing.expect;
 const Room = @import("map.zig").Room;
+const mapgen = @import("mapgen/mapgen.zig");
 
 test "create a player" {
     var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
@@ -232,7 +233,7 @@ test "create a player" {
 
     var room = try Room.config(Pos.init(5, 5), Pos.init(20, 20));
     room.setDark();
-    try map.addRoom(room);
+    try mapgen.addRoom(map, room);
 
     // TODO: light, blindness
 

@@ -1,5 +1,5 @@
 const std = @import("std");
-const LevelConfig = @import("mapgen.zig").LevelConfig;
+const mapgen = @import("mapgen.zig");
 const Map = @import("../map.zig").Map;
 const Room = @import("../map.zig").Room;
 const Pos = @import("../zrogue.zig").Pos;
@@ -123,7 +123,7 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize) void {
 // algorithms
 //
 
-pub fn createRogueLevel(config: LevelConfig) !*Map {
+pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     const r = Randomizer{};
     var ingraph = [_]bool{false} ** max_rooms; // Rooms connected to graph
     var connections = [_]bool{false} ** (max_rooms * max_rooms);
@@ -137,7 +137,7 @@ pub fn createRogueLevel(config: LevelConfig) !*Map {
 
         // TODO: place gold
         // TODO: place monster
-        try map.addRoom(room);
+        try mapgen.addRoom(map, room);
     }
 
     // Connect passages

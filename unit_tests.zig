@@ -14,6 +14,7 @@ comptime {
     _ = @import("src/zrogue.zig");
     _ = @import("src/message_log.zig");
 
+    _ = @import("src/mapgen/tests.zig");
     _ = @import("src/utils/tests.zig");
 }
 

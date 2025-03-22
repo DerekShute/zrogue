@@ -121,48 +121,6 @@ pub const Room = struct {
         return true;
     }
 
-    //
-    // TODO: can vtable this to have different types of room
-    //
-    // TODO: this is a mapgen function
-    pub fn draw(self: *Room, map: *Map) ZrogueError!void {
-        const Fns = struct {
-            fn vert(m: *Map, startx: Pos.Dim, yrange: [2]Pos.Dim) !void {
-                for (@intCast(yrange[0])..@intCast(yrange[1] + 1)) |y| {
-                    try m.setTile(startx, @intCast(y), .wall);
-                }
-            }
-
-            fn horiz(m: *Map, starty: Pos.Dim, xrange: [2]Pos.Dim) !void {
-                for (@intCast(xrange[0])..@intCast(xrange[1] + 1)) |x| {
-                    try m.setTile(@intCast(x), starty, .wall);
-                }
-            }
-
-            fn field(m: *Map, start: Pos, limit: Pos) !void {
-                var r = try Region.config(start, limit);
-                var ri = r.iterator();
-                while (ri.next()) |pos| {
-                    try m.setTile(pos.getX(), pos.getY(), .floor);
-                }
-            }
-        };
-
-        const minx = self.getMinX();
-        const miny = self.getMinY();
-        const maxx = self.getMaxX();
-        const maxy = self.getMaxY();
-
-        // Horizontal bars in the corners
-        try Fns.vert(map, minx, .{ miny + 1, maxy - 1 });
-        try Fns.vert(map, maxx, .{ miny + 1, maxy - 1 });
-        try Fns.horiz(map, miny, .{ minx, maxx });
-        try Fns.horiz(map, maxy, .{ minx, maxx });
-
-        // Floor
-        try Fns.field(map, Pos.init(minx + 1, miny + 1), Pos.init(maxx - 1, maxy - 1));
-    } // draw
-
     // TODO: Vtable for different shaped rooms
     pub fn reveal(self: *Room, map: *Map) !void {
         const minx = self.getMinX();
@@ -445,6 +403,9 @@ pub const Map = struct {
     // rooms
 
     fn getRoomNum(self: *Map, p: Pos) ?usize {
+        // TODO does not actually test x and y -- can that be fooled with
+        // a column 1000 row 0 or something?
+
         if ((p.getX() < 0) or (p.getY() < 0)) {
             return null;
         }
@@ -528,7 +489,6 @@ pub const Map = struct {
         }
 
         sr.?.* = r;
-        try sr.?.draw(self);
     }
 
     pub fn isLit(self: *Map, p: Pos) bool {
@@ -617,31 +577,6 @@ test "map smoke test" {
 
     try std.testing.expect(map.getHeight() == 50);
     try std.testing.expect(map.getWidth() == 100);
-
-    try expect(map.isLit(Pos.init(15, 15)) == true);
-    // TODO set room dark, then ask again
-
-    try expect(try map.isKnown(15, 15) == false);
-    try expect(try map.getTile(0, 0) == .wall);
-    try expect(try map.getTile(10, 10) == .wall);
-
-    try map.setKnown(15, 15, true);
-    try expect(try map.isKnown(15, 15) == true);
-    try map.setKnown(15, 15, false);
-    try expect(try map.isKnown(15, 15) == false);
-
-    // Explicit set tile inside a known room
-    try map.setTile(17, 17, .wall);
-    try expect(try map.getTile(17, 17) == .wall);
-
-    try map.setTile(18, 18, .door);
-    try expect(try map.getTile(18, 18) == .door);
-
-    try map.setRegionKnown(12, 12, 15, 15);
-    try expect(try map.isKnown(12, 12) == true);
-    try expect(try map.isKnown(15, 15) == true);
-    try expect(try map.isKnown(16, 16) == false);
-    try expect(try map.isKnown(11, 11) == false);
 }
 
 test "fails to allocate map" { // first allocation attempt
