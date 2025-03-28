@@ -17,6 +17,10 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
+    const seed: u64 = @intCast(std.time.microTimestamp());
+    var prng = std.Random.DefaultPrng.init(seed);
+    const r = prng.random();
+
     var providers = curses.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY, allocator) catch |err| switch (err) {
         ZrogueError.DisplayTooSmall => {
             try stdout.print("ERROR: Minimum {}x{} display required\n", .{ zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY });
@@ -37,6 +41,7 @@ pub fn main() !void {
     // TODO: command line option to force the test map
     const config = LevelConfig{
         .allocator = allocator,
+        .rand = &r,
         .player = player.toThing(),
         .xSize = zrogue.MAPSIZE_X,
         .ySize = zrogue.MAPSIZE_Y,

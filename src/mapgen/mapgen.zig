@@ -16,6 +16,7 @@ const ZrogueError = zrogue.ZrogueError;
 
 pub const LevelConfig = struct {
     allocator: std.mem.Allocator = undefined,
+    rand: *std.Random = undefined,
     player: ?*Thing = null,
     xSize: Pos.Dim = -1,
     ySize: Pos.Dim = -1,

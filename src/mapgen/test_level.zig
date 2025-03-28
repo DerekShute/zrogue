@@ -41,8 +41,12 @@ pub fn createTestLevel(config: LevelConfig) !*Map {
 //
 
 test "use test level" {
+    var prng = std.Random.DefaultPrng.init(0);
+    var r = prng.random();
+
     const config = LevelConfig{
         .allocator = std.testing.allocator,
+        .rand = &r,
         .xSize = zrogue.MAPSIZE_X,
         .ySize = zrogue.MAPSIZE_Y,
         .mapgen = .TEST,

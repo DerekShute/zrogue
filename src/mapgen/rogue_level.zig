@@ -251,7 +251,18 @@ test "rogue rooms" {
 }
 
 test "create Rogue level" {
-    var map = try createRogueLevel(.{ .allocator = tallocator, .xSize = 80, .ySize = 24, .mapgen = .ROGUE });
+    var prng = std.Random.DefaultPrng.init(0);
+    var r = prng.random();
+
+    const config = mapgen.LevelConfig{
+        .allocator = tallocator,
+        .rand = &r,
+        .xSize = 80,
+        .ySize = 24,
+        .mapgen = .ROGUE,
+    };
+
+    var map = try createRogueLevel(config);
     defer map.deinit();
 }
 
