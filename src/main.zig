@@ -19,7 +19,7 @@ pub fn main() !void {
 
     const seed: u64 = @intCast(std.time.microTimestamp());
     var prng = std.Random.DefaultPrng.init(seed);
-    const r = prng.random();
+    var r = prng.random();
 
     var providers = curses.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY, allocator) catch |err| switch (err) {
         ZrogueError.DisplayTooSmall => {

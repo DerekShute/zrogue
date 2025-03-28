@@ -47,13 +47,10 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
     // TODO: dark
     // TODO: maze
 
-    // TODO: there must be one row/column between all rooms for potential
-    // corridors
-
-    const xlen = r.intRangeAtMost(Pos.Dim, min_room_dim, max_xsize);
-    const ylen = r.intRangeAtMost(Pos.Dim, min_room_dim, max_ysize);
-    const xpos = topx + r.intRangeAtMost(Pos.Dim, 0, max_xsize - xlen);
-    const ypos = topy + r.intRangeAtMost(Pos.Dim, 0, max_ysize - ylen);
+    const xlen = r.intRangeAtMost(Pos.Dim, min_room_dim, max_xsize - 1);
+    const ylen = r.intRangeAtMost(Pos.Dim, min_room_dim, max_ysize - 1);
+    const xpos = topx + r.intRangeAtMost(Pos.Dim, 0, max_xsize - xlen - 1);
+    const ypos = topy + r.intRangeAtMost(Pos.Dim, 0, max_ysize - ylen - 1);
 
     std.debug.print("room {}: @ {},{} size {}x{} of {}x{}\n", .{ roomno, xpos, ypos, xlen, ylen, max_xsize, max_ysize });
 
@@ -106,6 +103,7 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize) !void {
         const r2_x = r2.getMinX();
         const r2_y = @divTrunc(r2.getMinY() + r2.getMaxY(), 2);
         const mid = @divTrunc(r1_x + r2_x, 2);
+        std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, r1_y, r2_x, r2_y, mid });
         try mapgen.addEastCorridor(map, Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y), mid);
     } else { // Southward dig
         const r1_x = @divTrunc(r1.getMinX() + r1.getMaxX(), 2);
@@ -113,6 +111,7 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize) !void {
         const r2_x = @divTrunc(r2.getMinX() + r2.getMaxX(), 2);
         const r2_y = r2.getMinY();
         const mid = @divTrunc(r1_y + r2_y, 2);
+        std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, r1_y, r2_x, r2_y, mid });
         try mapgen.addSouthCorridor(map, Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y), mid);
     }
 }
@@ -181,8 +180,9 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
 
     // TODO: keep track of map.passages[] for some reason
 
+    // TODO: find valid location for player
     if (config.player) |p| {
-        try map.setMonster(p, 8, 3); // TODO: random room and position
+        try map.setMonster(p, 8, 3);
     }
 
     return map;
@@ -232,7 +232,7 @@ test "rogue rooms" {
     const xroomsize = 26;
     const yroomsize = 8;
     const xsize = 7;
-    const ysize = 8;
+    const ysize = 7;
     const xoffset = 9;
     const yoffset = 0;
 
