@@ -323,22 +323,6 @@ pub const Map = struct {
         return loc;
     }
 
-    fn isRoomAdjacent(self: *Map, p1: Pos, p2: Pos) bool {
-        const r1 = self.getRoomNum(p1);
-        const r2 = self.getRoomNum(p2);
-
-        if (r1) |r1num| {
-            if (r2) |r2num| {
-                if ((r1num > r2num) and (r1num - r2num == 1)) {
-                    return true;
-                } else if ((r2num > r1num) and (r2num - r1num == 1)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     fn getRoom(self: *Map, p: Pos) ?*Room {
         if (self.getRoomNum(p)) |loc| {
             return &self.rooms[loc];
