@@ -15,9 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: tlylt/install-graphviz@v1
+      # This is v1.0.0, Apr 14, 2022
+      - uses: tlylt/install-graphviz@b2201200d85f06f0189cb74d9b69208504cf12cd
 
-      - uses: mlugg/setup-zig@v1
+      # This is v1.2.1, Sep 18, 2024
+      - uses: mlugg/setup-zig@a67e68dc5c8281d9608136d3d7ca1b282213e4ac
 
       - name: Build
         run: zig build
