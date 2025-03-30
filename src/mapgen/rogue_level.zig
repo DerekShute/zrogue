@@ -10,28 +10,6 @@ const min_room_dim = 4; // min non-gone room size: 2x2 not including walls
 const rooms_dim = 3; // 3x3 grid of room 'spots'
 const max_rooms = rooms_dim * rooms_dim;
 
-// Prototype randomizer / die-roll doodad, currently hammered to return the
-// median of inputs
-
-const Randomizer = struct {
-    const IntType = u8;
-
-    fn roll(self: Randomizer, maxval: anytype) IntType {
-        // TODO: generate random number, minimum, maximum, or median
-        _ = self;
-        const ret: IntType = @intCast(maxval);
-        return @divTrunc(ret, 2);
-    }
-
-    // Will be r.roll(maxval - minval) + minval - 1 or something
-    fn rollMin(self: Randomizer, minval: anytype, maxval: anytype) IntType {
-        // TODO: generate random number, minimum, maximum, or median
-        _ = self;
-        const ret: IntType = @intCast(minval + maxval);
-        return @intCast(@divTrunc(ret, 2));
-    }
-};
-
 //
 // Utilities
 //
@@ -93,28 +71,29 @@ fn isConnected(graph: []bool, r1: i16, r2: i16) bool {
 
 // Dig a passage
 
-fn connectRooms(map: *Map, rn1: usize, rn2: usize) !void {
+fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
     const i = @min(rn1, rn2); // Western or Northern
     const j = @max(rn1, rn2); // Eastern or Southern
     var r1 = map.rooms[i]; // TODO huge ugh
     var r2 = map.rooms[j];
 
-    // TODO: randomization
+    // Pick valid connection points (along the opposite room sides, not on
+    // the corners, and a location for the midpoint)
 
     if (j == i + 1) { // Eastward dig
         const r1_x = r1.getMaxX();
-        const r1_y = @divTrunc(r1.getMinY() + r1.getMaxY(), 2);
+        const r1_y = r.intRangeAtMost(Pos.Dim, r1.getMinY() + 1, r1.getMaxY() - 1);
         const r2_x = r2.getMinX();
-        const r2_y = @divTrunc(r2.getMinY() + r2.getMaxY(), 2);
-        const mid = @divTrunc(r1_x + r2_x, 2);
+        const r2_y = r.intRangeAtMost(Pos.Dim, r2.getMinY() + 1, r2.getMaxY() - 1);
+        const mid = r.intRangeAtMost(Pos.Dim, r1_x + 1, r2_x - 1);
         std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, r1_y, r2_x, r2_y, mid });
         try mapgen.addEastCorridor(map, Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y), mid);
     } else { // Southward dig
-        const r1_x = @divTrunc(r1.getMinX() + r1.getMaxX(), 2);
+        const r1_x = r.intRangeAtMost(Pos.Dim, r1.getMinX() + 1, r1.getMaxX() - 1);
         const r1_y = r1.getMaxY();
-        const r2_x = @divTrunc(r2.getMinX() + r2.getMaxX(), 2);
+        const r2_x = r.intRangeAtMost(Pos.Dim, r2.getMinX() + 1, r2.getMaxX() - 1);
         const r2_y = r2.getMinY();
-        const mid = @divTrunc(r1_y + r2_y, 2);
+        const mid = r.intRangeAtMost(Pos.Dim, r1_y + 1, r2_y - 1);
         std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, r1_y, r2_x, r2_y, mid });
         try mapgen.addSouthCorridor(map, Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y), mid);
     }
@@ -127,7 +106,6 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize) !void {
 //
 
 pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
-    const r = Randomizer{};
     var ingraph = [_]bool{false} ** max_rooms; // Rooms connected to graph
     var connections = [_]bool{false} ** (max_rooms * max_rooms);
     var map = try Map.init(config.allocator, config.xSize, config.ySize, rooms_dim, rooms_dim);
@@ -146,10 +124,9 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     // Connect passages
     // TODO: list of rooms, shuffled
 
-    var r1: usize = r.roll(max_rooms); // 0..8
+    var r1: usize = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
     ingraph[r1] = true;
     var roomcount: usize = 1;
-    var lower: usize = 0;
 
     // Find an adjacent room to connect with
 
@@ -166,16 +143,18 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
                 }
             }
         }
-        if (r2 < 1000) { // Found adjacent room not already in graph
+        if (r2 < 1000) {
+            // Found adjacent room not already in graph
             ingraph[@intCast(r2)] = true;
-            try connectRooms(map, r1, r2);
+            try connectRooms(map, r1, r2, config.rand);
             setConnected(&connections, @intCast(r1), @intCast(r2));
             roomcount += 1;
         } else {
             // No adjacent rooms outside of graph: start over with a new room
-            // TODO must be in graph
-            r1 = lower;
-            lower += 1; // TODO: this is crap
+            r1 = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
+            while (ingraph[r1] == false) {
+                r1 = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
+            }
         }
     } // While roomcount < max_rooms
 
