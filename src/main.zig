@@ -2,12 +2,32 @@ const std = @import("std");
 const stdout = std.io.getStdOut().writer();
 
 const curses = @import("curses.zig");
+const DisplayProvider = @import("display.zig").DisplayProvider;
 const game = @import("game.zig");
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
 
 const Player = @import("player.zig").Player;
 const LevelConfig = @import("new_level.zig").LevelConfig;
+
+//
+// Panic handler
+//
+// This is reached from the @panic builtin, and we're trying to unwind
+// the curses windowing.  The stack trace dump is based on review of the
+// std.debug sources.
+//
+
+var p_display: DisplayProvider = undefined;
+
+pub const panic = std.debug.FullPanic(zroguePanic);
+
+fn zroguePanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
+    p_display.endwin();
+    std.debug.print("The dungeon collapses! {s}\n", .{msg});
+    std.debug.dumpCurrentStackTrace(first_trace_addr);
+    std.process.exit(1);
+}
 
 //
 // Main entrypoint
@@ -32,6 +52,7 @@ pub fn main() !void {
         },
     };
     const display = providers.d.provider();
+    p_display = display;
     const input = providers.i.provider();
     defer display.endwin();
 
