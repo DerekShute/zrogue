@@ -38,7 +38,7 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
 
     const tl = Pos.init(xpos, ypos);
     const br = Pos.init(xpos + xlen - 1, ypos + ylen - 1);
-    return Room.config(tl, br);
+    return Room.config(tl, br); // TODO interface as (tl, size-as-pos)?
 }
 
 // TODO: this is partially redundant
@@ -50,7 +50,6 @@ fn isRoomAdjacent(i: i16, j: i16) bool {
     const j_col = @mod(j, rooms_dim);
 
     if (i_row == j_row) { // neighbors, same row
-        // TODO subtract, absolute value
         return if ((i == j + 1) or (j == i + 1)) true else false;
     } else if (i_col == j_col) { // neighbors, same column
         return if ((i_row == j_row + 1) or (j_row == i_row + 1)) true else false;
@@ -74,28 +73,28 @@ fn isConnected(graph: []bool, r1: i16, r2: i16) bool {
 fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
     const i = @min(rn1, rn2); // Western or Northern
     const j = @max(rn1, rn2); // Eastern or Southern
-    var r1 = map.rooms[i]; // TODO huge ugh
-    var r2 = map.rooms[j];
+    var r1 = mapgen.getRoom(map, i);
+    var r2 = mapgen.getRoom(map, j);
 
     // Pick valid connection points (along the opposite room sides, not on
     // the corners, and a location for the midpoint)
 
     if (j == i + 1) { // Eastward dig
-        const r1_x = r1.getMaxX();
+        const start_x = r1.getMaxX();
         const r1_y = r.intRangeAtMost(Pos.Dim, r1.getMinY() + 1, r1.getMaxY() - 1);
-        const r2_x = r2.getMinX();
+        const end_x = r2.getMinX();
         const r2_y = r.intRangeAtMost(Pos.Dim, r2.getMinY() + 1, r2.getMaxY() - 1);
-        const mid = r.intRangeAtMost(Pos.Dim, r1_x + 1, r2_x - 1);
-        std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, r1_y, r2_x, r2_y, mid });
-        try mapgen.addEastCorridor(map, Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y), mid);
+        const mid_x = r.intRangeAtMost(Pos.Dim, start_x + 1, end_x - 1);
+        std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, start_x, r1_y, end_x, r2_y, mid_x });
+        try mapgen.addEastCorridor(map, Pos.init(start_x, r1_y), Pos.init(end_x, r2_y), mid_x);
     } else { // Southward dig
         const r1_x = r.intRangeAtMost(Pos.Dim, r1.getMinX() + 1, r1.getMaxX() - 1);
-        const r1_y = r1.getMaxY();
+        const start_y = r1.getMaxY();
         const r2_x = r.intRangeAtMost(Pos.Dim, r2.getMinX() + 1, r2.getMaxX() - 1);
-        const r2_y = r2.getMinY();
-        const mid = r.intRangeAtMost(Pos.Dim, r1_y + 1, r2_y - 1);
-        std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, r1_y, r2_x, r2_y, mid });
-        try mapgen.addSouthCorridor(map, Pos.init(r1_x, r1_y), Pos.init(r2_x, r2_y), mid);
+        const end_y = r2.getMinY();
+        const mid_y = r.intRangeAtMost(Pos.Dim, start_y + 1, end_y - 1);
+        std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, start_y, r2_x, end_y, mid_y });
+        try mapgen.addSouthCorridor(map, Pos.init(r1_x, start_y), Pos.init(r2_x, end_y), mid_y);
     }
 }
 

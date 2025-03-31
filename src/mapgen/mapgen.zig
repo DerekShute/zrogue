@@ -86,6 +86,14 @@ pub fn addRoom(m: *Map, room: Room) ZrogueError!void {
     drawField(m, s, e, .floor) catch unreachable;
 }
 
+pub fn getRoom(m: *Map, roomno: usize) *Room {
+    // Slightly better than using the raw reference
+    if (roomno >= m.rooms.len) {
+        @panic("mapgen.getRoom bad room number");
+    }
+    return &m.rooms[roomno];
+}
+
 // Corridors
 
 pub fn addSouthCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) !void {
