@@ -49,7 +49,6 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
     return room;
 }
 
-// TODO: this is partially redundant
 // TODO: into Map?  It assumes a room grid
 fn isRoomAdjacent(i: i16, j: i16) bool {
     const i_row = @divTrunc(i, rooms_dim);
@@ -126,7 +125,9 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     errdefer map.deinit();
     map.level = config.level;
 
-    // TODO: select gone rooms and deal with those
+    // TODO: array of scrambled rooms
+
+    // TODO: count gone rooms, set as such, remove from slice
 
     for (0..max_rooms) |i| {
         var room = try makeRogueRoom(@intCast(i), map, config.rand);
@@ -145,8 +146,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
         // TODO: place monster
     }
 
-    // Connect passages
-    // TODO: list of rooms, shuffled
+    // Connect passages.  Start with first room in slice
 
     var r1: usize = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
     ingraph[r1] = true;
@@ -161,9 +161,9 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
             if (isRoomAdjacent(@intCast(r1), @intCast(i))) {
                 if (!ingraph[i]) { // Not considered yet
                     j += 1;
-                    // was some roll vs 0 and j here
-                    r2 = @intCast(i);
-                    break;
+                    if (config.rand.intRangeAtMost(usize, 0, j) == 0) {
+                        r2 = @intCast(i);
+                    }
                 }
             }
         }
@@ -175,6 +175,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
             roomcount += 1;
         } else {
             // No adjacent rooms outside of graph: start over with a new room
+            // TODO: Next in slice?
             r1 = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
             while (ingraph[r1] == false) {
                 r1 = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
@@ -185,7 +186,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     // TODO: Add passages randomly some number of times
     // If not connected
 
-    // TODO: keep track of map.passages[] for some reason
+    // TODO: keep track of map.passages[] for serialization
 
     // Place the stairs
     {
