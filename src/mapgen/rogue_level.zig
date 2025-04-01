@@ -50,7 +50,7 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
 }
 
 // TODO: into Map?  It assumes a room grid
-fn isRoomAdjacent(i: i16, j: i16) bool {
+fn isRoomAdjacent(i: usize, j: usize) bool {
     const i_row = @divTrunc(i, rooms_dim);
     const j_row = @divTrunc(j, rooms_dim);
     const i_col = @mod(i, rooms_dim);
@@ -78,8 +78,8 @@ fn setConnected(graph: []bool, r1: usize, r2: usize) void {
     graph[r2 * max_rooms + r1] = true;
 }
 
-fn isConnected(graph: []bool, r1: i16, r2: i16) bool {
-    return graph[r1 * max_rooms + r2];
+fn notConnected(graph: []bool, r1: usize, r2: usize) bool {
+    return !graph[r1 * max_rooms + r2];
 }
 
 // Dig a passage
@@ -92,6 +92,8 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
 
     // Pick valid connection points (along the opposite room sides, not on
     // the corners, and a location for the midpoint)
+
+    // TODO: secret passages, which mark each spot (for map reveal?)
 
     if (j == i + 1) { // Eastward dig
         const start_x = r1.getMaxX();
@@ -125,8 +127,6 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     errdefer map.deinit();
     map.level = config.level;
 
-    // TODO: array of scrambled rooms
-
     // TODO: count gone rooms, set as such, remove from slice
 
     for (0..max_rooms) |i| {
@@ -158,12 +158,10 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
         var j: usize = 0;
         var r2: usize = 1000;
         for (0..max_rooms) |i| {
-            if (isRoomAdjacent(@intCast(r1), @intCast(i))) {
-                if (!ingraph[i]) { // Not considered yet
-                    j += 1;
-                    if (config.rand.intRangeAtMost(usize, 0, j) == 0) {
-                        r2 = @intCast(i);
-                    }
+            if (isRoomAdjacent(r1, i) and !ingraph[i]) {
+                j += 1;
+                if (config.rand.intRangeAtMost(usize, 0, j) == 0) {
+                    r2 = @intCast(i);
                 }
             }
         }
@@ -175,7 +173,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
             roomcount += 1;
         } else {
             // No adjacent rooms outside of graph: start over with a new room
-            // TODO: Next in slice?
+
             r1 = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
             while (ingraph[r1] == false) {
                 r1 = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
@@ -183,7 +181,32 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
         }
     } // While roomcount < max_rooms
 
-    // TODO: Add passages randomly some number of times
+    // Add passages to the graph for loop variety
+
+    roomcount = config.rand.intRangeAtMost(usize, 0, 4);
+    while (roomcount > 0) {
+        r1 = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
+
+        // Find an adjacent room not already connected
+
+        var j: usize = 0;
+        var r2: usize = 1000;
+        for (0..max_rooms) |i| {
+            if (isRoomAdjacent(r1, i) and notConnected(&connections, r1, i)) {
+                j += 1;
+                if (config.rand.intRangeAtMost(usize, 0, j) == 0) {
+                    r2 = @intCast(i);
+                }
+            }
+        }
+        if (r2 < 1000) {
+            try connectRooms(map, r1, r2, config.rand);
+            setConnected(&connections, @intCast(r1), @intCast(r2));
+        }
+
+        roomcount -= 1;
+    }
+
     // If not connected
 
     // TODO: keep track of map.passages[] for serialization
@@ -221,12 +244,12 @@ const tallocator = std.testing.allocator;
 //
 // Apparently can't embed these in the test block
 
-fn testsTrue(i: i16, j: i16) !void {
+fn testsTrue(i: usize, j: usize) !void {
     try expect(isRoomAdjacent(i, j) == true);
     try expect(isRoomAdjacent(j, i) == true);
 }
 
-fn testsFalse(i: i16, j: i16) !void {
+fn testsFalse(i: usize, j: usize) !void {
     try expect(isRoomAdjacent(i, j) == false);
     try expect(isRoomAdjacent(j, i) == false);
 }
