@@ -12,6 +12,13 @@ const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
 const ZrogueError = zrogue.ZrogueError;
 
+// Return value from ActionGameHandler
+
+const ActionResult = enum {
+    continue_game, // Game still in progress
+    end_game, // Quit, death, etc.
+};
+
 //
 // Game loop
 //
@@ -20,22 +27,30 @@ pub fn run(config: new_level.LevelConfig) !void {
     var player_thing = config.player.?;
     player_thing.addMessage("Welcome to the dungeon!");
 
-    var map = try new_level.createLevel(config);
-    defer map.deinit();
-
     // TODO: master copy of the map versus player copy
-    var action = ThingAction.init(ActionType.NoAction);
-    while (action.kind != ActionType.QuitAction) {
-        action = try player_thing.getAction(map);
-        // TODO: actFn a field in action, callback to player or Thing?
-        const actFn: ActionGameHandler = switch (action.kind) {
-            .AscendAction => ascendAction,
-            .DescendAction => descendAction,
-            .MoveAction => moveAction,
-            .TakeAction => takeAction,
-            .NoAction, .QuitAction => doNothingAction,
-        };
-        try actFn(player_thing, &action, map);
+
+    var result: ActionResult = .continue_game;
+    while (result != .end_game) {
+        var map = try new_level.createLevel(config);
+        defer map.deinit();
+
+        var action = ThingAction.init(ActionType.NoAction);
+        while (action.kind != ActionType.QuitAction) {
+            action = try player_thing.getAction(map);
+            // TODO: actFn a field in action, callback to player or Thing?
+            const actFn: ActionGameHandler = switch (action.kind) {
+                .AscendAction => ascendAction,
+                .DescendAction => descendAction,
+                .MoveAction => moveAction,
+                .TakeAction => takeAction,
+                .QuitAction => quitAction,
+                .NoAction => doNothingAction,
+            };
+            result = try actFn(player_thing, &action, map);
+            if (result == .end_game) {
+                break;
+            }
+        }
     }
 }
 
@@ -43,27 +58,33 @@ pub fn run(config: new_level.LevelConfig) !void {
 // Action development here
 //
 
-const ActionGameHandler = *const fn (self: *Thing, do_action: *ThingAction, map: *Map) ZrogueError!void;
+const ActionGameHandler = *const fn (self: *Thing, do_action: *ThingAction, map: *Map) ZrogueError!ActionResult;
 
-fn doNothingAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+fn doNothingAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
     _ = map;
     _ = entity;
+
+    return ActionResult.continue_game;
 }
 
-fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
     _ = map;
     entity.addMessage("No stairs here!");
+
+    return ActionResult.continue_game; // TODO: for now
 }
 
-fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
     _ = map;
     entity.addMessage("No stairs here!");
+
+    return ActionResult.continue_game; // TODO: for now
 }
 
-fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     const pos = entity.getPos();
     const newPos = do_action.getPos();
 
@@ -81,15 +102,29 @@ fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
         // TODO: entity 'bump' callback
         entity.addMessage("Ouch!");
     }
+
+    return ActionResult.continue_game;
 }
 
-fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !void {
+fn quitAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
+    _ = do_action;
+    _ = map;
+    _ = entity;
+
+    // TODO: save?
+
+    return ActionResult.end_game;
+}
+
+fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     const item = map.getItem(do_action.getPos());
     if (item) |i| {
         entity.takeItem(i, map);
     } else {
         entity.addMessage("Nothing here to take!");
     }
+
+    return ActionResult.continue_game;
 }
 
 // EOF
