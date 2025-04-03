@@ -20,6 +20,7 @@ pub const LevelConfig = struct {
     player: ?*Thing = null,
     xSize: Pos.Dim = -1,
     ySize: Pos.Dim = -1,
+    level: usize = 1,
     mapgen: enum {
         TEST,
         ROGUE,

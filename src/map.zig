@@ -151,6 +151,7 @@ pub const Map = struct {
     width: Pos.Dim,
     roomsx: Pos.Dim,
     roomsy: Pos.Dim,
+    level: usize = 1,
 
     // Allocate and teardown
 
@@ -211,6 +212,10 @@ pub const Map = struct {
 
     pub fn getWidth(self: *Map) Pos.Dim {
         return self.width;
+    }
+
+    pub fn getDepth(self: *Map) usize {
+        return self.level;
     }
 
     pub fn getTile(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapTile {
