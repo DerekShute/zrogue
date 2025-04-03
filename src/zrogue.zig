@@ -48,14 +48,16 @@ pub const MapTile = enum {
     door,
     gold,
     player,
+    stairs_down,
 
+    // REFACTOR: organize to advantage so <=, >= test works
     pub fn feature(self: MapTile) bool {
-        return ((self == .wall) or (self == .door)); // TODO stairs
+        return ((self == .wall) or (self == .door) or (self == .stairs_down)); // TODO stairs-up
     }
 
     pub fn passable(self: MapTile) bool {
         // Everything not solid is passable
-        // TODO, is < floor (what about monsters, player?)
+        // REFACTOR is < floor (what about monsters, player?)
         return ((self != .wall) and (self != .unknown));
     }
 };

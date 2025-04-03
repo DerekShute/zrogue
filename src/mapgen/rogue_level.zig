@@ -1,8 +1,9 @@
 const std = @import("std");
 const mapgen = @import("mapgen.zig");
 const Map = @import("../map.zig").Map;
-const Room = @import("../map.zig").Room;
+const MapTile = @import("../zrogue.zig").MapTile;
 const Pos = @import("../zrogue.zig").Pos;
+const Room = @import("../map.zig").Room;
 
 // Constants that this mapgen relies on
 
@@ -170,11 +171,22 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
 
     // TODO: keep track of map.passages[] for some reason
 
+    // Place the stairs
+    {
+        // TODO: if level < X, else stairs up
+        // REFACTOR: 'position of some room floor' is boilerplate
+        const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
+        const room = mapgen.getRoom(map, i);
+        const pos = findFloor(config.rand, room);
+        // REFACTOR: setTile takes Pos instead?
+        try map.setTile(pos.getX(), pos.getY(), .stairs_down);
+    }
+
     if (config.player) |p| {
         const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
         const room = mapgen.getRoom(map, i);
         const pos = findFloor(config.rand, room);
-
+        // REFACTOR: setMonster takes Pos instead?
         try map.setMonster(p, pos.getX(), pos.getY());
     }
 

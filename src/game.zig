@@ -81,6 +81,8 @@ fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResu
     _ = map;
     entity.addMessage("No stairs here!");
 
+    // TODO: map.getTile returns what is visible: the player, not the stairs
+
     return ActionResult.continue_game; // TODO: for now
 }
 
