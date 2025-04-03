@@ -57,6 +57,13 @@ fn isRoomAdjacent(i: i16, j: i16) bool {
     return false;
 }
 
+fn findFloor(r: *std.Random, room: *Room) Pos {
+    // TODO: want a spot without anything else
+    const row = r.intRangeAtMost(Pos.Dim, room.getMinX() + 1, room.getMaxX() - 1);
+    const col = r.intRangeAtMost(Pos.Dim, room.getMinY() + 1, room.getMaxY() - 1);
+    return Pos.init(row, col);
+}
+
 // Connection graph between rooms
 
 fn setConnected(graph: []bool, r1: usize, r2: usize) void {
@@ -162,9 +169,12 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
 
     // TODO: keep track of map.passages[] for some reason
 
-    // TODO: find valid location for player
     if (config.player) |p| {
-        try map.setMonster(p, 8, 3);
+        const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
+        const room = mapgen.getRoom(map, i);
+        const pos = findFloor(config.rand, room);
+
+        try map.setMonster(p, pos.getX(), pos.getY());
     }
 
     return map;
@@ -247,6 +257,8 @@ test "create Rogue level" {
 
     var map = try createRogueLevel(config);
     defer map.deinit();
+
+    // TODO: mock Player and validate positioning
 }
 
 test "fuzz test room generation" {
