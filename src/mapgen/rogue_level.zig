@@ -116,6 +116,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     var connections = [_]bool{false} ** (max_rooms * max_rooms);
     var map = try Map.init(config.allocator, config.xSize, config.ySize, rooms_dim, rooms_dim);
     errdefer map.deinit();
+    map.level = config.level;
 
     // TODO: select gone rooms and deal with those
 
@@ -252,11 +253,14 @@ test "create Rogue level" {
         .rand = &r,
         .xSize = 80,
         .ySize = 24,
+        .level = 2,
         .mapgen = .ROGUE,
     };
 
     var map = try createRogueLevel(config);
     defer map.deinit();
+
+    try expect(map.level == 2);
 
     // TODO: mock Player and validate positioning
 }

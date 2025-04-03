@@ -148,7 +148,7 @@ fn playerGetAction(ptr: *Thing, map: *Map) !ThingAction {
     var stats: [80]u8 = undefined; // does this need to be allocated?  size?
 
     // We know that error.NoSpaceLeft can't happen here
-    const line = std.fmt.bufPrint(&stats, "Level: 1  Gold: {:<5}  Hp: some", .{self.purse}) catch unreachable;
+    const line = std.fmt.bufPrint(&stats, "Level: {}  Gold: {:<5}  Hp: some", .{ map.getDepth(), self.purse }) catch unreachable;
 
     for (0.., line) |x, c| {
         try self.mvaddch(@intCast(x), @intCast(map.getHeight() + 1), c);
