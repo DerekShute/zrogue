@@ -25,7 +25,6 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
     const topy = @divTrunc(roomno, rooms_dim) * max_ysize;
 
     // TODO: gone room
-    // TODO: dark
     // TODO: maze
 
     // The room size must leave one block on the East and South edges for
@@ -41,7 +40,13 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
 
     const tl = Pos.init(xpos, ypos);
     const br = Pos.init(xpos + xlen - 1, ypos + ylen - 1);
-    return Room.config(tl, br); // TODO interface as (tl, size-as-pos)?
+    var room = try Room.config(tl, br); // REFACTOR interface as (tl, size-as-pos)?
+    if (r.intRangeAtMost(usize, 1, 10) < map.level) {
+        room.setDark();
+        // TODO: maze (1 in 15)
+    }
+
+    return room;
 }
 
 // TODO: this is partially redundant
