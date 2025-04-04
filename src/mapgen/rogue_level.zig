@@ -1,5 +1,7 @@
 const std = @import("std");
 const mapgen = @import("mapgen.zig");
+
+const Item = @import("../item.zig").Item;
 const Map = @import("../map.zig").Map;
 const MapTile = @import("../zrogue.zig").MapTile;
 const Pos = @import("../zrogue.zig").Pos;
@@ -122,11 +124,20 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     // TODO: select gone rooms and deal with those
 
     for (0..max_rooms) |i| {
-        const room = try makeRogueRoom(@intCast(i), map, config.rand);
-
-        // TODO: place gold
-        // TODO: place monster
+        var room = try makeRogueRoom(@intCast(i), map, config.rand);
         try mapgen.addRoom(map, room);
+
+        // Place gold
+
+        // TODO: if !amulet and if level < max_level
+        if (config.rand.intRangeAtMost(usize, 0, 1) == 0) { // 50%
+            const pos = findFloor(config.rand, &room);
+            // REFACTOR: addItem takes Pos instead?
+            // TODO: gold quantity
+            try map.addItem(Item.config(pos.getX(), pos.getY(), .gold));
+        }
+
+        // TODO: place monster
     }
 
     // Connect passages
