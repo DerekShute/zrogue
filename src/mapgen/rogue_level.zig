@@ -17,6 +17,28 @@ const max_rooms = rooms_dim * rooms_dim;
 // Utilities
 //
 
+fn makeGoneRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
+    // Calling it a 3x3 box
+    const max_xsize = @divTrunc(map.getWidth(), rooms_dim);
+    const max_ysize = @divTrunc(map.getHeight(), rooms_dim);
+    const topx = @mod(roomno, rooms_dim) * max_xsize;
+    const topy = @divTrunc(roomno, rooms_dim) * max_ysize;
+
+    // gone rooms are 3x3 and East/South edge border is reserved for possible corridor
+    const xpos = topx + r.intRangeAtMost(Pos.Dim, 0, max_xsize - 4);
+    const ypos = topy + r.intRangeAtMost(Pos.Dim, 0, max_ysize - 4);
+
+    std.debug.print("gone room {}: @ {},{}\n", .{ roomno, xpos, ypos });
+
+    const tl = Pos.init(xpos, ypos);
+    const br = Pos.init(xpos + 2, ypos + 2);
+
+    var room = try Room.config(tl, br); // REFACTOR interface as (tl, size-as-pos)?
+    room.setDark();
+    room.setGone();
+    return room;
+}
+
 fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
     // Size of bounding box and its upper left corner
     const max_xsize = @divTrunc(map.getWidth(), rooms_dim);
@@ -24,7 +46,6 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
     const topx = @mod(roomno, rooms_dim) * max_xsize;
     const topy = @divTrunc(roomno, rooms_dim) * max_ysize;
 
-    // TODO: gone room
     // TODO: maze
 
     // The room size must leave one block on the East and South edges for
@@ -103,6 +124,12 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
         const mid_x = r.intRangeAtMost(Pos.Dim, start_x + 1, end_x - 1);
         std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, start_x, r1_y, end_x, r2_y, mid_x });
         try mapgen.addEastCorridor(map, Pos.init(start_x, r1_y), Pos.init(end_x, r2_y), mid_x);
+        if (!r1.flags.gone) {
+            try map.setTile(start_x, r1_y, .door);
+        }
+        if (!r2.flags.gone) {
+            try map.setTile(end_x, r2_y, .door);
+        }
     } else { // Southward dig
         const r1_x = r.intRangeAtMost(Pos.Dim, r1.getMinX() + 1, r1.getMaxX() - 1);
         const start_y = r1.getMaxY();
@@ -111,6 +138,12 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
         const mid_y = r.intRangeAtMost(Pos.Dim, start_y + 1, end_y - 1);
         std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, start_y, r2_x, end_y, mid_y });
         try mapgen.addSouthCorridor(map, Pos.init(r1_x, start_y), Pos.init(r2_x, end_y), mid_y);
+        if (!r1.flags.gone) {
+            try map.setTile(r1_x, start_y, .door);
+        }
+        if (!r2.flags.gone) {
+            try map.setTile(r2_x, end_y, .door);
+        }
     }
 }
 
@@ -127,9 +160,19 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     errdefer map.deinit();
     map.level = config.level;
 
-    // TODO: count gone rooms, set as such, remove from slice
+    for (0..config.rand.intRangeAtMost(usize, 0, 3)) |_| {
+        const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
+        const room = try makeGoneRoom(@intCast(i), map, config.rand);
+        try mapgen.addRoom(map, room);
+    }
 
     for (0..max_rooms) |i| {
+        const r = mapgen.getRoom(map, i);
+        if (r.flags.gone) { // TODO
+            continue;
+            // TODO: or make a list of gone rooms and differentiate here
+        }
+
         var room = try makeRogueRoom(@intCast(i), map, config.rand);
         try mapgen.addRoom(map, room);
 
@@ -211,7 +254,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
 
     // TODO: keep track of map.passages[] for serialization
 
-    // Place the stairs
+    // Place the stairs.  In the original they can't go in a gone room, but why not?
     {
         // TODO: if level < X, else stairs up
         // REFACTOR: 'position of some room floor' is boilerplate
