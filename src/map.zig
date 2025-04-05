@@ -90,6 +90,7 @@ pub const Room = struct {
     r: Region,
     flags: packed struct {
         lit: bool,
+        gone: bool,
     },
 
     // Constructor
@@ -100,6 +101,7 @@ pub const Room = struct {
             .r = try Region.config(tl, br),
             .flags = .{
                 .lit = true,
+                .gone = false,
             },
         };
     }
@@ -112,6 +114,10 @@ pub const Room = struct {
 
     pub fn setDark(self: *Room) void {
         self.flags.lit = false;
+    }
+
+    pub fn setGone(self: *Room) void {
+        self.flags.gone = true;
     }
 
     pub fn isInside(self: *Room, p: Pos) bool {
@@ -321,7 +327,7 @@ pub const Map = struct {
         const row = @divTrunc(p.getY(), ysize);
         const loc: usize = @intCast(row * self.roomsy + column);
 
-        if (loc > self.rooms.len) {
+        if (loc >= self.rooms.len) {
             return null;
         }
 
