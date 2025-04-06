@@ -17,6 +17,10 @@ const LevelConfig = @import("new_level.zig").LevelConfig;
 // the curses windowing.  The stack trace dump is based on review of the
 // std.debug sources.
 //
+// For the moment at least this uses @trap(), and on Ubuntu Linux with
+// the right settings will generate a core file, which is the gold standard
+// for figuring out what went awry.
+//
 
 var p_display: DisplayProvider = undefined;
 
@@ -26,7 +30,7 @@ fn zroguePanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
     p_display.endwin();
     std.debug.print("The dungeon collapses! {s}\n", .{msg});
     std.debug.dumpCurrentStackTrace(first_trace_addr);
-    std.process.exit(1);
+    @trap();
 }
 
 //
