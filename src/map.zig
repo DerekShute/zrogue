@@ -355,12 +355,12 @@ pub const Map = struct {
         return ZrogueError.OutOfBounds;
     }
 
-    pub fn addRoom(self: *Map, room: Room) ZrogueError!void {
+    pub fn addRoom(self: *Map, room: Room) void {
         var r = room; // force to var reference
 
-        // TODO We will need to support 1x1 "removed" rooms eventually...
-        if ((r.getMaxX() - r.getMinX() <= 1) or (r.getMaxY() - r.getMinY() <= 1)) {
-            return ZrogueError.IndexOverflow;
+        // Minimum is 3x3 : two walls plus one tile
+        if ((r.getMaxX() - r.getMinX() < 2) or (r.getMaxY() - r.getMinY() < 2)) {
+            @panic("addRoom: Invalid room");
         }
 
         // Rooms have a validated Region inside, so no need to test...
@@ -371,16 +371,18 @@ pub const Map = struct {
         // Make sure that the region fits in one 'grid' location
         var sr = self.getRoom(Pos.init(r.getMinX(), r.getMinY()));
         const sr2 = self.getRoom(Pos.init(r.getMaxX(), r.getMaxY()));
-        if ((sr == null) or (sr2 == null)) {
-            return ZrogueError.OutOfBounds;
+        if (sr == null) {
+            @panic("addRoom: room minimum off of map");
+        } else if (sr2 == null) {
+            @panic("addRoom: room maximum off of map");
         } else if (sr != sr2) {
-            return ZrogueError.OutOfBounds;
+            @panic("addRoom: room spans a room box");
         }
 
         // sr proven non-null above
 
-        if (sr.?.getMaxX() != 0) { // already set?
-            return ZrogueError.AlreadyInUse;
+        if (sr.?.getMaxX() != 0) {
+            @panic("addRoom: Room already defined");
         }
 
         sr.?.* = r;
@@ -440,7 +442,7 @@ test "add a room and ask about it" {
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(5, 5), Pos.init(10, 10));
-    try map.addRoom(r1);
+    map.addRoom(r1);
     try expect(map.inRoom(Pos.init(7, 7)) == true);
     try expect(map.inRoom(Pos.init(19, 19)) == false);
     try expect(map.inRoom(Pos.init(-1, -1)) == false);
@@ -451,7 +453,7 @@ test "reveal room" {
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(5, 5), Pos.init(10, 10));
-    try map.addRoom(r1);
+    map.addRoom(r1);
     try expect(try map.isKnown(7, 7) == false);
     try expect(try map.isKnown(4, 4) == false);
     try expect(try map.isKnown(11, 11) == false);
@@ -468,7 +470,7 @@ test "map smoke test" {
     var map = try Map.init(std.testing.allocator, 100, 50, 1, 1);
     defer map.deinit();
 
-    try map.addRoom(try Room.config(Pos.init(10, 10), Pos.init(20, 20)));
+    map.addRoom(try Room.config(Pos.init(10, 10), Pos.init(20, 20)));
 
     try std.testing.expect(map.getHeight() == 50);
     try std.testing.expect(map.getWidth() == 100);
@@ -526,15 +528,15 @@ test "ask about invalid character on the map" {
     try expectError(ZrogueError.IndexOverflow, map.getTile(0, 20));
 }
 
-test "Create an invalid room" {
-
-    // Room API prevents describing invalid rooms
-
-    const r1 = Room.config(Pos.init(15, 15), Pos.init(4, 18));
-    try expectError(ZrogueError.OutOfBounds, r1);
-    const r2 = Room.config(Pos.init(15, 15), Pos.init(18, 4));
-    try expectError(ZrogueError.OutOfBounds, r2);
-}
+//
+// Attempting to add an invalid room is prevented by a panic so we can get to
+// the bottom of why it was even attempted.  This includes:
+//
+// * rooms that would go off the map
+// * rooms that cross 'room boundaries'
+// * rooms smaller than a useful minimum (3x3)
+// * rooms that have already been described
+//
 
 test "inquire about room at invalid location" {
     var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
@@ -563,55 +565,14 @@ test "inquire about room at invalid location" {
     try expect(map.isLit(Pos.init(100, 100)) == false);
 }
 
-test "draw an oversize room" {
-    var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
-    defer map.deinit();
-
-    const r1 = try Room.config(Pos.init(0, 0), Pos.init(0, 100));
-    try expectError(ZrogueError.IndexOverflow, map.addRoom(r1));
-    const r2 = try Room.config(Pos.init(0, 0), Pos.init(100, 0));
-    try expectError(ZrogueError.IndexOverflow, map.addRoom(r2));
-}
-
-test "create a room that breaks the grid" {
-    var map = try Map.init(std.testing.allocator, 100, 100, 2, 2);
-    defer map.deinit();
-
-    const r1 = try Room.config(Pos.init(10, 10), Pos.init(90, 90));
-    try expectError(ZrogueError.OutOfBounds, map.addRoom(r1));
-}
-
-test "one tile (removed) room" {
-    // TODO This concept is necessary for mapgen but causes problems now
-
-    var map = try Map.init(std.testing.allocator, 10, 10, 1, 1);
-    defer map.deinit();
-
-    const r1 = try Room.config(Pos.init(5, 5), Pos.init(5, 5));
-    try expectError(ZrogueError.IndexOverflow, map.addRoom(r1));
-}
-
 test "map multiple rooms" {
     var map = try Map.init(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit();
 
     const r1 = try Room.config(Pos.init(0, 0), Pos.init(10, 10));
-    try map.addRoom(r1);
+    map.addRoom(r1);
     const r2 = try Room.config(Pos.init(60, 20), Pos.init(70, 30));
-    try map.addRoom(r2);
-}
-
-test "map invalid multiple rooms" {
-    var map = try Map.init(std.testing.allocator, 100, 100, 2, 2);
-    defer map.deinit();
-
-    // Can't overlap the rooms and can't overwrite
-
-    const r1 = try Room.config(Pos.init(0, 0), Pos.init(10, 10));
-    try map.addRoom(r1);
-    try expectError(ZrogueError.AlreadyInUse, map.addRoom(r1));
-    const r2 = try Room.config(Pos.init(1, 1), Pos.init(12, 12));
-    try expectError(ZrogueError.AlreadyInUse, map.addRoom(r2));
+    map.addRoom(r2);
 }
 
 // Items

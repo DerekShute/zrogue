@@ -18,12 +18,12 @@ pub fn createTestLevel(config: LevelConfig) !*Map {
 
     var room = try Room.config(Pos.init(2, 2), Pos.init(9, 9));
     room.setDark();
-    try mapgen.addRoom(map, room);
+    mapgen.addRoom(map, room);
 
-    try mapgen.addRoom(map, try Room.config(Pos.init(27, 5), Pos.init(35, 10)));
+    mapgen.addRoom(map, try Room.config(Pos.init(27, 5), Pos.init(35, 10)));
     try mapgen.addEastCorridor(map, Pos.init(9, 5), Pos.init(27, 8), 13);
 
-    try mapgen.addRoom(map, try Room.config(Pos.init(4, 12), Pos.init(20, 19)));
+    mapgen.addRoom(map, try Room.config(Pos.init(4, 12), Pos.init(20, 19)));
 
     try mapgen.addSouthCorridor(map, Pos.init(4, 9), Pos.init(18, 12), 10);
 
