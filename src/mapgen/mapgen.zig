@@ -8,7 +8,6 @@ const Pos = zrogue.Pos;
 const Region = zrogue.Region;
 const Room = map.Room;
 const Thing = @import("../thing.zig").Thing;
-const ZrogueError = zrogue.ZrogueError;
 
 //
 // Encapsulate arguments
@@ -66,9 +65,9 @@ pub fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) !void {
 
 // Rooms
 
-pub fn addRoom(m: *Map, room: Room) ZrogueError!void {
+pub fn addRoom(m: *Map, room: Room) void {
     var r = room; // slide to non-const
-    try m.addRoom(r);
+    m.addRoom(r);
 
     // The original drew horizontal and vertical bars
     // Fns.vert(map, minx, .{ miny + 1, maxy - 1 });
@@ -127,7 +126,7 @@ test "mapgen smoke test" {
     defer m.deinit();
 
     const r = try Room.config(Pos.init(10, 10), Pos.init(20, 20));
-    try addRoom(m, r);
+    addRoom(m, r);
 
     try expect(m.isLit(Pos.init(15, 15)) == true);
 

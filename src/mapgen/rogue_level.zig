@@ -28,8 +28,6 @@ fn makeGoneRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
     const xpos = topx + r.intRangeAtMost(Pos.Dim, 0, max_xsize - 4);
     const ypos = topy + r.intRangeAtMost(Pos.Dim, 0, max_ysize - 4);
 
-    std.debug.print("gone room {}: @ {},{}\n", .{ roomno, xpos, ypos });
-
     const tl = Pos.init(xpos, ypos);
     const br = Pos.init(xpos + 2, ypos + 2);
 
@@ -56,8 +54,6 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
     const ylen = r.intRangeAtMost(Pos.Dim, min_room_dim, max_ysize - 1);
     const xpos = topx + r.intRangeAtMost(Pos.Dim, 0, max_xsize - 1 - xlen);
     const ypos = topy + r.intRangeAtMost(Pos.Dim, 0, max_ysize - 1 - ylen);
-
-    std.debug.print("room {}: @ {},{} size {}x{} of {}x{}\n", .{ roomno, xpos, ypos, xlen, ylen, max_xsize, max_ysize });
 
     const tl = Pos.init(xpos, ypos);
     const br = Pos.init(xpos + xlen - 1, ypos + ylen - 1);
@@ -122,7 +118,6 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
         const end_x = r2.getMinX();
         const r2_y = r.intRangeAtMost(Pos.Dim, r2.getMinY() + 1, r2.getMaxY() - 1);
         const mid_x = r.intRangeAtMost(Pos.Dim, start_x + 1, end_x - 1);
-        std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, start_x, r1_y, end_x, r2_y, mid_x });
         try mapgen.addEastCorridor(map, Pos.init(start_x, r1_y), Pos.init(end_x, r2_y), mid_x);
         if (!r1.flags.gone) {
             try map.setTile(start_x, r1_y, .door);
@@ -136,7 +131,6 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
         const r2_x = r.intRangeAtMost(Pos.Dim, r2.getMinX() + 1, r2.getMaxX() - 1);
         const end_y = r2.getMinY();
         const mid_y = r.intRangeAtMost(Pos.Dim, start_y + 1, end_y - 1);
-        std.debug.print("Connecting {}-{} at {},{}-{},{} mid {}\n", .{ rn1, rn2, r1_x, start_y, r2_x, end_y, mid_y });
         try mapgen.addSouthCorridor(map, Pos.init(r1_x, start_y), Pos.init(r2_x, end_y), mid_y);
         if (!r1.flags.gone) {
             try map.setTile(r1_x, start_y, .door);
@@ -163,7 +157,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     for (0..config.rand.intRangeAtMost(usize, 0, 3)) |_| {
         const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
         const room = try makeGoneRoom(@intCast(i), map, config.rand);
-        try mapgen.addRoom(map, room);
+        mapgen.addRoom(map, room);
     }
 
     for (0..max_rooms) |i| {
@@ -174,7 +168,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
         }
 
         var room = try makeRogueRoom(@intCast(i), map, config.rand);
-        try mapgen.addRoom(map, room);
+        mapgen.addRoom(map, room);
 
         // Place gold
 
@@ -334,7 +328,7 @@ test "rogue rooms" {
             try expect(room.getMaxX() == x * xroomsize + xoffset + xsize - 1);
             try expect(room.getMinY() == y * yroomsize + yoffset);
             try expect(room.getMaxY() == y * yroomsize + yoffset + ysize - 1);
-            try mapgen.addRoom(map, room);
+            mapgen.addRoom(map, room);
         }
     }
 }
@@ -371,7 +365,23 @@ test "fuzz test room generation" {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
             const room = try makeRogueRoom(i, map, &r);
-            try mapgen.addRoom(map, room);
+            mapgen.addRoom(map, room);
+        }
+    }
+}
+
+test "fuzz test gone room generation" {
+    const seed: u64 = @intCast(std.time.microTimestamp());
+    var prng = std.Random.DefaultPrng.init(seed);
+    var r = prng.random();
+    var map = try Map.init(tallocator, 80, 24, 3, 3);
+    defer map.deinit();
+
+    for (0..rooms_dim) |y| {
+        for (0..rooms_dim) |x| {
+            const i: i16 = @intCast(y * rooms_dim + x);
+            const room = try makeGoneRoom(i, map, &r);
+            mapgen.addRoom(map, room);
         }
     }
 }

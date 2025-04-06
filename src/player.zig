@@ -233,7 +233,7 @@ test "create a player" {
 
     var room = try Room.config(Pos.init(5, 5), Pos.init(20, 20));
     room.setDark();
-    try mapgen.addRoom(map, room);
+    mapgen.addRoom(map, room);
 
     // TODO: light, blindness
 
