@@ -244,19 +244,21 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
         roomcount -= 1;
     }
 
-    // If not connected
-
-    // TODO: keep track of map.passages[] for serialization
+    // TODO 0.1 : keep track of map.passages[] for serialization
 
     // Place the stairs.  In the original they can't go in a gone room, but why not?
     {
-        // TODO: if level < X, else stairs up
         // REFACTOR: 'position of some room floor' is boilerplate
         const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
         const room = mapgen.getRoom(map, i);
         const pos = findFloor(config.rand, room);
         // REFACTOR: setTile takes Pos instead?
-        try map.setTile(pos.getX(), pos.getY(), .stairs_down);
+
+        if (config.going_down) {
+            try map.setTile(pos.getX(), pos.getY(), .stairs_down);
+        } else {
+            try map.setTile(pos.getX(), pos.getY(), .stairs_up);
+        }
     }
 
     if (config.player) |p| {
@@ -351,6 +353,7 @@ test "create Rogue level" {
 
     try expect(map.level == 2);
 
+    // TODO: stairs exist
     // TODO: mock Player and validate positioning
 }
 

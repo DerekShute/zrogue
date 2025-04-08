@@ -20,7 +20,7 @@ pub const LevelConfig = struct {
     xSize: Pos.Dim = -1,
     ySize: Pos.Dim = -1,
     level: usize = 1,
-    // TODO: max_level
+    going_down: bool = true,
     mapgen: enum {
         TEST,
         ROGUE,

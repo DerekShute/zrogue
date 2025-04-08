@@ -33,6 +33,7 @@ fn mapToChar(ch: MapTile) u8 {
         .door => '+',
         .player => '@',
         .stairs_down => '>',
+        .stairs_up => '<',
     };
     return c;
 }

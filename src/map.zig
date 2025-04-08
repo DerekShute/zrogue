@@ -158,6 +158,7 @@ pub const Map = struct {
     roomsx: Pos.Dim,
     roomsy: Pos.Dim,
     level: usize = 1,
+    stairs: Pos = undefined, // TODO 0.2 : I am not wild about this
 
     // Allocate and teardown
 
@@ -190,6 +191,7 @@ pub const Map = struct {
         m.rooms = rooms;
         m.roomsx = roomsx;
         m.roomsy = roomsy;
+        m.stairs = Pos.init(-1, -1);
 
         // Can call Map.deinit after this point
 
@@ -224,6 +226,12 @@ pub const Map = struct {
         return self.level;
     }
 
+    pub fn getOnlyTile(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapTile {
+        // (ignore monster) - for stairs
+        const place = try self.toPlace(x, y);
+        return place.tile;
+    }
+
     pub fn getTile(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapTile {
         const place = try self.toPlace(x, y);
         var tile = place.getTile();
@@ -236,7 +244,7 @@ pub const Map = struct {
                 tile = item.getTile();
             }
         }
-        return tile;
+        return tile; // TODO 0.2 : returns tuple of tile, object, monster
     }
 
     pub fn setTile(self: *Map, x: Pos.Dim, y: Pos.Dim, tile: MapTile) !void {
@@ -471,6 +479,10 @@ test "map smoke test" {
     defer map.deinit();
 
     map.addRoom(try Room.config(Pos.init(10, 10), Pos.init(20, 20)));
+    try map.setTile(15, 15, .stairs_down);
+    try std.testing.expect(try map.getOnlyTile(15, 15) == .stairs_down);
+    try map.setTile(16, 16, .stairs_up);
+    try std.testing.expect(try map.getOnlyTile(16, 16) == .stairs_up);
 
     try std.testing.expect(map.getHeight() == 50);
     try std.testing.expect(map.getWidth() == 100);
