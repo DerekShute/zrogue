@@ -49,10 +49,11 @@ pub const MapTile = enum {
     gold,
     player,
     stairs_down,
+    stairs_up,
 
     // REFACTOR: organize to advantage so <=, >= test works
     pub fn feature(self: MapTile) bool {
-        return ((self == .wall) or (self == .door) or (self == .stairs_down)); // TODO stairs-up
+        return ((self == .wall) or (self == .door) or (self == .stairs_down) or (self == .stairs_up));
     }
 
     pub fn passable(self: MapTile) bool {

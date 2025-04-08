@@ -39,6 +39,7 @@ fn zroguePanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer std.debug.assert(gpa.deinit() == .ok);
     const allocator = gpa.allocator();
 
     const seed: u64 = @intCast(std.time.microTimestamp());

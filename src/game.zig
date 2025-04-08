@@ -12,31 +12,40 @@ const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
 const ZrogueError = zrogue.ZrogueError;
 
+// TODO not sure if there's a more elegant approach
+const GameState = enum {
+    run,
+    end,
+};
+
 // Return value from ActionGameHandler
 
 const ActionResult = enum {
     continue_game, // Game still in progress
     end_game, // Quit, death, etc.
+    ascend,
+    descend,
 };
 
 //
 // Game loop
 //
 
-pub fn run(config: new_level.LevelConfig) !void {
+pub fn run(s_config: new_level.LevelConfig) !void {
+    var config = s_config; // force to internal var
     var player_thing = config.player.?;
     player_thing.addMessage("Welcome to the dungeon!");
 
     // TODO: master copy of the map versus player copy
 
-    var result: ActionResult = .continue_game;
-    while (result != .end_game) {
+    var state: GameState = .run;
+    while (state != .end) {
         var map = try new_level.createLevel(config);
         defer map.deinit();
 
-        var action = ThingAction.init(ActionType.NoAction);
-        while (action.kind != ActionType.QuitAction) {
-            action = try player_thing.getAction(map);
+        var result: ActionResult = .continue_game;
+        while (result == .continue_game) {
+            var action = try player_thing.getAction(map);
             // TODO: actFn a field in action, callback to player or Thing?
             const actFn: ActionGameHandler = switch (action.kind) {
                 .AscendAction => ascendAction,
@@ -46,12 +55,31 @@ pub fn run(config: new_level.LevelConfig) !void {
                 .QuitAction => quitAction,
                 .NoAction => doNothingAction,
             };
+
             result = try actFn(player_thing, &action, map);
-            if (result == .end_game) {
-                break;
+            switch (result) {
+                .continue_game => {}, // Does nothing
+                .end_game => {
+                    state = .end;
+                },
+                .descend => {
+                    config.level += 1;
+                    if (config.level > 3) {
+                        config.going_down = false;
+                    }
+                },
+                .ascend => {
+                    config.level -= 1;
+                    if (config.level < 1) {
+                        state = .end;
+                    }
+                },
             }
-        }
-    }
+        } // Playing loop
+    } // Game ends
+
+    // TODO 0.1 : level == 0 game endings
+
 }
 
 //
@@ -70,20 +98,30 @@ fn doNothingAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionRe
 
 fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
-    _ = map;
-    entity.addMessage("No stairs here!");
+    // TODO 0.2 - smarten this
+    const p = entity.getPos();
+    const tile = try map.getOnlyTile(p.getX(), p.getY());
+    if (tile == .stairs_up) {
+        entity.addMessage("You ascend closer to the exit...");
+        return ActionResult.ascend;
+    }
 
-    return ActionResult.continue_game; // TODO: for now
+    entity.addMessage("I see no way up");
+    return ActionResult.continue_game;
 }
 
 fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
-    _ = map;
-    entity.addMessage("No stairs here!");
+    // TODO 0.2 - smarten this
+    const p = entity.getPos();
+    const tile = try map.getOnlyTile(p.getX(), p.getY());
+    if (tile == .stairs_down) {
+        entity.addMessage("You go ever deeper into the dungeon...");
+        return ActionResult.descend;
+    }
 
-    // TODO: map.getTile returns what is visible: the player, not the stairs
-
-    return ActionResult.continue_game; // TODO: for now
+    entity.addMessage("I see no way down");
+    return ActionResult.continue_game;
 }
 
 fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
