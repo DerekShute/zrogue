@@ -141,6 +141,21 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
     }
 }
 
+fn reserveGoneRooms(map: *Map, rand: *std.Random) void {
+    // Set aside some rooms as being 'gone'
+
+    var i: usize = rand.intRangeAtMost(usize, 0, 3);
+    while (i > 0) {
+        const r = rand.intRangeAtMost(usize, 0, max_rooms - 1);
+        const room = mapgen.getRoom(map, r);
+        if (room.flags.gone) {
+            continue;
+        }
+        room.setGone();
+        i -= 1;
+    }
+}
+
 // ========================================================
 //
 // Mapgen interface: create a level using the traditional Rogue
@@ -154,17 +169,14 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     errdefer map.deinit();
     map.level = config.level;
 
-    for (0..config.rand.intRangeAtMost(usize, 0, 3)) |_| {
-        const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
-        const room = try makeGoneRoom(@intCast(i), map, config.rand);
-        mapgen.addRoom(map, room);
-    }
+    reserveGoneRooms(map, config.rand);
 
     for (0..max_rooms) |i| {
         const r = mapgen.getRoom(map, i);
-        if (r.flags.gone) { // TODO
+        if (r.flags.gone) {
+            const room = try makeGoneRoom(@intCast(i), map, config.rand);
+            mapgen.addRoom(map, room);
             continue;
-            // TODO: or make a list of gone rooms and differentiate here
         }
 
         var room = try makeRogueRoom(@intCast(i), map, config.rand);
