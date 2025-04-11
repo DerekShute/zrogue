@@ -17,7 +17,7 @@ const max_rooms = rooms_dim * rooms_dim;
 // Utilities
 //
 
-fn makeGoneRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
+fn makeGoneRoom(roomno: i16, map: *Map, r: *std.Random) Room {
     // Calling it a 3x3 box
     const max_xsize = @divTrunc(map.getWidth(), rooms_dim);
     const max_ysize = @divTrunc(map.getHeight(), rooms_dim);
@@ -31,13 +31,13 @@ fn makeGoneRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
     const tl = Pos.init(xpos, ypos);
     const br = Pos.init(xpos + 2, ypos + 2);
 
-    var room = try Room.config(tl, br); // REFACTOR interface as (tl, size-as-pos)?
+    var room = Room.config(tl, br); // REFACTOR interface as (tl, size-as-pos)?
     room.setDark();
     room.setGone();
     return room;
 }
 
-fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
+fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) Room {
     // Size of bounding box and its upper left corner
     const max_xsize = @divTrunc(map.getWidth(), rooms_dim);
     const max_ysize = @divTrunc(map.getHeight(), rooms_dim);
@@ -57,7 +57,7 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) !Room {
 
     const tl = Pos.init(xpos, ypos);
     const br = Pos.init(xpos + xlen - 1, ypos + ylen - 1);
-    var room = try Room.config(tl, br); // REFACTOR interface as (tl, size-as-pos)?
+    var room = Room.config(tl, br); // REFACTOR interface as (tl, size-as-pos)?
     if (r.intRangeAtMost(usize, 1, 10) < map.level) {
         room.setDark();
         // TODO: maze (1 in 15)
@@ -174,12 +174,12 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     for (0..max_rooms) |i| {
         const r = mapgen.getRoom(map, i);
         if (r.flags.gone) {
-            const room = try makeGoneRoom(@intCast(i), map, config.rand);
+            const room = makeGoneRoom(@intCast(i), map, config.rand);
             mapgen.addRoom(map, room);
             continue;
         }
 
-        var room = try makeRogueRoom(@intCast(i), map, config.rand);
+        var room = makeRogueRoom(@intCast(i), map, config.rand);
         mapgen.addRoom(map, room);
 
         // Place gold
@@ -337,7 +337,7 @@ test "rogue rooms" {
             var prng = std.Random.DefaultPrng.init(0);
             var r = prng.random();
             const i: i16 = @intCast(y * rooms_dim + x);
-            var room = try makeRogueRoom(i, map, &r);
+            var room = makeRogueRoom(i, map, &r);
             try expect(room.getMinX() == x * xroomsize + xoffset);
             try expect(room.getMaxX() == x * xroomsize + xoffset + xsize - 1);
             try expect(room.getMinY() == y * yroomsize + yoffset);
@@ -379,7 +379,7 @@ test "fuzz test room generation" {
     for (0..rooms_dim) |y| {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
-            const room = try makeRogueRoom(i, map, &r);
+            const room = makeRogueRoom(i, map, &r);
             mapgen.addRoom(map, room);
         }
     }
@@ -395,7 +395,7 @@ test "fuzz test gone room generation" {
     for (0..rooms_dim) |y| {
         for (0..rooms_dim) |x| {
             const i: i16 = @intCast(y * rooms_dim + x);
-            const room = try makeGoneRoom(i, map, &r);
+            const room = makeGoneRoom(i, map, &r);
             mapgen.addRoom(map, room);
         }
     }
