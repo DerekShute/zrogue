@@ -48,7 +48,7 @@ const Place = struct {
     }
 
     pub fn passable(self: *Place) bool {
-        return self.tile.passable();
+        return self.tile.isPassable();
     }
 
     pub fn setTile(self: *Place, to: MapTile) void {
