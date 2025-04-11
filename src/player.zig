@@ -107,7 +107,7 @@ pub const Player = struct {
 //
 fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
     const tile = try map.getTile(x, y);
-    if (tile.feature() and try map.isKnown(x, y)) {
+    if (tile.isFeature() and try map.isKnown(x, y)) {
         return tile;
     } else if (player.getDistance(Pos.init(x, y)) <= 1) {
         return tile;

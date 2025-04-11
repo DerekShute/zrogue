@@ -43,23 +43,24 @@ pub const Command = enum {
 //
 pub const MapTile = enum {
     unknown,
-    wall,
     floor,
+    wall, // Start of features
     door,
+    stairs_down,
+    stairs_up, // Last feature
     gold,
     player,
-    stairs_down,
-    stairs_up,
 
-    // REFACTOR: organize to advantage so <=, >= test works
-    pub fn feature(self: MapTile) bool {
-        return ((self == .wall) or (self == .door) or (self == .stairs_down) or (self == .stairs_up));
+    pub fn isFeature(self: MapTile) bool {
+        const s: usize = @intFromEnum(self);
+        return switch (s) {
+            @intFromEnum(MapTile.wall)...@intFromEnum(MapTile.stairs_up) => true,
+            else => false,
+        };
     }
 
-    pub fn passable(self: MapTile) bool {
-        // Everything not solid is passable
-        // REFACTOR is < floor (what about monsters, player?)
-        return ((self != .wall) and (self != .unknown));
+    pub fn isPassable(self: MapTile) bool {
+        return (self != .wall);
     }
 };
 
@@ -274,11 +275,31 @@ pub const ThingAction = struct {
 //
 // Unit Tests
 //
+const expect = std.testing.expect;
+const expectError = std.testing.expectError;
+
+test "lock MapTile behavior" {
+    for (0..@typeInfo(MapTile).@"enum".fields.len) |i| {
+        const tile: MapTile = @enumFromInt(i);
+
+        // Floors and unknown are not features.  Otherwise everything below
+        // gold is.
+
+        switch (tile) {
+            .unknown, .floor => try expect(tile.isFeature() == false),
+            else => {
+                try expect(tile.isFeature() == (i < @intFromEnum(MapTile.gold)));
+            },
+        }
+
+        // Walls are not passable.  .unknown is unclear
+        try expect(tile.isPassable() == (i != @intFromEnum(MapTile.wall)));
+    }
+}
 
 test "create a Pos and use its operations" {
     const a = Pos.init(5, 5);
     const b: Pos.Dim = 5;
-    const expect = std.testing.expect;
 
     try expect(a.getY() == b);
     try expect(a.getX() == b);
@@ -296,8 +317,6 @@ test "create a Pos and use its operations" {
 }
 
 test "Pos methods" {
-    const expect = std.testing.expect;
-
     const Frotz = struct {
         p: Pos = undefined,
 
@@ -313,7 +332,6 @@ test "Pos methods" {
 
 test "entity action" {
     var action = ThingAction.init(ActionType.QuitAction);
-    const expect = std.testing.expect;
 
     try expect(action.getPos().eql(Pos.init(0, 0)));
 
@@ -322,8 +340,6 @@ test "entity action" {
 }
 
 test "invalid regions" {
-    const expectError = std.testing.expectError;
-
     try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(5, 5), Pos.init(4, 4)));
     try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(-1, 4), Pos.init(5, 5)));
     try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(4, -1), Pos.init(5, 5)));
@@ -332,7 +348,6 @@ test "invalid regions" {
 }
 
 test "Region and region methods" {
-    const expect = std.testing.expect;
     const min = Pos.init(2, 7);
     const max = Pos.init(9, 11);
 
@@ -357,7 +372,6 @@ test "Region and region methods" {
 test "region iterator" {
     const ARRAYDIM = 14;
     var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
-    const expect = std.testing.expect;
 
     // Construct the iteration
     var r = try Region.config(Pos.init(2, 7), Pos.init(9, 11));
