@@ -95,10 +95,10 @@ pub const Room = struct {
 
     // Constructor
 
-    pub fn config(tl: Pos, br: Pos) !Room {
+    pub fn config(tl: Pos, br: Pos) Room {
         // (0,0) - (0,0) is reserved as the special 'uninitialized' room
         return .{
-            .r = try Region.config(tl, br),
+            .r = Region.config(tl, br),
             .flags = .{
                 .lit = true,
                 .gone = false,
@@ -180,7 +180,7 @@ pub const Map = struct {
         const rooms = try allocator.alloc(Room, @intCast(roomsx * roomsy));
         errdefer allocator.free(rooms);
         for (rooms) |*room| {
-            room.* = try Room.config(Pos.init(0, 0), Pos.init(0, 0));
+            room.* = Room.config(Pos.init(0, 0), Pos.init(0, 0));
         }
 
         m.allocator = allocator;
@@ -312,7 +312,7 @@ pub const Map = struct {
     }
 
     pub fn setRegionKnown(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
-        var r = try Region.config(Pos.init(x, y), Pos.init(maxx, maxy));
+        var r = Region.config(Pos.init(x, y), Pos.init(maxx, maxy));
         var ri = r.iterator();
         while (ri.next()) |pos| {
             const place = try self.toPlace(pos.getX(), pos.getY());
@@ -423,7 +423,7 @@ pub const Map = struct {
 // Rooms
 
 test "create a room and test properties" {
-    var room: Room = try Room.config(Pos.init(10, 10), Pos.init(20, 20));
+    var room: Room = Room.config(Pos.init(10, 10), Pos.init(20, 20));
 
     try expect(room.getMaxX() == 20);
     try expect(room.getMaxY() == 20);
@@ -449,7 +449,7 @@ test "add a room and ask about it" {
     var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
-    const r1 = try Room.config(Pos.init(5, 5), Pos.init(10, 10));
+    const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
     map.addRoom(r1);
     try expect(map.inRoom(Pos.init(7, 7)) == true);
     try expect(map.inRoom(Pos.init(19, 19)) == false);
@@ -460,7 +460,7 @@ test "reveal room" {
     var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
     defer map.deinit();
 
-    const r1 = try Room.config(Pos.init(5, 5), Pos.init(10, 10));
+    const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
     map.addRoom(r1);
     try expect(try map.isKnown(7, 7) == false);
     try expect(try map.isKnown(4, 4) == false);
@@ -478,7 +478,7 @@ test "map smoke test" {
     var map = try Map.init(std.testing.allocator, 100, 50, 1, 1);
     defer map.deinit();
 
-    map.addRoom(try Room.config(Pos.init(10, 10), Pos.init(20, 20)));
+    map.addRoom(Room.config(Pos.init(10, 10), Pos.init(20, 20)));
     try map.setTile(15, 15, .stairs_down);
     try std.testing.expect(try map.getOnlyTile(15, 15) == .stairs_down);
     try map.setTile(16, 16, .stairs_up);
@@ -581,9 +581,9 @@ test "map multiple rooms" {
     var map = try Map.init(std.testing.allocator, 100, 100, 2, 2);
     defer map.deinit();
 
-    const r1 = try Room.config(Pos.init(0, 0), Pos.init(10, 10));
+    const r1 = Room.config(Pos.init(0, 0), Pos.init(10, 10));
     map.addRoom(r1);
-    const r2 = try Room.config(Pos.init(60, 20), Pos.init(70, 30));
+    const r2 = Room.config(Pos.init(60, 20), Pos.init(70, 30));
     map.addRoom(r2);
 }
 

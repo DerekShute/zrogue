@@ -231,7 +231,7 @@ test "create a player" {
 
     try map.setMonster(player.toThing(), 6, 6);
 
-    var room = try Room.config(Pos.init(5, 5), Pos.init(20, 20));
+    var room = Room.config(Pos.init(5, 5), Pos.init(20, 20));
     room.setDark();
     mapgen.addRoom(map, room);
 

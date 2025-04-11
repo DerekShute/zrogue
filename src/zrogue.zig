@@ -169,13 +169,13 @@ pub const Region = struct {
         }
     };
 
-    pub fn config(from: Pos, to: Pos) !Region {
+    pub fn config(from: Pos, to: Pos) Region {
         if ((from.getX() < 0) or (from.getY() < 0) or (to.getX() < 0) or (to.getY() < 0)) {
-            return ZrogueError.OutOfBounds;
+            @panic("Region.config: Invalid position");
         }
 
         if ((from.getX() > to.getX()) or (from.getY() > to.getY())) {
-            return ZrogueError.OutOfBounds;
+            @panic("Region.config: Invalid region");
         }
         return .{ .from = from, .to = to };
     }
@@ -339,13 +339,7 @@ test "entity action" {
     try expect(action.getPos().eql(Pos.init(-1, 0)));
 }
 
-test "invalid regions" {
-    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(5, 5), Pos.init(4, 4)));
-    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(-1, 4), Pos.init(5, 5)));
-    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(4, -1), Pos.init(5, 5)));
-    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(4, 4), Pos.init(-1, 5)));
-    try expectError(ZrogueError.OutOfBounds, Region.config(Pos.init(4, 4), Pos.init(5, -1)));
-}
+// Invalid regions will panic
 
 test "Region and region methods" {
     const min = Pos.init(2, 7);
@@ -357,16 +351,16 @@ test "Region and region methods" {
         pub usingnamespace Region.Methods(@This());
     };
 
-    var r = try Region.config(min, max);
+    var r = Region.config(min, max);
     try expect(min.eql(r.getMin()));
     try expect(max.eql(r.getMax()));
 
-    var x = Frotz{ .r = try Region.config(min, max) };
+    var x = Frotz{ .r = Region.config(min, max) };
     try expect(x.getMinX() == 2);
     try expect(x.getMaxX() == 9);
 
     // We will call 1x1 valid for now. 1x1 at 0,0 is the uninitialized room
-    _ = try Region.config(Pos.init(0, 0), Pos.init(0, 0));
+    _ = Region.config(Pos.init(0, 0), Pos.init(0, 0));
 }
 
 test "region iterator" {
@@ -374,7 +368,7 @@ test "region iterator" {
     var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
 
     // Construct the iteration
-    var r = try Region.config(Pos.init(2, 7), Pos.init(9, 11));
+    var r = Region.config(Pos.init(2, 7), Pos.init(9, 11));
     var i = r.iterator();
     while (i.next()) |pos| {
         const f: usize = @intCast(pos.getX() + pos.getY() * ARRAYDIM);

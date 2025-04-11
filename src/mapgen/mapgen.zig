@@ -56,7 +56,7 @@ pub fn drawVertLine(m: *Map, start: Pos, end_y: Pos.Dim, tile: MapTile) !void {
 
 pub fn drawField(m: *Map, start: Pos, limit: Pos, tile: MapTile) !void {
     // assumes start.x <= limit.x and start.y <= limit.y
-    var r = try Region.config(start, limit);
+    var r = Region.config(start, limit);
     var ri = r.iterator();
     while (ri.next()) |pos| {
         try m.setTile(pos.getX(), pos.getY(), tile);
@@ -125,7 +125,7 @@ test "mapgen smoke test" {
     var m = try Map.init(std.testing.allocator, 100, 50, 1, 1);
     defer m.deinit();
 
-    const r = try Room.config(Pos.init(10, 10), Pos.init(20, 20));
+    const r = Room.config(Pos.init(10, 10), Pos.init(20, 20));
     addRoom(m, r);
 
     try expect(m.isLit(Pos.init(15, 15)) == true);
