@@ -1,5 +1,4 @@
 const std = @import("std");
-const stdout = std.io.getStdOut().writer();
 
 const curses = @import("curses.zig");
 const DisplayProvider = @import("display.zig").DisplayProvider;
@@ -33,6 +32,33 @@ fn zroguePanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
     @trap();
 }
 
+// Command arguments
+
+const help_arg_flags = [_][]const u8{ "-h", "-help", "--help" };
+
+fn arg_in_list(programarg: []u8, l: []const []const u8) bool {
+    for (l) |a| {
+        if (std.mem.eql(u8, programarg, a)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn print_help(file: std.fs.File) !void {
+    const help =
+        \\Zrogue : Adventuring in the Dungeons of Doom
+        \\
+        \\ This program requires a 80x24 text display.
+        \\
+        \\ options:
+        \\   --help, -h : help
+        \\
+    ;
+    const out = file.writer(); // Anytype grinds my gears
+    try out.print("{s}", .{help});
+}
+
 //
 // Main entrypoint
 //
@@ -42,17 +68,38 @@ pub fn main() !void {
     defer std.debug.assert(gpa.deinit() == .ok);
     const allocator = gpa.allocator();
 
+    const stdout = std.io.getStdOut();
+    const stderr = std.io.getStdErr();
+
+    // Handle CLI arguments.  Note that this does not work from 'build run'
+
+    const args = try std.process.argsAlloc(allocator);
+    defer std.process.argsFree(allocator, args);
+    if (args.len > 1) { // program name is args[0]
+        for (args) |arg| {
+            if (arg_in_list(arg, &help_arg_flags)) {
+                try print_help(stdout);
+                std.process.exit(0);
+            }
+            // TODO: set random seed, wizard mode, save game file, etc.
+            // TODO: force test level
+        }
+        try print_help(stdout);
+        std.process.exit(1);
+    }
+
     const seed: u64 = @intCast(std.time.microTimestamp());
     var prng = std.Random.DefaultPrng.init(seed);
     var r = prng.random();
 
+    const out = stderr.writer();
     var providers = curses.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY, allocator) catch |err| switch (err) {
         ZrogueError.DisplayTooSmall => {
-            try stdout.print("ERROR: Minimum {}x{} display required\n", .{ zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY });
-            std.process.exit(0);
+            try out.print("ERROR: Minimum {}x{} display required\n", .{ zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY });
+            std.process.exit(1);
         },
         else => {
-            try stdout.print("Unexpected error {}\n\n", .{err});
+            try out.print("Unexpected error {}\n\n", .{err});
             std.process.exit(1);
         },
     };
