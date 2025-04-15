@@ -70,6 +70,7 @@ pub const CursesDisplayProvider = struct {
                 .getmaxx = getmaxx,
                 .getmaxy = getmaxy,
                 .mvaddch = mvaddch,
+                .mvaddstr = mvaddstr,
                 .refresh = refresh,
                 .setTile = setTile,
             },
@@ -89,6 +90,8 @@ pub const CursesDisplayProvider = struct {
     //
     // Methods
     //
+
+    // REFACTOR: NotInitialized becomes panic
 
     fn erase(ptr: *anyopaque) ZrogueError!void {
         _ = ptr;
@@ -130,6 +133,14 @@ pub const CursesDisplayProvider = struct {
         }
         _ = try checkError(curses.mvaddch(y, x, ch));
         return;
+    }
+
+    fn mvaddstr(ptr: *anyopaque, x: u16, y: u16, s: []const u8) ZrogueError!void {
+        _ = ptr;
+        if (global_win == null) {
+            return ZrogueError.NotInitialized;
+        }
+        _ = try checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
     }
 
     fn refresh(ptr: *anyopaque) ZrogueError!void {
@@ -174,10 +185,11 @@ pub const CursesInputProvider = struct {
             curses.KEY_RIGHT => Command.goEast,
             curses.KEY_UP => Command.goNorth,
             curses.KEY_DOWN => Command.goSouth,
-            '>' => Command.descend,
             '<' => Command.ascend,
-            ',' => Command.takeItem,
+            '>' => Command.descend,
+            '?' => Command.help,
             'q' => Command.quit,
+            ',' => Command.takeItem,
             else => Command.wait,
         };
         return cmd;

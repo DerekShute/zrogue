@@ -71,6 +71,10 @@ pub const Player = struct {
         try self.display.mvaddch(x, y, ch);
     }
 
+    inline fn mvaddstr(self: *Player, x: u16, y: u16, s: []const u8) ZrogueError!void {
+        try self.display.mvaddstr(x, y, s);
+    }
+
     inline fn setDisplayTile(self: *Player, x: u16, y: u16, t: MapTile) ZrogueError!void {
         try self.display.setTile(x, y, t);
     }
@@ -115,6 +119,80 @@ fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
     return .unknown;
 }
 
+fn displayHelp(p: *Player) !void {
+    // REFACTOR : This is horrible
+    // TODO: pull in command keys from input provider?
+    try p.mvaddstr(0, 0, "                                                 ");
+    try p.mvaddstr(0, 1, "         Welcome to the Dungeon of Doom          ");
+    try p.mvaddstr(0, 2, "                                                 ");
+    try p.mvaddstr(0, 3, " Use the arrow keys to move through the dungeon  ");
+    try p.mvaddstr(0, 4, " and collect gold.  You can only return to the   ");
+    try p.mvaddstr(0, 5, " surface after you have descended to the bottom. ");
+    try p.mvaddstr(0, 6, "                                                 ");
+    try p.mvaddstr(0, 7, " Commands include:                               ");
+    try p.mvaddstr(0, 8, "    ? - help (this)                              ");
+    try p.mvaddstr(0, 9, "    > - descend stairs (\">\")                   ");
+    try p.mvaddstr(0, 10, "    < - ascend stairs (\"<\")                   ");
+    try p.mvaddstr(0, 11, "    , - pick up gold  (\"$\")                   ");
+    try p.mvaddstr(0, 12, "    q - chicken out and quit                    ");
+    try p.mvaddstr(0, 13, "                                                ");
+    try p.mvaddstr(0, 14, " [type a command or any other key to continue]  ");
+    try p.mvaddstr(0, 15, "                                                ");
+    try p.refresh();
+}
+
+fn displayScreen(p: *Player, map: *Map) !void {
+    const message = p.getMessage();
+
+    for (0..@intCast(map.getWidth())) |x| {
+        if (x < message.len) {
+            try p.mvaddch(@intCast(x), 0, message[x]);
+        } else {
+            try p.mvaddch(@intCast(x), 0, ' ');
+        }
+    }
+
+    p.clearMessage();
+
+    // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
+
+    var stats: [80]u8 = undefined; // does this need to be allocated?  size?
+
+    // We know that error.NoSpaceLeft can't happen here
+    const line = std.fmt.bufPrint(&stats, "Level: {}  Gold: {:<5}  Hp: some", .{ map.getDepth(), p.purse }) catch unreachable;
+
+    for (0.., line) |x, c| {
+        try p.mvaddch(@intCast(x), @intCast(map.getHeight() + 1), c);
+    }
+
+    //
+    // Convert map to display
+    //
+    // Shift down one row to make room for message bar
+    //
+    for (0..@intCast(map.getHeight())) |y| {
+        for (0..@intCast(map.getWidth())) |x| {
+            const t = try render(map, p, @intCast(x), @intCast(y));
+
+            try p.setDisplayTile(@intCast(x), @intCast(y + 1), t);
+        }
+    }
+
+    if (map.inRoom(p.getPos()) and map.isLit(p.getPos())) {
+        var r = map.getRoomRegion(p.getPos()) catch unreachable; // Known
+        var ri = r.iterator();
+
+        while (ri.next()) |pos| {
+            const x = pos.getX();
+            const y = pos.getY();
+            const tile = try map.getTile(x, y);
+            try p.setDisplayTile(@intCast(x), @intCast(y + 1), tile);
+        }
+    }
+
+    try p.refresh();
+}
+
 //
 // Vtable callbacks
 //
@@ -131,66 +209,25 @@ fn playerGetAction(ptr: *Thing, map: *Map) !ThingAction {
 
     const self: *Player = @ptrCast(@alignCast(ptr));
     var ret = ThingAction.init(ActionType.NoAction);
-    const message = self.getMessage();
 
-    for (0..@intCast(map.getWidth())) |x| {
-        if (x < message.len) {
-            try self.mvaddch(@intCast(x), 0, message[x]);
-        } else {
-            try self.mvaddch(@intCast(x), 0, ' ');
-        }
+    try displayScreen(self, map);
+
+    var cmd = try self.getCommand();
+    while (cmd == .help) {
+        try displayHelp(self);
+        cmd = try self.getCommand();
     }
-
-    self.clearMessage();
-
-    // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
-
-    var stats: [80]u8 = undefined; // does this need to be allocated?  size?
-
-    // We know that error.NoSpaceLeft can't happen here
-    const line = std.fmt.bufPrint(&stats, "Level: {}  Gold: {:<5}  Hp: some", .{ map.getDepth(), self.purse }) catch unreachable;
-
-    for (0.., line) |x, c| {
-        try self.mvaddch(@intCast(x), @intCast(map.getHeight() + 1), c);
-    }
-
-    //
-    // Convert map to display
-    //
-    // Shift down one row to make room for message bar
-    //
-    for (0..@intCast(map.getHeight())) |y| {
-        for (0..@intCast(map.getWidth())) |x| {
-            const t = try render(map, self, @intCast(x), @intCast(y));
-
-            try self.setDisplayTile(@intCast(x), @intCast(y + 1), t);
-        }
-    }
-
-    if (map.inRoom(self.getPos()) and map.isLit(self.getPos())) {
-        var r = map.getRoomRegion(self.getPos()) catch unreachable; // Known
-        var ri = r.iterator();
-
-        while (ri.next()) |pos| {
-            const x = pos.getX();
-            const y = pos.getY();
-            const tile = try map.getTile(x, y);
-            try self.setDisplayTile(@intCast(x), @intCast(y + 1), tile);
-        }
-    }
-
-    try self.refresh();
-
-    ret = switch (try self.getCommand()) {
-        .quit => ThingAction.init(ActionType.QuitAction),
-        .goWest => ThingAction.init_pos(ActionType.MoveAction, Pos.init(-1, 0)),
-        .goEast => ThingAction.init_pos(ActionType.MoveAction, Pos.init(1, 0)),
-        .goNorth => ThingAction.init_pos(ActionType.MoveAction, Pos.init(0, -1)),
-        .goSouth => ThingAction.init_pos(ActionType.MoveAction, Pos.init(0, 1)),
-        .ascend => ThingAction.init(ActionType.AscendAction),
-        .descend => ThingAction.init(ActionType.DescendAction),
-        .takeItem => ThingAction.init_pos(ActionType.TakeAction, self.getPos()),
-        else => ThingAction.init(ActionType.NoAction),
+    ret = switch (cmd) {
+        .help => ThingAction.init(.NoAction),
+        .quit => ThingAction.init(.QuitAction),
+        .goWest => ThingAction.init_pos(.MoveAction, Pos.init(-1, 0)),
+        .goEast => ThingAction.init_pos(.MoveAction, Pos.init(1, 0)),
+        .goNorth => ThingAction.init_pos(.MoveAction, Pos.init(0, -1)),
+        .goSouth => ThingAction.init_pos(.MoveAction, Pos.init(0, 1)),
+        .ascend => ThingAction.init(.AscendAction),
+        .descend => ThingAction.init(.DescendAction),
+        .takeItem => ThingAction.init_pos(.TakeAction, self.getPos()),
+        else => ThingAction.init(.WaitAction),
     };
 
     return ret;
