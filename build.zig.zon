@@ -1,0 +1,12 @@
+// Hopefully in zig.next() there's a sane way to pull in the semantic version
+// so that this can be used for the executable version and usable inside the
+// program itself
+
+.{
+    .name = .zrogue,
+    .version = "0.0.1",
+    .paths = .{""},
+    .fingerprint = 0xd9241e3fb14af744,
+}
+
+// EOF
