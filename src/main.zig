@@ -54,9 +54,11 @@ fn print_help(file: std.fs.File) !void {
         \\ options:
         \\   --help, -h : help
         \\
+        \\ Press '?' for in-game help
+        \\
     ;
     const out = file.writer(); // Anytype grinds my gears
-    try out.print("{s}", .{help});
+    try out.print("{s}\n", .{help});
 }
 
 //
@@ -141,11 +143,13 @@ test "run the game" {
 
     // TODO: need a recording to iterate through
     var commandlist = [_]Command{
+        Command.help,
+        Command.help, // press any key
         Command.goWest,
         Command.goEast,
         Command.goNorth,
         Command.goSouth,
-        Command.ascend,
+        Command.ascend, // TODO test map gets stairs
         Command.descend,
         Command.takeItem,
         Command.wait,

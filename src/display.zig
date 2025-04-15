@@ -22,6 +22,7 @@ pub const DisplayProvider = struct {
         getmaxx: *const fn (ctx: *anyopaque) ZrogueError!u16,
         getmaxy: *const fn (ctx: *anyopaque) ZrogueError!u16,
         mvaddch: *const fn (ctx: *anyopaque, x: u16, y: u16, ch: u8) ZrogueError!void,
+        mvaddstr: *const fn (ctx: *anyopaque, x: u16, y: u16, s: []const u8) ZrogueError!void,
         refresh: *const fn (ctx: *anyopaque) ZrogueError!void,
         setTile: *const fn (ctx: *anyopaque, x: u16, y: u16, t: MapTile) ZrogueError!void,
     };
@@ -48,6 +49,10 @@ pub const DisplayProvider = struct {
 
     pub inline fn mvaddch(self: DisplayProvider, x: u16, y: u16, ch: u8) ZrogueError!void {
         try self.vtable.mvaddch(self.ptr, x, y, ch);
+    }
+
+    pub inline fn mvaddstr(self: DisplayProvider, x: u16, y: u16, s: []const u8) ZrogueError!void {
+        try self.vtable.mvaddstr(self.ptr, x, y, s);
     }
 
     pub inline fn refresh(self: DisplayProvider) ZrogueError!void {
@@ -98,6 +103,7 @@ pub const MockDisplayProvider = struct {
                 .getmaxx = getmaxx,
                 .getmaxy = getmaxy,
                 .mvaddch = mvaddch,
+                .mvaddstr = mvaddstr,
                 .refresh = refresh,
                 .setTile = setTile,
             },
@@ -144,6 +150,15 @@ pub const MockDisplayProvider = struct {
         _ = y;
         _ = self;
         _ = ch;
+        return;
+    }
+
+    fn mvaddstr(ptr: *anyopaque, x: u16, y: u16, s: []const u8) ZrogueError!void {
+        const self: *MockDisplayProvider = @ptrCast(@alignCast(ptr));
+        _ = x;
+        _ = y;
+        _ = self;
+        _ = s;
         return;
     }
 

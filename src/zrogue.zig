@@ -33,6 +33,7 @@ pub const Command = enum {
     goSouth,
     ascend,
     descend,
+    help,
     takeItem,
 };
 
@@ -253,6 +254,7 @@ pub const ActionType = enum {
     DescendAction,
     MoveAction, // Directional
     TakeAction, // Positional
+    WaitAction,
 };
 
 pub const ThingAction = struct {

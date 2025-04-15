@@ -54,6 +54,7 @@ pub fn run(s_config: new_level.LevelConfig) !void {
                 .TakeAction => takeAction,
                 .QuitAction => quitAction,
                 .NoAction => doNothingAction,
+                .WaitAction => doNothingAction, // TODO meh untrue
             };
 
             result = try actFn(player_thing, &action, map);
