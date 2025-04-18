@@ -140,7 +140,9 @@ pub const CursesDisplayProvider = struct {
         if (global_win == null) {
             return ZrogueError.NotInitialized;
         }
-        _ = try checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
+        if (s.len > 0) { // Interface apparently insists
+            _ = try checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
+        }
     }
 
     fn refresh(ptr: *anyopaque) ZrogueError!void {
