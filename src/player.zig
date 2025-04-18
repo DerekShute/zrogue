@@ -142,28 +142,23 @@ fn displayHelp(p: *Player) !void {
 }
 
 fn displayScreen(p: *Player, map: *Map) !void {
-    const message = p.getMessage();
-
-    for (0..@intCast(map.getWidth())) |x| {
-        if (x < message.len) {
-            try p.mvaddch(@intCast(x), 0, message[x]);
-        } else {
-            try p.mvaddch(@intCast(x), 0, ' ');
-        }
-    }
-
+    try p.mvaddstr(0, 0, "                                                  ");
+    try p.mvaddstr(0, 0, p.getMessage());
     p.clearMessage();
 
     // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
 
     var stats: [80]u8 = undefined; // does this need to be allocated?  size?
 
-    // We know that error.NoSpaceLeft can't happen here
-    const line = std.fmt.bufPrint(&stats, "Level: {}  Gold: {:<5}  Hp: some", .{ map.getDepth(), p.purse }) catch unreachable;
+    const fmt = "Level: {}  Gold: {:<5}  Hp: some";
+    const output = .{
+        map.getDepth(),
+        p.purse,
+    };
 
-    for (0.., line) |x, c| {
-        try p.mvaddch(@intCast(x), @intCast(map.getHeight() + 1), c);
-    }
+    // We know that error.NoSpaceLeft can't happen here
+    const line = std.fmt.bufPrint(&stats, fmt, output) catch unreachable;
+    try p.mvaddstr(0, @intCast(map.getHeight() + 1), line);
 
     //
     // Convert map to display
