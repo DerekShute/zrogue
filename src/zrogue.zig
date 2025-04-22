@@ -259,30 +259,30 @@ pub const ZrogueError = error{
 // Results of the Thing.getAction() method, which drives what the game loop
 // does next: keep going, plant a tombstone, declare victory, etc.
 //
-// TODO: within ThingAction
-pub const ActionType = enum {
-    NoAction,
-    QuitAction,
-    AscendAction,
-    DescendAction,
-    MoveAction, // Directional
-    TakeAction, // Positional
-    WaitAction,
-};
 
 pub const ThingAction = struct {
-    kind: ActionType,
+    kind: Type,
     pos: Pos, // MoveAction (delta)
 
-    pub inline fn init(t: ActionType) ThingAction {
+    pub const Type = enum {
+        none,
+        quit,
+        ascend,
+        descend,
+        move, // Directional
+        take, // Positional
+        wait,
+    };
+
+    pub inline fn init(t: Type) ThingAction {
         return .{ .kind = t, .pos = Pos.init(0, 0) };
     }
 
-    pub inline fn init_dir(t: ActionType, d: Pos.Direction) ThingAction {
+    pub inline fn init_dir(t: Type, d: Pos.Direction) ThingAction {
         return .{ .kind = t, .pos = Pos.direct(d) };
     }
 
-    pub inline fn init_pos(t: ActionType, p: Pos) ThingAction {
+    pub inline fn init_pos(t: Type, p: Pos) ThingAction {
         return .{ .kind = t, .pos = p };
     }
 
@@ -350,11 +350,11 @@ test "Pos methods" {
 }
 
 test "entity action" {
-    var action = ThingAction.init(ActionType.QuitAction);
+    var action = ThingAction.init(.quit);
 
     try expect(action.getPos().eql(Pos.init(0, 0)));
 
-    action = ThingAction.init_dir(ActionType.MoveAction, .west);
+    action = ThingAction.init_dir(.move, .west);
     try expect(action.getPos().eql(Pos.init(-1, 0)));
 }
 

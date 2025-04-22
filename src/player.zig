@@ -8,7 +8,6 @@ const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
 
 const ZrogueError = zrogue.ZrogueError;
-const ActionType = zrogue.ActionType;
 const Command = zrogue.Command;
 const MapTile = zrogue.MapTile;
 const Pos = zrogue.Pos;
@@ -203,7 +202,7 @@ fn playerGetAction(ptr: *Thing, map: *Map) !ThingAction {
     // Map is the _visible_ or _known_ map presented to the player
 
     const self: *Player = @ptrCast(@alignCast(ptr));
-    var ret = ThingAction.init(ActionType.NoAction);
+    var ret = ThingAction.init(.none);
 
     try displayScreen(self, map);
 
@@ -213,16 +212,16 @@ fn playerGetAction(ptr: *Thing, map: *Map) !ThingAction {
         cmd = try self.getCommand();
     }
     ret = switch (cmd) {
-        .help => ThingAction.init(.NoAction),
-        .quit => ThingAction.init(.QuitAction),
-        .goNorth => ThingAction.init_dir(.MoveAction, .north),
-        .goEast => ThingAction.init_dir(.MoveAction, .east),
-        .goSouth => ThingAction.init_dir(.MoveAction, .south),
-        .goWest => ThingAction.init_dir(.MoveAction, .west),
-        .ascend => ThingAction.init(.AscendAction),
-        .descend => ThingAction.init(.DescendAction),
-        .takeItem => ThingAction.init_pos(.TakeAction, self.getPos()),
-        else => ThingAction.init(.WaitAction),
+        .help => ThingAction.init(.none),
+        .quit => ThingAction.init(.quit),
+        .goNorth => ThingAction.init_dir(.move, .north),
+        .goEast => ThingAction.init_dir(.move, .east),
+        .goSouth => ThingAction.init_dir(.move, .south),
+        .goWest => ThingAction.init_dir(.move, .west),
+        .ascend => ThingAction.init(.ascend),
+        .descend => ThingAction.init(.descend),
+        .takeItem => ThingAction.init_pos(.take, self.getPos()),
+        else => ThingAction.init(.wait),
     };
 
     return ret;
