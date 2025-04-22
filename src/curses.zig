@@ -90,8 +90,8 @@ pub const CursesDisplayProvider = struct {
     //
     // Methods
     //
-
-    // REFACTOR: NotInitialized becomes panic
+    // NotInitialized in here could be a panic instead of error return but
+    // the mock display also uses it to test for API correctness.
 
     fn erase(ptr: *anyopaque) ZrogueError!void {
         _ = ptr;
