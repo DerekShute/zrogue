@@ -158,7 +158,6 @@ pub const Map = struct {
     roomsx: Pos.Dim,
     roomsy: Pos.Dim,
     level: usize = 1,
-    stairs: Pos = undefined, // TODO 0.2 : I am not wild about this
 
     // Allocate and teardown
 
@@ -191,7 +190,6 @@ pub const Map = struct {
         m.rooms = rooms;
         m.roomsx = roomsx;
         m.roomsy = roomsy;
-        m.stairs = Pos.init(-1, -1);
 
         // Can call Map.deinit after this point
 
