@@ -48,13 +48,13 @@ pub fn run(s_config: new_level.LevelConfig) !void {
             var action = try player_thing.getAction(map);
             // TODO: actFn a field in action, callback to player or Thing?
             const actFn: ActionGameHandler = switch (action.kind) {
-                .AscendAction => ascendAction,
-                .DescendAction => descendAction,
-                .MoveAction => moveAction,
-                .TakeAction => takeAction,
-                .QuitAction => quitAction,
-                .NoAction => doNothingAction,
-                .WaitAction => doNothingAction, // TODO meh untrue
+                .ascend => ascendAction,
+                .descend => descendAction,
+                .move => moveAction,
+                .take => takeAction,
+                .quit => quitAction,
+                .none => doNothingAction,
+                .wait => doNothingAction, // TODO meh untrue
             };
 
             result = try actFn(player_thing, &action, map);
