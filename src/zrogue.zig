@@ -13,9 +13,6 @@ const std = @import("std");
 pub const DISPLAY_MINX = 80;
 pub const DISPLAY_MINY = 24;
 
-pub const MESSAGE_ROW = 0; // At row zero
-pub const STAT_ROW = DISPLAY_MINY; // TODO: technically, 'bottom'
-
 pub const MAPSIZE_X = DISPLAY_MINX;
 pub const MAPSIZE_Y = DISPLAY_MINY - 2; // Minus message and stat rows
 
@@ -27,10 +24,10 @@ pub const MESSAGE_MAXSIZE = DISPLAY_MINX;
 pub const Command = enum {
     wait,
     quit,
-    goWest, // 'up'/'down' confusing w/r/t stairs
+    goNorth, // 'up'/'down' confusing w/r/t stairs
     goEast,
-    goNorth,
     goSouth,
+    goWest,
     ascend,
     descend,
     help,
@@ -71,12 +68,28 @@ pub const MapTile = enum {
 pub const Pos = struct {
     pub const Dim = i16;
 
+    pub const Direction = enum {
+        north,
+        east,
+        south,
+        west,
+    };
+
     // TODO: directionals
 
     xy: [2]Dim = .{ -1, -1 },
 
     pub inline fn init(x: Dim, y: Dim) Pos {
         return .{ .xy = .{ x, y } };
+    }
+
+    pub inline fn direct(d: Direction) Pos {
+        return switch (d) {
+            .north => Pos.init(0, -1),
+            .east => Pos.init(1, 0),
+            .south => Pos.init(0, 1),
+            .west => Pos.init(-1, 0),
+        };
     }
 
     pub inline fn quant(self: Pos) usize {
@@ -265,6 +278,10 @@ pub const ThingAction = struct {
         return .{ .kind = t, .pos = Pos.init(0, 0) };
     }
 
+    pub inline fn init_dir(t: ActionType, d: Pos.Direction) ThingAction {
+        return .{ .kind = t, .pos = Pos.direct(d) };
+    }
+
     pub inline fn init_pos(t: ActionType, p: Pos) ThingAction {
         return .{ .kind = t, .pos = p };
     }
@@ -337,7 +354,7 @@ test "entity action" {
 
     try expect(action.getPos().eql(Pos.init(0, 0)));
 
-    action = ThingAction.init_pos(ActionType.MoveAction, Pos.init(-1, 0));
+    action = ThingAction.init_dir(ActionType.MoveAction, .west);
     try expect(action.getPos().eql(Pos.init(-1, 0)));
 }
 
