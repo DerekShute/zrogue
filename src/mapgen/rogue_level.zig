@@ -88,6 +88,13 @@ fn findFloor(r: *std.Random, room: *Room) Pos {
     return Pos.init(row, col);
 }
 
+fn findAnyFloor(r: *std.Random, map: *Map) Pos {
+    const i = r.intRangeAtMost(usize, 0, max_rooms - 1);
+    const room = mapgen.getRoom(map, i);
+
+    return findFloor(r, room);
+}
+
 // Connection graph between rooms
 
 fn setConnected(graph: []bool, r1: usize, r2: usize) void {
@@ -260,12 +267,9 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
 
     // Place the stairs.  In the original they can't go in a gone room, but why not?
     {
-        // REFACTOR: 'position of some room floor' is boilerplate
-        const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
-        const room = mapgen.getRoom(map, i);
-        const pos = findFloor(config.rand, room);
-        // REFACTOR: setTile takes Pos instead?
+        const pos = findAnyFloor(config.rand, map);
 
+        // REFACTOR: setTile takes Pos instead?
         if (config.going_down) {
             try map.setTile(pos.getX(), pos.getY(), .stairs_down);
         } else {
@@ -274,9 +278,8 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
     }
 
     if (config.player) |p| {
-        const i = config.rand.intRangeAtMost(usize, 0, max_rooms - 1);
-        const room = mapgen.getRoom(map, i);
-        const pos = findFloor(config.rand, room);
+        const pos = findAnyFloor(config.rand, map);
+
         // REFACTOR: setMonster takes Pos instead?
         try map.setMonster(p, pos.getX(), pos.getY());
     }
