@@ -21,6 +21,9 @@ pub const MESSAGE_MAXSIZE = DISPLAY_MINX;
 //
 // Input abstraction
 //
+// REFACTOR: snake case for enums
+// REFACTOR: is this an input.zig thing?
+// REFACTOR: Partially duplicates ThingAction.type
 pub const Command = enum {
     wait,
     quit,
@@ -32,6 +35,7 @@ pub const Command = enum {
     descend,
     help,
     takeItem,
+    search,
 };
 
 //
@@ -268,6 +272,7 @@ pub const ThingAction = struct {
         ascend,
         descend,
         move, // Directional
+        search,
         take, // Positional
         wait,
     };
