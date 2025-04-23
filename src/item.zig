@@ -13,8 +13,8 @@ const Pos = zrogue.Pos;
 pub const Item = struct {
     p: Pos = undefined,
     tile: MapTile = .unknown,
-    // TODO: note if in player inventory
-    // TODO: 'known' : identified to know # of charges / bonuses
+    // TODO Future: note if in player inventory
+    // TODO Future: 'known' : identified to know # of charges / bonuses
 
     pub fn config(x: Pos.Dim, y: Pos.Dim, tile: MapTile) Item {
         return .{

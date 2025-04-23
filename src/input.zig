@@ -36,7 +36,7 @@ pub const MockInputProvider = struct {
 
     pub const MockInputConfig = struct {
         commands: []Command,
-        // TODO cursor
+        // TODO Future: cursor
     };
 
     pub fn init(config: MockInputConfig) MockInputProvider {
@@ -65,7 +65,7 @@ pub const MockInputProvider = struct {
             return ZrogueError.IndexOverflow;
         self.index = self.index + 1;
         return self.commandlist[i];
-        // TODO: error if no more keypresses to provide
+        // FIXME: panic if no more keypresses to provide
     }
 }; // MockInputProvider
 

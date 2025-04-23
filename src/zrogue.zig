@@ -37,7 +37,7 @@ pub const Command = enum {
 //
 // Visible thing at map space
 //
-// TODO: union with monster types and objects?
+// TODO Future: union with monster types and objects?
 //
 pub const MapTile = enum {
     unknown,
@@ -74,8 +74,6 @@ pub const Pos = struct {
         south,
         west,
     };
-
-    // TODO: directionals
 
     xy: [2]Dim = .{ -1, -1 },
 

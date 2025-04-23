@@ -13,7 +13,7 @@ const Pos = zrogue.Pos;
 // Structure for monsters and player
 //
 pub const Thing = struct {
-    // TODO: timer, action queue
+    // TODO Future: timer, action queue
     p: Pos = undefined,
     tile: MapTile = undefined,
     vtable: *const VTable = undefined,
@@ -45,7 +45,6 @@ pub const Thing = struct {
     }
 
     pub fn getAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
-        // TODO in theory a completely passive Thing
         return try self.vtable.getAction(self, map);
     }
 

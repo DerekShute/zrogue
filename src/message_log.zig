@@ -5,7 +5,7 @@ const zrogue = @import("zrogue.zig");
 //
 // Record of messages sent to an entity (presumably a player)
 //
-// TODO: Right now, depth of one
+// TODO Future: Depth > 1
 //
 pub const MessageLog = struct {
     allocator: std.mem.Allocator,
@@ -35,7 +35,7 @@ pub const MessageLog = struct {
         self.buffer = self.buffer[0..msg.len]; // Fix up the slice for length
     }
 
-    // TODO set up to append:  self.buffer = self.buffer[msg.len..];
+    // TODO Future:  set up to append:  self.buffer = self.buffer[msg.len..];
 
     pub fn get(self: *MessageLog) []u8 {
         return self.buffer;
