@@ -182,19 +182,19 @@ pub const CursesInputProvider = struct {
     // TODO Future: resize 'key'
     fn getCommand(ptr: *anyopaque) ZrogueError!Command {
         _ = ptr;
-        const cmd = switch (try checkError(curses.getch())) {
-            curses.KEY_LEFT => Command.goWest,
-            curses.KEY_RIGHT => Command.goEast,
-            curses.KEY_UP => Command.goNorth,
-            curses.KEY_DOWN => Command.goSouth,
-            '<' => Command.ascend,
-            '>' => Command.descend,
-            '?' => Command.help,
-            'q' => Command.quit,
-            ',' => Command.takeItem,
-            else => Command.wait,
+        return switch (try checkError(curses.getch())) {
+            curses.KEY_LEFT => .goWest,
+            curses.KEY_RIGHT => .goEast,
+            curses.KEY_UP => .goNorth,
+            curses.KEY_DOWN => .goSouth,
+            '<' => .ascend,
+            '>' => .descend,
+            '?' => .help,
+            'q' => .quit,
+            's' => .search,
+            ',' => .takeItem,
+            else => .wait,
         };
-        return cmd;
     }
 };
 

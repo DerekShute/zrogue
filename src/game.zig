@@ -53,6 +53,7 @@ pub fn run(s_config: new_level.LevelConfig) !void {
                 .move => moveAction,
                 .take => takeAction,
                 .quit => quitAction,
+                .search => searchAction,
                 .none => doNothingAction,
                 .wait => doNothingAction, // TODO meh untrue
             };
@@ -164,6 +165,16 @@ fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
     } else {
         entity.addMessage("Nothing here to take!");
     }
+
+    return ActionResult.continue_game;
+}
+
+fn searchAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
+    _ = do_action;
+    _ = map;
+    // TODO Future: get chance of success from entity, resolve that
+
+    entity.addMessage("You find nothing!");
 
     return ActionResult.continue_game;
 }

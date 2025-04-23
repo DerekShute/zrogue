@@ -48,6 +48,12 @@ pub const Thing = struct {
         return try self.vtable.getAction(self, map);
     }
 
+    pub fn search(self: *Thing, map: *Map) void {
+        if (self.vtable.search) |cb| {
+            cb(self, map);
+        }
+    }
+
     pub fn takeItem(self: *Thing, item: *Item, map: *Map) void {
         if (self.vtable.takeItem) |cb| {
             cb(self, item, map);

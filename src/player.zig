@@ -119,7 +119,7 @@ fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
 }
 
 fn displayHelp(p: *Player) !void {
-    // REFACTOR : This is horrible
+    // FIXME : This is horrible and adding to it is painful
     // TODO: pull in command keys from input provider?
     try p.mvaddstr(0, 0, "                                                 ");
     try p.mvaddstr(0, 1, "         Welcome to the Dungeon of Doom          ");
@@ -133,10 +133,11 @@ fn displayHelp(p: *Player) !void {
     try p.mvaddstr(0, 9, "    > - descend stairs (\">\")                   ");
     try p.mvaddstr(0, 10, "    < - ascend stairs (\"<\")                   ");
     try p.mvaddstr(0, 11, "    , - pick up gold  (\"$\")                   ");
-    try p.mvaddstr(0, 12, "    q - chicken out and quit                    ");
-    try p.mvaddstr(0, 13, "                                                ");
-    try p.mvaddstr(0, 14, " [type a command or any other key to continue]  ");
-    try p.mvaddstr(0, 15, "                                                ");
+    try p.mvaddstr(0, 12, "    s - search for hidden doors                 ");
+    try p.mvaddstr(0, 13, "    q - chicken out and quit                    ");
+    try p.mvaddstr(0, 14, "                                                ");
+    try p.mvaddstr(0, 15, " [type a command or any other key to continue]  ");
+    try p.mvaddstr(0, 16, "                                                ");
     try p.refresh();
 }
 
@@ -220,6 +221,7 @@ fn playerGetAction(ptr: *Thing, map: *Map) !ThingAction {
         .goWest => ThingAction.init_dir(.move, .west),
         .ascend => ThingAction.init(.ascend),
         .descend => ThingAction.init(.descend),
+        .search => ThingAction.init(.search),
         .takeItem => ThingAction.init_pos(.take, self.getPos()),
         else => ThingAction.init(.wait),
     };
