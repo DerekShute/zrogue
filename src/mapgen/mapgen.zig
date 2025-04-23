@@ -80,7 +80,7 @@ pub fn addRoom(m: *Map, room: Room) void {
     const s = Pos.init(r.getMinX() + 1, r.getMinY() + 1);
     const e = Pos.init(r.getMaxX() - 1, r.getMaxY() - 1);
 
-    // TODO room shapes and contents
+    // TODO Future: room shapes and contents
 
     // source and end are known good because we added the room above
 
@@ -98,14 +98,14 @@ pub fn getRoom(m: *Map, roomno: usize) *Room {
 // Corridors
 
 pub fn addSouthCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) !void {
-    // TODO: the start and end should be validated
+    // FIXME: the start and end should be validated
     try drawVertLine(m, start, mid, .floor);
     try drawHorizLine(m, Pos.init(start.getX(), mid), end.getX(), .floor);
     try drawVertLine(m, Pos.init(end.getX(), mid), end.getY(), .floor);
 }
 
 pub fn addEastCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) !void {
-    // TODO: the start and end should be validated
+    // FIXME: the start and end should be validated
     try drawHorizLine(m, start, mid, .floor);
     try drawVertLine(m, Pos.init(mid, start.getY()), end.getY(), .floor);
     try drawHorizLine(m, Pos.init(mid, end.getY()), end.getX(), .floor);

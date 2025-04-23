@@ -113,7 +113,6 @@ pub fn main() !void {
     const player = try Player.init(allocator, input, display);
     defer player.deinit();
 
-    // TODO: command line option to force the test map
     const config = LevelConfig{
         .allocator = allocator,
         .rand = &r,
@@ -141,7 +140,7 @@ test "run the game" {
     const display = md.provider();
     defer display.endwin();
 
-    // TODO: need a recording to iterate through
+    // TODO Future: need a recording to iterate through
     var commandlist = [_]Command{
         Command.help,
         Command.help, // press any key
@@ -149,7 +148,7 @@ test "run the game" {
         Command.goEast,
         Command.goNorth,
         Command.goSouth,
-        Command.ascend, // TODO test map gets stairs
+        Command.ascend,
         Command.descend,
         Command.takeItem,
         Command.wait,

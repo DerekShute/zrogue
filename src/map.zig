@@ -25,7 +25,7 @@ const Place = struct {
     tile: MapTile = .unknown,
     flags: packed struct {
         known: bool,
-        // TODO: 'has object'
+        // TODO Future: 'has object'
     },
     monst: ?*Thing,
 
@@ -40,7 +40,7 @@ const Place = struct {
     // Methods
 
     pub fn getTile(self: *Place) MapTile {
-        // TODO: this probably falls apart when monsters are on list
+        // TODO Future: monsters on list
         if (self.monst) |monst| {
             return monst.getTile();
         }
@@ -127,13 +127,13 @@ pub const Room = struct {
         return true;
     }
 
-    // TODO: Vtable for different shaped rooms
+    // TODO Future: Vtable for different shaped rooms
     pub fn reveal(self: *Room, map: *Map) !void {
         const minx = self.getMinX();
         const miny = self.getMinY();
         const maxx = self.getMaxX();
         const maxy = self.getMaxY();
-        // TODO do only once via self.flags.known
+        // REFACTOR: do only once via self.flags.known
         if (self.isLit()) {
             try map.setRegionKnown(minx, miny, maxx, maxy);
         }
@@ -237,7 +237,7 @@ pub const Map = struct {
         // Monster tile takes precedence and we only see an object if it is
         // on the visible floor
         if (tile == .floor) {
-            // TODO: set bit in Place to see if even worth looking
+            // REFACTOR: set bit in Place to see if even worth looking
             if (self.getItem(Pos.init(x, y))) |item| {
                 tile = item.getTile();
             }
@@ -262,7 +262,7 @@ pub const Map = struct {
     }
 
     pub fn getItem(self: *Map, pos: Pos) ?*Item {
-        // TODO: first found
+        // TODO 2.0: first found
         var it = self.items.iterator();
 
         while (it.next()) |item| {
@@ -340,6 +340,7 @@ pub const Map = struct {
         return loc;
     }
 
+    // TODO Future: getRoomNum is a mapgen thing
     fn getRoom(self: *Map, p: Pos) ?*Room {
         if (self.getRoomNum(p)) |loc| {
             return &self.rooms[loc];
@@ -351,7 +352,7 @@ pub const Map = struct {
         if (self.getRoom(p)) |room| {
             return room.isInside(p);
         }
-        return false; // TODO ugh
+        return false; // TODO: ugh
     }
 
     pub fn getRoomRegion(self: *Map, p: Pos) !Region {
@@ -400,7 +401,7 @@ pub const Map = struct {
                 return room.isLit();
             }
         }
-        return false; // TODO ugh
+        return false; // TODO: ugh
     }
 
     pub fn revealRoom(self: *Map, p: Pos) !void {

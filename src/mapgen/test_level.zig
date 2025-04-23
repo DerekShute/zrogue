@@ -29,7 +29,7 @@ pub fn createTestLevel(config: LevelConfig) !*Map {
 
     try map.addItem(Item.config(10, 16, .gold));
 
-    // TODO: add stairs down, figure that into test regimen
+    // FIXME: add stairs down, figure that into test regimen
 
     if (config.player) |p| {
         try map.setMonster(p, 6, 6);

@@ -44,7 +44,7 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) Room {
     const topx = @mod(roomno, rooms_dim) * max_xsize;
     const topy = @divTrunc(roomno, rooms_dim) * max_ysize;
 
-    // TODO: maze
+    // TODO Future: maze
 
     // The room size must leave one block on the East and South edges for
     // corridors, and this must be reflected in the positioning logic, so
@@ -57,10 +57,10 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) Room {
 
     const tl = Pos.init(xpos, ypos);
     const br = Pos.init(xpos + xlen - 1, ypos + ylen - 1);
-    var room = Room.config(tl, br); // REFACTOR interface as (tl, size-as-pos)?
+    var room = Room.config(tl, br); // REFACTOR: interface as (tl, size-as-pos)?
     if (r.intRangeAtMost(usize, 1, 10) < map.level) {
         room.setDark();
-        // TODO: maze (1 in 15)
+        // TODO Future: maze (1 in 15)
     }
 
     return room;
@@ -82,7 +82,7 @@ fn isRoomAdjacent(i: usize, j: usize) bool {
 }
 
 fn findFloor(r: *std.Random, room: *Room) Pos {
-    // TODO: want a spot without anything else
+    // FIXME: want a spot without anything else
     const row = r.intRangeAtMost(Pos.Dim, room.getMinX() + 1, room.getMaxX() - 1);
     const col = r.intRangeAtMost(Pos.Dim, room.getMinY() + 1, room.getMaxY() - 1);
     return Pos.init(row, col);
@@ -191,15 +191,15 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
 
         // Place gold
 
-        // TODO: if !amulet and if level < max_level
+        // TODO Future : if !amulet and if level < max_level
         if (config.rand.intRangeAtMost(usize, 0, 1) == 0) { // 50%
             const pos = findFloor(config.rand, &room);
             // REFACTOR: addItem takes Pos instead?
-            // TODO: gold quantity
+            // TODO Future: gold quantity
             try map.addItem(Item.config(pos.getX(), pos.getY(), .gold));
         }
 
-        // TODO: place monster
+        // TODO Future: place monster
     }
 
     // Connect passages.  Start with first room in slice
@@ -368,7 +368,7 @@ test "create Rogue level" {
 
     try expect(map.level == 2);
 
-    // TODO: stairs exist
+    // FIXME: stairs exist
     // TODO: mock Player and validate positioning
 }
 

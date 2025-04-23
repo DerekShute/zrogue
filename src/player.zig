@@ -61,7 +61,7 @@ pub const Player = struct {
         return &self.thing;
     }
 
-    // TODO: interfaces on top of Thing
+    // REFACTOR: interfaces on top of Thing
     inline fn refresh(self: *Player) ZrogueError!void {
         try self.display.refresh();
     }
@@ -232,7 +232,7 @@ fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
 
     self.log.add("You pick up the gold!");
     map.removeItem(item);
-    self.purse = self.purse + 1; // TODO quantity/value
+    self.purse = self.purse + 1; // TODO 2.0: quantity/value
 }
 
 //
@@ -266,7 +266,7 @@ test "create a player" {
     room.setDark();
     mapgen.addRoom(map, room);
 
-    // TODO: light, blindness
+    // TODO Future: light, blindness
 
     // distant default
     try expect(try render(map, player, 0, 0) == .unknown);

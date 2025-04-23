@@ -79,7 +79,7 @@ pub const MockDisplayProvider = struct {
     pub const MockDisplayConfig = struct {
         maxx: u16,
         maxy: u16,
-        // TODO cursor
+        // TODO Future: cursor position
     };
 
     // Constructor (not sure why this is in two parts)

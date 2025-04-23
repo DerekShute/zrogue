@@ -179,7 +179,7 @@ pub const CursesInputProvider = struct {
 
     // abstract ncurses code to internal 'command'.  Note that this is unhelpful for selection of items using a-z etc.
     //
-    // TODO: resize 'key'
+    // TODO Future: resize 'key'
     fn getCommand(ptr: *anyopaque) ZrogueError!Command {
         _ = ptr;
         const cmd = switch (try checkError(curses.getch())) {
@@ -221,7 +221,7 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) ZrogueError!Curses
     }
 
     // Instantly process events, and activate arrow keys
-    // TODO: mouse events
+    // TODO Future: mouse events
     _ = curses.raw();
     _ = curses.noecho();
     _ = curses.keypad(global_win, true);
