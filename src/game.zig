@@ -7,6 +7,7 @@ const Thing = @import("thing.zig").Thing;
 
 const new_level = @import("new_level.zig");
 
+const Region = zrogue.Region;
 const ThingAction = zrogue.ThingAction;
 const ActionType = zrogue.ActionType;
 const Pos = zrogue.Pos;
@@ -169,12 +170,31 @@ fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
     return ActionResult.continue_game;
 }
 
+// TODO Future: get chance of success from entity, resolve that
 fn searchAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
-    _ = map;
-    // TODO Future: get chance of success from entity, resolve that
 
-    entity.addMessage("You find nothing!");
+    // TODO Future: This is clunky.  We want an iterator in one step.
+    const min = Pos.init(entity.getX() - 1, entity.getY() - 1);
+    const max = Pos.init(entity.getX() + 1, entity.getY() + 1);
+    var r = Region.config(min, max);
+    var i = r.iterator();
+    var found: bool = false;
+    while (i.next()) |pos| {
+        // REFACTOR: takes Pos interface?
+        const tile = try map.getOnlyTile(pos.getX(), pos.getY());
+        if (tile == .secret_door) {
+            // REFACTOR: takes Pos interface?
+            try map.setTile(pos.getX(), pos.getY(), .door);
+            found = true;
+        }
+    }
+
+    if (found) {
+        entity.addMessage("You find something!");
+    } else {
+        entity.addMessage("You find nothing!");
+    }
 
     return ActionResult.continue_game;
 }
