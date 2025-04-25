@@ -66,6 +66,18 @@ fn makeRogueRoom(roomno: i16, map: *Map, r: *std.Random) Room {
     return room;
 }
 
+fn makeDoor(map: *Map, r: *std.Random, p: Pos) !void {
+    // Original goes
+    //
+    //     if (rnd(10) + 1 < level && rnd(5) == 0) then secret door
+
+    var tile: MapTile = .door;
+    if ((r.intRangeAtMost(u16, 1, 10) < map.level) and (r.intRangeAtMost(u16, 0, 4) == 0)) {
+        tile = .secret_door;
+    }
+    try map.setTile(p.getX(), p.getY(), tile);
+}
+
 // TODO: into Map?  It assumes a room grid
 fn isRoomAdjacent(i: usize, j: usize) bool {
     const i_row = @divTrunc(i, rooms_dim);
@@ -113,11 +125,11 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
     const j = @max(rn1, rn2); // Eastern or Southern
     var r1 = mapgen.getRoom(map, i);
     var r2 = mapgen.getRoom(map, j);
+    var d1: Pos = undefined;
+    var d2: Pos = undefined;
 
     // Pick valid connection points (along the opposite room sides, not on
     // the corners, and a location for the midpoint)
-
-    // TODO: secret passages, which mark each spot (for map reveal?)
 
     if (j == i + 1) { // Eastward dig
         const start_x = r1.getMaxX();
@@ -126,12 +138,8 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
         const r2_y = r.intRangeAtMost(Pos.Dim, r2.getMinY() + 1, r2.getMaxY() - 1);
         const mid_x = r.intRangeAtMost(Pos.Dim, start_x + 1, end_x - 1);
         try mapgen.addEastCorridor(map, Pos.init(start_x, r1_y), Pos.init(end_x, r2_y), mid_x);
-        if (!r1.flags.gone) {
-            try map.setTile(start_x, r1_y, .door);
-        }
-        if (!r2.flags.gone) {
-            try map.setTile(end_x, r2_y, .door);
-        }
+        d1 = Pos.init(start_x, r1_y);
+        d2 = Pos.init(end_x, r2_y);
     } else { // Southward dig
         const r1_x = r.intRangeAtMost(Pos.Dim, r1.getMinX() + 1, r1.getMaxX() - 1);
         const start_y = r1.getMaxY();
@@ -139,12 +147,14 @@ fn connectRooms(map: *Map, rn1: usize, rn2: usize, r: *std.Random) !void {
         const end_y = r2.getMinY();
         const mid_y = r.intRangeAtMost(Pos.Dim, start_y + 1, end_y - 1);
         try mapgen.addSouthCorridor(map, Pos.init(r1_x, start_y), Pos.init(r2_x, end_y), mid_y);
-        if (!r1.flags.gone) {
-            try map.setTile(r1_x, start_y, .door);
-        }
-        if (!r2.flags.gone) {
-            try map.setTile(r2_x, end_y, .door);
-        }
+        d1 = Pos.init(r1_x, start_y);
+        d2 = Pos.init(r2_x, end_y);
+    }
+    if (!r1.flags.gone) {
+        try makeDoor(map, r, d1);
+    }
+    if (!r2.flags.gone) {
+        try makeDoor(map, r, d2);
     }
 }
 
