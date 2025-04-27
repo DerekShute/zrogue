@@ -8,6 +8,7 @@ const ZrogueError = zrogue.ZrogueError;
 
 const Player = @import("player.zig").Player;
 const LevelConfig = @import("new_level.zig").LevelConfig;
+const ScoreList = @import("utils/ScoreList.zig");
 
 //
 // Panic handler
@@ -90,6 +91,9 @@ pub fn main() !void {
         std.process.exit(1);
     }
 
+    var score_list = try ScoreList.init(allocator);
+    defer score_list.deinit();
+
     const seed: u64 = @intCast(std.time.microTimestamp());
     var prng = std.Random.DefaultPrng.init(seed);
     var r = prng.random();
@@ -132,7 +136,8 @@ pub fn main() !void {
     //
 
     const out = stdout.writer();
-    try out.print("Your final score: {}\n", .{player.getScore()});
+    const score = player.getScore();
+    try out.print("Your final score: {}\n", .{score});
 }
 
 //
