@@ -15,6 +15,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // ymlz - YAML parsing
+
+    const ymlz = b.dependency("ymlz", .{});
+    exe.root_module.addImport("ymlz", ymlz.module("root"));
+
     exe.linkLibC();
     exe.linkSystemLibrary("ncursesw");
     b.installArtifact(exe);

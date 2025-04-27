@@ -5,8 +5,16 @@
 .{
     .name = .zrogue,
     .version = "0.0.1",
-    .paths = .{""},
+    .paths = .{"./src"},
     .fingerprint = 0xd9241e3fb14af744,
+    .dependencies = .{
+        .ymlz = .{
+            // zig fetch --save git+https://github.com/pwbh/ymlz
+            // 0.5.0
+            .url = "https://github.com/pwbh/ymlz/archive/refs/tags/0.5.0.tar.gz",
+            .hash = "ymlz-0.5.0-TG82aaGpAAAkDbn3bIPifDTdNcbsFrnjxp_dOog2AXH6",
+        },
+    },
 }
 
 // EOF
