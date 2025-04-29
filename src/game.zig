@@ -106,6 +106,7 @@ fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResul
     const tile = try map.getOnlyTile(p.getX(), p.getY());
     if (tile == .stairs_up) {
         entity.addMessage("You ascend closer to the exit...");
+        entity.moves += 10;
         return ActionResult.ascend;
     }
 
@@ -120,6 +121,7 @@ fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResu
     const tile = try map.getOnlyTile(p.getX(), p.getY());
     if (tile == .stairs_down) {
         entity.addMessage("You go ever deeper into the dungeon...");
+        entity.moves += 10;
         return ActionResult.descend;
     }
 
@@ -141,6 +143,7 @@ fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
         // TODO if not blind
         try map.setRegionKnown(new_x - 1, new_y - 1, new_x + 1, new_y + 1);
         try map.revealRoom(entity.getPos());
+        entity.moves += 1;
     } else {
         // TODO: entity 'bump' callback
         entity.addMessage("Ouch!");
@@ -163,6 +166,7 @@ fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
     const item = map.getItem(do_action.getPos());
     if (item) |i| {
         entity.takeItem(i, map);
+        entity.moves += 10;
     } else {
         entity.addMessage("Nothing here to take!");
     }
@@ -196,6 +200,7 @@ fn searchAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResul
         entity.addMessage("You find nothing!");
     }
 
+    entity.moves += 100;
     return ActionResult.continue_game;
 }
 

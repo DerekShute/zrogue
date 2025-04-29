@@ -94,14 +94,14 @@ pub fn main() !void {
     var prng = std.Random.DefaultPrng.init(seed);
     var r = prng.random();
 
-    const out = stderr.writer();
+    const stderr_out = stderr.writer();
     var providers = curses.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY, allocator) catch |err| switch (err) {
         ZrogueError.DisplayTooSmall => {
-            try out.print("ERROR: Minimum {}x{} display required\n", .{ zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY });
+            try stderr_out.print("ERROR: Minimum {}x{} display required\n", .{ zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY });
             std.process.exit(1);
         },
         else => {
-            try out.print("Unexpected error {}\n\n", .{err});
+            try stderr_out.print("Unexpected error {}\n\n", .{err});
             std.process.exit(1);
         },
     };
@@ -123,6 +123,16 @@ pub fn main() !void {
     };
 
     try game.run(config);
+    display.endwin();
+
+    //
+    // Endgame - print the player's score.
+    //
+    // TODO Future: this is crude.
+    //
+
+    const out = stdout.writer();
+    try out.print("Your final score: {}\n", .{player.getScore()});
 }
 
 //

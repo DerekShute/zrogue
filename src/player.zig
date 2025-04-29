@@ -23,7 +23,7 @@ pub const Player = struct {
     input: InputProvider = undefined,
     display: DisplayProvider = undefined,
     log: *MessageLog,
-    purse: u16,
+    purse: u16 = undefined,
 
     const vtable = Thing.VTable{
         .getAction = playerGetAction,
@@ -96,6 +96,12 @@ pub const Player = struct {
 
     inline fn getDistance(self: *Player, pos: Pos) Pos.Dim {
         return self.getPos().distance(pos);
+    }
+
+    pub fn getScore(self: *Player) usize {
+        const t = self.toThing();
+        const i = @as(i32, self.purse * 1000) - t.getMoves();
+        return if (i < 0) 0 else @intCast(i);
     }
 };
 
