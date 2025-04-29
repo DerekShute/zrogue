@@ -17,6 +17,7 @@ pub const Thing = struct {
     p: Pos = undefined,
     tile: MapTile = undefined,
     vtable: *const VTable = undefined,
+    moves: i32 = 0,
 
     pub const VTable = struct {
         addMessage: ?*const fn (self: *Thing, msg: []const u8) void,
@@ -58,6 +59,10 @@ pub const Thing = struct {
         if (self.vtable.takeItem) |cb| {
             cb(self, item, map);
         }
+    }
+
+    pub fn getMoves(self: *Thing) i32 {
+        return self.moves;
     }
 
     pub usingnamespace Pos.Methods(@This());
