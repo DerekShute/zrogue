@@ -59,6 +59,8 @@ pub fn deinit(self: *Self) void {
 
 pub fn append(self: *Self, name: []const u8, score: usize) !void {
     const n = try self.allocator.dupe(u8, name);
+    errdefer self.allocator.free(n);
+
     const s: Score = .{ .name = n, .score = score };
     try self.scores.append(s);
 }
@@ -72,6 +74,7 @@ pub fn iterator(self: *Self) Iterator {
 //
 
 const expect = std.testing.expect;
+const expectError = std.testing.expectError;
 
 test "basic ScoreList tests" {
     var s = try Self.init(std.testing.allocator);
@@ -89,6 +92,37 @@ test "basic ScoreList tests" {
         i += 1;
     }
     try expect(i == 3);
+}
+
+test "allocate ScoreList" {
+    // No actual allocations in ScoreList init(), but in case there eventually is...
+
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
+    const allocator = failing.allocator();
+    var s = try Self.init(allocator);
+    defer s.deinit();
+}
+
+// currently two allocations in the append
+
+test "fails to allocate on append 0" {
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
+    const allocator = failing.allocator();
+
+    var s = try Self.init(allocator);
+    defer s.deinit();
+
+    try expectError(error.OutOfMemory, s.append("nobody", 4));
+}
+
+test "fails to allocate on append 1" {
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
+    const allocator = failing.allocator();
+
+    var s = try Self.init(allocator);
+    defer s.deinit();
+
+    try expectError(error.OutOfMemory, s.append("nobody", 4));
 }
 
 // EOF
