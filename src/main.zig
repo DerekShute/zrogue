@@ -72,7 +72,7 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     const stdout = std.io.getStdOut();
-    const stderr = std.io.getStdErr();
+    const stderr_out = std.io.getStdErr().writer();
 
     // Handle CLI arguments.  Note that this does not work from 'build run'
 
@@ -91,14 +91,16 @@ pub fn main() !void {
         std.process.exit(1);
     }
 
-    var score_list = try ScoreList.init(allocator);
-    defer score_list.deinit();
+    // TODO Future: not the best place for this file
+    var score_list = try ScoreList.load(allocator, "zrogue-scores.yml");
+    defer score_list.finalize("zrogue-scores.yml") catch |err| {
+        stderr_out.print("Unexpected error {}\n\n", .{err}) catch {};
+    };
 
     const seed: u64 = @intCast(std.time.microTimestamp());
     var prng = std.Random.DefaultPrng.init(seed);
     var r = prng.random();
 
-    const stderr_out = stderr.writer();
     var providers = curses.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY, allocator) catch |err| switch (err) {
         ZrogueError.DisplayTooSmall => {
             try stderr_out.print("ERROR: Minimum {}x{} display required\n", .{ zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY });
@@ -132,12 +134,19 @@ pub fn main() !void {
     //
     // Endgame - print the player's score.
     //
-    // TODO Future: this is crude.
+    // TODO Future: Zig std lacks 'get my user name'
     //
 
     const out = stdout.writer();
     const score = player.getScore();
-    try out.print("Your final score: {}\n", .{score});
+    try out.print("Your final score: {}\n\n", .{score});
+    try score_list.append("user", score);
+    try out.print("High scores:\n", .{});
+
+    var it = score_list.iterator();
+    while (it.next()) |s| {
+        try out.print(" * {s} : {}\n", .{ s.name, s.score });
+    }
 }
 
 //
