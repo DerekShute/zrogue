@@ -1,0 +1,6 @@
+# This file is used to validate StructuredRecords
+version: 1
+records:
+  - 1
+  - 2
+# EOF

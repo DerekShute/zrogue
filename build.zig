@@ -7,6 +7,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const yml = b.dependency("zig_yaml", .{});
 
     const exe = b.addExecutable(.{
         .name = "zrogue",
@@ -15,6 +16,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    exe.root_module.addImport("zig_yaml", yml.module("yaml"));
     exe.linkLibC();
     exe.linkSystemLibrary("ncursesw");
     b.installArtifact(exe);
@@ -34,6 +36,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    unit_tests.root_module.addImport("zig_yaml", yml.module("yaml"));
     unit_tests.linkLibC();
     unit_tests.linkSystemLibrary("ncursesw");
 
