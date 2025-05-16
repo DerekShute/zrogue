@@ -1,3 +1,9 @@
+//!
+//! Playing the game
+//!
+//! Simple state machine for deciding if a game is happening
+//!
+
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
 const Item = @import("item.zig").Item;

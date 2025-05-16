@@ -1,3 +1,4 @@
+//!
 //! This is an experiment.
 //!
 //! The goal is to provide a scaffold for game records in a
@@ -27,6 +28,7 @@
 //! Strings and such exist in the context of the provided allocator, and
 //! zig_yaml assumes that the caller explicitly pass an arena allocator and
 //! manages its destruction.  I am frankly dubious.
+//!
 
 const std = @import("std");
 const Yaml = @import("zig_yaml").Yaml;

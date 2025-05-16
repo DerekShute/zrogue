@@ -1,3 +1,13 @@
+//!
+//! Everything PLAYER
+//!
+//! Embeds the Thing interface for a C-like trick that will certainly earn
+//! me much derision.
+//!
+//! The game design is that to figure out the action for this Thing you come
+//! here, and this will delegate aspects to display/input providers.
+//!
+
 const std = @import("std");
 const DisplayProvider = @import("display.zig").DisplayProvider;
 const InputProvider = @import("input.zig").InputProvider;

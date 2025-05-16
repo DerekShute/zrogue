@@ -20,6 +20,10 @@ may change for Ubuntu 25.10 but we will see.
 I personally consider code coverage to be a pillar of testing strategy and
 have used it elsewhere to really crush out bugs.
 
+## Doc generation
+
+Clearly a work in progress for Zig 0.14.  I will try for due diligence.
+
 ## Visualization
 
 Mostly an experiment.  Generates visualize.svg, which is a directed graph

@@ -1,6 +1,6 @@
-//
-// Generate visualization of common structures
-//
+//!
+//! Generate visualization of common structures
+//!
 
 // https://ziggit.dev/t/error-when-generating-struct-field-names-using-zig-comptime/6319/2
 

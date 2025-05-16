@@ -1,3 +1,7 @@
+//!
+//! Display provider, plus Mock for testing
+//!
+
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
 const MapTile = zrogue.MapTile;

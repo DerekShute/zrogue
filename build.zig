@@ -1,3 +1,7 @@
+//!
+//! Top level build apparatus
+//!
+
 const std = @import("std");
 
 //

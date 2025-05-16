@@ -1,6 +1,6 @@
-//
-// Unit test aggregator
-//
+//!
+//! Unit test aggregator
+//!
 
 comptime {
     _ = @import("grid.zig");

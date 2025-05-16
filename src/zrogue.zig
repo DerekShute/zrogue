@@ -1,10 +1,10 @@
-const std = @import("std");
+//!
+//! Common enums and errors
+//!
+//! This is the base dependency and its existence is a relic of C mentality
+//!
 
-//
-// Common enums and errors
-//
-// This is the base dependency
-//
+const std = @import("std");
 
 //
 // Constants relating to display conventions

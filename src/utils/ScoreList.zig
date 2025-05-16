@@ -1,3 +1,7 @@
+//!
+//! Records and management of high score items and file
+//!
+
 const std = @import("std");
 const StructuredRecords = @import("StructuredRecords.zig").StructuredRecords;
 

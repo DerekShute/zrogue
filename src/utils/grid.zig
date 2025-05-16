@@ -1,3 +1,8 @@
+//!
+//! Abstraction to emulate C 2-dimensional arrays without having weird
+//! slices-of-slices
+//!
+
 const std = @import("std");
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;

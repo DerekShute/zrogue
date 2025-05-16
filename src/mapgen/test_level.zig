@@ -1,3 +1,9 @@
+//!
+//! A defined map used for running unit tests
+//!
+//! Someday, this goes under kcov
+//!
+
 const std = @import("std");
 const mapgen = @import("mapgen.zig");
 const zrogue = @import("../zrogue.zig");

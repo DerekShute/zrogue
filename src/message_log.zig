@@ -1,3 +1,9 @@
+//!
+//! Message log as an abstraction
+//!
+//! Right now a one-line banner of event, with no significant storage and
+//! no way to peruse
+
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
 

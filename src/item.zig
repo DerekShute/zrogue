@@ -1,3 +1,7 @@
+//!
+//! Items (Gold)
+//!
+
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
 

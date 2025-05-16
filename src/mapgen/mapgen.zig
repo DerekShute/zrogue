@@ -1,3 +1,7 @@
+//!
+//! Mapgen common things and the abstraction
+//!
+
 const std = @import("std");
 const zrogue = @import("../zrogue.zig");
 const map = @import("../map.zig");

@@ -1,9 +1,12 @@
+//!
+//! Level generation frontend
+//!
+
 const std = @import("std");
 const mapgen = @import("mapgen/mapgen.zig");
 const zrogue = @import("zrogue.zig");
 
 const Map = @import("map.zig").Map;
-//const Pos = zrogue.Pos;
 
 //
 // Level generation from the top

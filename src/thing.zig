@@ -1,3 +1,9 @@
+//!
+//! Abstraction structure for monsters and player
+//!
+//! Mostly an artifact of the C rogue implementation, which conflates the
+//! two (plus items?) for purposes of consolidating list management code.
+
 const std = @import("std");
 const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
