@@ -8,3 +8,7 @@ itself: the amount of gold and the position of the gold item are fields within
 the room.
 
 Implication: you can't drop gold, and gold can't exist outside of the room.
+
+For 0.1, gold is one coin.
+
+Gold is just an item.

@@ -33,15 +33,40 @@ Which started from the very instructive v2 TCOD tutorial:
 
    https://rogueliketutorials.com/tutorials/tcod/v2/
 
-## Visualization
+## Releases
 
-Mostly an experiment.  Generates visualize.svg, which is a directed graph
-showing relationships between structures.
+### 0.2 (forward looking)
 
-This is all propped up using formatted comments, manually inserted, which is
-almost certainly going to become out of date the second I lose interest.
+With a basic engine we can talk about repositioning it for Webassembly or
+some clever webservice prop-up (umoria has this and it is awesome) and for
+client-server and multiplayer.
 
-If this is useful then I can experiment with control flow visualization.
+I don't care about Windows binaries.
+
+Also need to consider issues around serialization and if Lua integration
+makes sense / sounds fun.
+
+Traps?  Probably necessary to intrude randomization into the action callback
+
+Food?  Implies timers, possibly inventory, statuses
+
+Refactoring?  Making the modules more Zig-idiomatic.  My C roots are showing.
+
+### 0.1 - Run around the dungeon and collect gold
+
+A basic 4 level dungeon with no traps or monsters or Amulet of Yendor but
+pieces of gold and hidden doors.  Get to the bottom and come back up and
+you will be graded appropriately to the high score list.
+
+Works on Linux with ncurses and nowhere else.
+
+Map generation is _mostly_ rogue with a few tweaks.
+
+# Internal Documentation
+  * [Gameplay!](/docs/gameplay.md)
+  * [Implementation Details](/docs/implementation.md)
+  * [Items](/docs/items.md)
+  * [Levels](/docs/levels.md)
 
 # What, you want to use this?
 
