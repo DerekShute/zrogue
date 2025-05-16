@@ -1,3 +1,7 @@
+//!
+//! Generating a map with the rogue style
+//!
+
 const std = @import("std");
 const mapgen = @import("mapgen.zig");
 

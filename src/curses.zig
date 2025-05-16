@@ -1,3 +1,9 @@
+//!
+//! ncurses frontend, creating an input provider and display provider
+//!
+//! (not particularly well: should the concepts be combined?)
+//!
+
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
 const Command = zrogue.Command;

@@ -1,3 +1,7 @@
+//!
+//! Start here
+//!
+
 const std = @import("std");
 
 const curses = @import("curses.zig");

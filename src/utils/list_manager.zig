@@ -1,13 +1,12 @@
+//!
+//! Management of dynamic items (items, monsters, etc.)
+//!
+//! Wraps a DoublyLinkedList and an allocator and an iterator
+//!
+
 const std = @import("std");
 
 const expect = std.testing.expect;
-
-// ===================
-//
-// Management of dynamic items (items, monsters, etc.)
-//
-// Wraps a DoublyLinkedList and an allocator and an iterator
-//
 
 pub fn Manager(comptime T: type) type {
     return struct {

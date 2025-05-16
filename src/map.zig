@@ -1,3 +1,7 @@
+//!
+//! Everything maps - map tiles, rooms, items on the map, and so forth
+//!
+
 const std = @import("std");
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;

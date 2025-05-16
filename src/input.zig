@@ -1,3 +1,8 @@
+//!
+//! Input provider for the user, with a Mock provided for convenient
+//! testing
+//!
+
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;

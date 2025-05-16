@@ -1,14 +1,13 @@
-//
-// Generate visualization of common structures
-//
-
-//
-// This is built and run as part of the 'visual' target and outputs
-// a handcrafted YAML description of structures within instrumented
-// modules.
-//
-// A Python script will take this YAML and format the Graphviz
-// diagram.
+//!
+//! Generate visualization of common structures
+//!
+//!
+//! This is built and run as part of the 'visual' target and outputs
+//! a handcrafted YAML description of structures within instrumented
+//! modules.
+//!
+//! A Python script will take this YAML and format the Graphviz
+//! diagram.
 
 const std = @import("std");
 
