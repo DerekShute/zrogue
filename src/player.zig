@@ -9,15 +9,14 @@
 //!
 
 const std = @import("std");
-const DisplayProvider = @import("display.zig").DisplayProvider;
-const InputProvider = @import("input.zig").InputProvider;
 const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
 const MessageLog = @import("message_log.zig").MessageLog;
+const Provider = @import("Provider.zig");
 const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
-
 const ZrogueError = zrogue.ZrogueError;
+
 const Command = zrogue.Command;
 const MapTile = zrogue.MapTile;
 const Pos = zrogue.Pos;
@@ -30,8 +29,7 @@ const ThingAction = zrogue.ThingAction;
 pub const Player = struct {
     thing: Thing, // NOTE: Must be first, for pointer coercion from *Thing
     allocator: std.mem.Allocator,
-    input: InputProvider = undefined,
-    display: DisplayProvider = undefined,
+    provider: Provider = undefined,
     log: *MessageLog,
     purse: u16 = undefined,
 
@@ -41,7 +39,7 @@ pub const Player = struct {
         .takeItem = playerTakeItem,
     };
 
-    pub fn init(allocator: std.mem.Allocator, input: InputProvider, display: DisplayProvider) !*Player {
+    pub fn init(allocator: std.mem.Allocator, provider: Provider) !*Player {
         const p: *Player = try allocator.create(Player);
         errdefer allocator.destroy(p);
         const log = try MessageLog.init(allocator);
@@ -49,11 +47,9 @@ pub const Player = struct {
 
         p.allocator = allocator;
         p.purse = 0;
-        p.thing = Thing.config(.player, &vtable);
-        p.input = input;
-        p.display = display;
         p.log = log;
-
+        p.provider = provider;
+        p.thing = Thing.config(.player, &vtable);
         return p;
     }
 
@@ -72,24 +68,26 @@ pub const Player = struct {
     }
 
     // REFACTOR: interfaces on top of Thing
-    inline fn refresh(self: *Player) ZrogueError!void {
-        try self.display.refresh();
+    inline fn refresh(self: *Player) Provider.Error!void {
+        try self.provider.refresh();
     }
 
-    inline fn mvaddch(self: *Player, x: u16, y: u16, ch: u8) ZrogueError!void {
-        try self.display.mvaddch(x, y, ch);
+    inline fn mvaddch(self: *Player, x: u16, y: u16, ch: u8) Provider.Error!void {
+        try self.provider.mvaddch(x, y, ch);
     }
 
-    inline fn mvaddstr(self: *Player, x: u16, y: u16, s: []const u8) ZrogueError!void {
-        try self.display.mvaddstr(x, y, s);
+    inline fn mvaddstr(self: *Player, x: u16, y: u16, s: []const u8) Provider.Error!void {
+        try self.provider.mvaddstr(x, y, s);
     }
 
-    inline fn setDisplayTile(self: *Player, x: u16, y: u16, t: MapTile) ZrogueError!void {
-        try self.display.setTile(x, y, t);
+    inline fn setDisplayTile(self: *Player, x: u16, y: u16, t: MapTile) Provider.Error!void {
+        try self.provider.setTile(x, y, t);
     }
 
     inline fn getCommand(self: *Player) ZrogueError!Command {
-        return self.input.getCommand();
+        return self.provider.getCommand() catch {
+            return ZrogueError.ImplementationError; // NOCOMMIT Ugh
+        };
     }
 
     inline fn getMessage(self: *Player) []u8 {
@@ -215,17 +213,22 @@ fn playerAddMessage(ptr: *Thing, msg: []const u8) void {
     self.log.add(msg);
 }
 
-fn playerGetAction(ptr: *Thing, map: *Map) !ThingAction {
+fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
     // Map is the _visible_ or _known_ map presented to the player
 
     const self: *Player = @ptrCast(@alignCast(ptr));
     var ret = ThingAction.init(.none);
 
-    try displayScreen(self, map);
+    // NOCOMMIT ugh
+    displayScreen(self, map) catch {
+        return ZrogueError.ImplementationError;
+    };
 
     var cmd = try self.getCommand();
     while (cmd == .help) {
-        try displayHelp(self);
+        displayHelp(self) catch {
+            return ZrogueError.ImplementationError; // NOCOMMIT ugh
+        };
         cmd = try self.getCommand();
     }
     ret = switch (cmd) {
@@ -257,19 +260,14 @@ fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
 // Unit Tests
 //
 
-const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
-const MockInputProvider = @import("input.zig").MockInputProvider;
+const MockProvider = @import("Provider.zig").MockProvider;
 const expect = std.testing.expect;
 const Room = @import("map.zig").Room;
 const mapgen = @import("mapgen/mapgen.zig");
 
 test "create a player" {
-    var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
-    const display = md.provider();
-    var mi = MockInputProvider.init(.{ .commands = &.{} });
-    const input = mi.provider();
-
-    const player = try Player.init(std.testing.allocator, input, display);
+    var mp = MockProvider.init(.{ .maxx = 20, .maxy = 20, .commands = &.{} });
+    const player = try Player.init(std.testing.allocator, mp.provider());
     defer player.deinit();
 
     //
@@ -304,22 +302,16 @@ test "create a player" {
 
 test "fail to create a player" { // First allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
-    const display = md.provider();
-    var mi = MockInputProvider.init(.{ .commands = &.{} });
-    const input = mi.provider();
+    var mp = MockProvider.init(.{ .maxx = 20, .maxy = 20, .commands = &.{} });
 
-    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), input, display));
+    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp.provider()));
 }
 
 test "fail to fully create a player" { // right now there are two allocations
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
-    var md = MockDisplayProvider.init(.{ .maxx = 20, .maxy = 20 });
-    const display = md.provider();
-    var mi = MockInputProvider.init(.{ .commands = &.{} });
-    const input = mi.provider();
+    var mp = MockProvider.init(.{ .maxx = 20, .maxy = 20, .commands = &.{} });
 
-    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), input, display));
+    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp.provider()));
 }
 
 // Visualization

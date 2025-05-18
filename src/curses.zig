@@ -1,7 +1,10 @@
 //!
-//! ncurses frontend, creating an input provider and display provider
+//! ncurses frontend, creating a Provider from it
 //!
-//! (not particularly well: should the concepts be combined?)
+//!
+//! * (0,0) is top left corner,
+//! * Y incrementing down the display,
+//! * X incrementing right
 //!
 
 const std = @import("std");
@@ -9,9 +12,10 @@ const zrogue = @import("zrogue.zig");
 const Command = zrogue.Command;
 const MapTile = zrogue.MapTile;
 const ZrogueError = zrogue.ZrogueError;
-const DisplayProvider = @import("display.zig").DisplayProvider;
-const InputProvider = @import("input.zig").InputProvider;
+const Provider = @import("Provider.zig");
 const curses = @cImport(@cInclude("curses.h"));
+
+const Self = @This();
 
 //
 // Lifted from https://github.com/Akuli/curses-minesweeper
@@ -20,9 +24,9 @@ const curses = @cImport(@cInclude("curses.h"));
 //
 //   * Move cursor to x,y not supported by window size
 //
-fn checkError(res: c_int) ZrogueError!c_int {
+fn checkError(res: c_int) Provider.Error!c_int {
     if (res == curses.ERR) {
-        return ZrogueError.ImplementationError;
+        return Provider.Error.ProviderError; // Cop-out
     }
     return res;
 }
@@ -52,171 +56,21 @@ fn mapToChar(ch: MapTile) u8 {
 var global_win: ?*curses.WINDOW = null;
 
 //
-// Providing a Curses-based Display
-//
-//
-// * (0,0) is top left corner, Y incrementing down the display, X incrementing right
+// Members
 //
 
-// ===================
+allocator: std.mem.Allocator,
+x: u16,
+y: u16,
+// TODO: cursor management
+
 //
-// DisplayProvider implementation for Curses
+// Constructor
 //
-pub const CursesDisplayProvider = struct {
-    allocator: std.mem.Allocator,
-    x: u16,
-    y: u16,
-    // todo: cursor
 
-    pub fn provider(self: *CursesDisplayProvider) DisplayProvider {
-        return .{
-            .ptr = self,
-            .vtable = &.{
-                .endwin = endwin,
-                .erase = erase,
-                .getmaxx = getmaxx,
-                .getmaxy = getmaxy,
-                .mvaddch = mvaddch,
-                .mvaddstr = mvaddstr,
-                .refresh = refresh,
-                .setTile = setTile,
-            },
-        };
-    }
-
-    //
-    // Destructor
-    //
-
-    fn endwin(ptr: *anyopaque) void {
-        _ = ptr;
-        global_win = null;
-        _ = curses.endwin(); // Liberal shut-up-and-do-it
-    }
-
-    //
-    // Methods
-    //
-    // NotInitialized in here could be a panic instead of error return but
-    // the mock display also uses it to test for API correctness.
-
-    fn erase(ptr: *anyopaque) ZrogueError!void {
-        _ = ptr;
-        if (global_win == null) {
-            return ZrogueError.NotInitialized;
-        }
-        _ = try checkError(curses.werase(global_win));
-    }
-
-    pub fn getmaxy(ptr: *anyopaque) ZrogueError!u16 {
-        _ = ptr;
-        if (global_win == null) {
-            return ZrogueError.NotInitialized;
-        }
-        return @intCast(try checkError(curses.getmaxy(global_win)));
-    }
-
-    pub fn getmaxx(ptr: *anyopaque) ZrogueError!u16 {
-        _ = ptr;
-        if (global_win == null) {
-            return ZrogueError.NotInitialized;
-        }
-        return @intCast(try checkError(curses.getmaxx(global_win)));
-    }
-
-    fn setTile(ptr: *anyopaque, x: u16, y: u16, t: MapTile) ZrogueError!void {
-        _ = ptr;
-        if (global_win == null) {
-            return ZrogueError.NotInitialized;
-        }
-        _ = try checkError(curses.mvaddch(y, x, mapToChar(t)));
-        return;
-    }
-
-    fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) ZrogueError!void {
-        _ = ptr;
-        if (global_win == null) {
-            return ZrogueError.NotInitialized;
-        }
-        _ = try checkError(curses.mvaddch(y, x, ch));
-        return;
-    }
-
-    fn mvaddstr(ptr: *anyopaque, x: u16, y: u16, s: []const u8) ZrogueError!void {
-        _ = ptr;
-        if (global_win == null) {
-            return ZrogueError.NotInitialized;
-        }
-        if (s.len > 0) { // Interface apparently insists
-            _ = try checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
-        }
-    }
-
-    fn refresh(ptr: *anyopaque) ZrogueError!void {
-        _ = ptr;
-        if (global_win == null) {
-            return ZrogueError.NotInitialized;
-        }
-        _ = try checkError(curses.refresh());
-        return;
-    }
-};
-
-// ===================
-//
-// InputProvider implementation for Curses
-//
-pub const CursesInputProvider = struct {
-    //
-    // Constructor
-    //
-
-    pub fn provider(self: *CursesInputProvider) InputProvider {
-        return .{
-            .ptr = self,
-            .vtable = &.{
-                .getCommand = getCommand,
-            },
-        };
-    }
-
-    //
-    // Methods
-    //
-
-    // abstract ncurses code to internal 'command'.  Note that this is unhelpful for selection of items using a-z etc.
-    //
-    // TODO Future: resize 'key'
-    fn getCommand(ptr: *anyopaque) ZrogueError!Command {
-        _ = ptr;
-        return switch (try checkError(curses.getch())) {
-            curses.KEY_LEFT => .goWest,
-            curses.KEY_RIGHT => .goEast,
-            curses.KEY_UP => .goNorth,
-            curses.KEY_DOWN => .goSouth,
-            '<' => .ascend,
-            '>' => .descend,
-            '?' => .help,
-            'q' => .quit,
-            's' => .search,
-            ',' => .takeItem,
-            else => .wait,
-        };
-    }
-};
-
-// ===================
-//
-// Return from the config routine, handing off the two providers
-//
-pub const CursesInitReturn = struct {
-    d: CursesDisplayProvider,
-    i: CursesInputProvider,
-};
-
-pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) ZrogueError!CursesInitReturn {
+pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Self {
     if (global_win != null) {
-        return ZrogueError.AlreadyInUse;
+        return Provider.Error.AlreadyInitialized;
     }
 
     const res = curses.initscr();
@@ -234,42 +88,152 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) ZrogueError!Curses
     _ = curses.keypad(global_win, true);
 
     if (try checkError(curses.getmaxx(global_win)) < minx) {
-        return ZrogueError.DisplayTooSmall;
+        return Provider.Error.DisplayTooSmall;
     }
     if (try checkError(curses.getmaxy(global_win)) < miny) {
-        return ZrogueError.DisplayTooSmall;
+        return Provider.Error.DisplayTooSmall;
     }
 
     _ = try checkError(curses.noecho());
     _ = try checkError(curses.curs_set(0));
 
     return .{
-        .d = .{
-            .allocator = allocator,
-            .x = 0,
-            .y = 0,
+        .allocator = allocator,
+        .x = 0,
+        .y = 0,
+    };
+}
+
+pub fn provider(self: *Self) Provider {
+    return .{
+        .ptr = self,
+        .vtable = &.{
+            .endwin = endwin,
+            .erase = erase,
+            .getmaxx = getmaxx,
+            .getmaxy = getmaxy,
+            .mvaddch = mvaddch,
+            .mvaddstr = mvaddstr,
+            .refresh = refresh,
+            .setTile = setTile,
+            .getCommand = getCommand,
         },
-        .i = .{},
+    };
+}
+
+//
+// Destructor
+//
+
+fn endwin(ptr: *anyopaque) void {
+    _ = ptr;
+    global_win = null;
+    _ = curses.endwin(); // Liberal shut-up-and-do-it
+}
+
+//
+// Methods
+//
+// NotInitialized in here could be a panic instead of error return but
+// the mock display also uses it to test for API correctness.
+
+fn erase(ptr: *anyopaque) Provider.Error!void {
+    _ = ptr;
+    if (global_win == null) {
+        return Provider.Error.NotInitialized;
+    }
+    _ = try checkError(curses.werase(global_win));
+}
+
+pub fn getmaxy(ptr: *anyopaque) Provider.Error!u16 {
+    _ = ptr;
+    if (global_win == null) {
+        return Provider.Error.NotInitialized;
+    }
+    return @intCast(try checkError(curses.getmaxy(global_win)));
+}
+
+pub fn getmaxx(ptr: *anyopaque) Provider.Error!u16 {
+    _ = ptr;
+    if (global_win == null) {
+        return Provider.Error.NotInitialized;
+    }
+    return @intCast(try checkError(curses.getmaxx(global_win)));
+}
+
+fn setTile(ptr: *anyopaque, x: u16, y: u16, t: MapTile) Provider.Error!void {
+    _ = ptr;
+    if (global_win == null) {
+        return Provider.Error.NotInitialized;
+    }
+    _ = try checkError(curses.mvaddch(y, x, mapToChar(t)));
+    return;
+}
+
+fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) Provider.Error!void {
+    _ = ptr;
+    if (global_win == null) {
+        return Provider.Error.NotInitialized;
+    }
+    _ = try checkError(curses.mvaddch(y, x, ch));
+    return;
+}
+
+fn mvaddstr(ptr: *anyopaque, x: u16, y: u16, s: []const u8) Provider.Error!void {
+    _ = ptr;
+    if (global_win == null) {
+        return Provider.Error.NotInitialized;
+    }
+    if (s.len > 0) { // Interface apparently insists
+        _ = try checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
+    }
+}
+
+fn refresh(ptr: *anyopaque) Provider.Error!void {
+    _ = ptr;
+    if (global_win == null) {
+        return Provider.Error.NotInitialized;
+    }
+    _ = try checkError(curses.refresh());
+    return;
+}
+
+fn getCommand(ptr: *anyopaque) Provider.Error!Command {
+    _ = ptr;
+    // TODO Future: resize 'key'
+    return switch (try checkError(curses.getch())) {
+        curses.KEY_LEFT => .goWest,
+        curses.KEY_RIGHT => .goEast,
+        curses.KEY_UP => .goNorth,
+        curses.KEY_DOWN => .goSouth,
+        '<' => .ascend,
+        '>' => .descend,
+        '?' => .help,
+        'q' => .quit,
+        's' => .search,
+        ',' => .takeItem,
+        else => .wait,
     };
 }
 
 //
 // Unit Tests
 //
+const expectError = std.testing.expectError;
 
 // Kind of nonsense because we phony up the non-init situation
 test "Display method use without initialization (after endwin)" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    var p = CursesDisplayProvider{ .allocator = allocator, .x = 0, .y = 0 };
+    var p = Self{ .allocator = allocator, .x = 0, .y = 0 };
     var d = p.provider();
 
-    try std.testing.expectError(ZrogueError.NotInitialized, d.erase());
-    try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxx());
-    try std.testing.expectError(ZrogueError.NotInitialized, d.getmaxy());
-    try std.testing.expectError(ZrogueError.NotInitialized, d.mvaddch(1, 1, '+'));
-    try std.testing.expectError(ZrogueError.NotInitialized, d.refresh());
+    try expectError(Provider.Error.NotInitialized, d.erase());
+    try expectError(Provider.Error.NotInitialized, d.getmaxx());
+    try expectError(Provider.Error.NotInitialized, d.getmaxy());
+    try expectError(Provider.Error.NotInitialized, d.mvaddch(1, 1, '+'));
+    try expectError(Provider.Error.NotInitialized, d.refresh());
 }
 
 // EOF
