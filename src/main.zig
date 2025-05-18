@@ -4,8 +4,8 @@
 
 const std = @import("std");
 
-const curses = @import("curses.zig");
-const DisplayProvider = @import("display.zig").DisplayProvider;
+const CursesProvider = @import("curses.zig");
+const Provider = @import("Provider.zig");
 const game = @import("game.zig");
 const zrogue = @import("zrogue.zig");
 const ZrogueError = zrogue.ZrogueError;
@@ -26,12 +26,12 @@ const ScoreList = @import("utils/ScoreList.zig");
 // for figuring out what went awry.
 //
 
-var p_display: DisplayProvider = undefined;
+var p_provider: Provider = undefined;
 
 pub const panic = std.debug.FullPanic(zroguePanic);
 
 fn zroguePanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
-    p_display.endwin();
+    p_provider.endwin();
     std.debug.print("The dungeon collapses! {s}\n", .{msg});
     std.debug.dumpCurrentStackTrace(first_trace_addr);
     @trap();
@@ -105,8 +105,8 @@ pub fn main() !void {
     var prng = std.Random.DefaultPrng.init(seed);
     var r = prng.random();
 
-    var providers = curses.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY, allocator) catch |err| switch (err) {
-        ZrogueError.DisplayTooSmall => {
+    var curses = CursesProvider.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY, allocator) catch |err| switch (err) {
+        Provider.Error.DisplayTooSmall => {
             try stderr_out.print("ERROR: Minimum {}x{} display required\n", .{ zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY });
             std.process.exit(1);
         },
@@ -115,12 +115,11 @@ pub fn main() !void {
             std.process.exit(1);
         },
     };
-    const display = providers.d.provider();
-    p_display = display;
-    const input = providers.i.provider();
-    defer display.endwin();
+    const provider = curses.provider();
+    p_provider = provider; // Panic backdoor
+    defer provider.endwin();
 
-    const player = try Player.init(allocator, input, display);
+    const player = try Player.init(allocator, provider);
     defer player.deinit();
 
     const config = LevelConfig{
@@ -133,7 +132,7 @@ pub fn main() !void {
     };
 
     try game.run(config);
-    display.endwin();
+    provider.endwin();
 
     //
     // Endgame - print the player's score.
@@ -160,13 +159,7 @@ pub fn main() !void {
 test "run the game" {
     const allocator = std.testing.allocator;
     const Command = zrogue.Command;
-    const MockDisplayProvider = @import("display.zig").MockDisplayProvider;
-    const MockInputProvider = @import("input.zig").MockInputProvider;
-
-    // Maximum sizes allowed is the minimum size of the curses display
-    var md = MockDisplayProvider.init(.{ .maxx = zrogue.DISPLAY_MINX, .maxy = zrogue.DISPLAY_MINY });
-    const display = md.provider();
-    defer display.endwin();
+    const MockProvider = @import("Provider.zig").MockProvider;
 
     // TODO Future: need a recording to iterate through
     var commandlist = [_]Command{
@@ -182,10 +175,11 @@ test "run the game" {
         Command.wait,
         Command.quit,
     };
-    var mi = MockInputProvider.init(.{ .commands = &commandlist });
-    const input = mi.provider();
+    var mp = MockProvider.init(.{ .maxx = zrogue.DISPLAY_MINX, .maxy = zrogue.DISPLAY_MINY, .commands = &commandlist });
+    var mp_provider = mp.provider();
+    defer mp_provider.endwin();
 
-    const player = try Player.init(allocator, input, display);
+    const player = try Player.init(allocator, mp_provider);
     defer player.deinit();
 
     const config = LevelConfig{

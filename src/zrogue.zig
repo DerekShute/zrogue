@@ -249,6 +249,7 @@ pub const Region = struct {
 //
 // Common Error set
 //
+// NOCOMMIT clean this
 pub const ZrogueError = error{
     NotInitialized,
     AlreadyInUse, // Curses
