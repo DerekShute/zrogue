@@ -4,7 +4,7 @@
 
 .{
     .name = .zrogue,
-    .version = "0.0.1",
+    .version = "0.1.0",
     .paths = .{""},
     .fingerprint = 0xd9241e3fb14af744,
     .dependencies = .{
