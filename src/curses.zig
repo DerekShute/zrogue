@@ -73,9 +73,10 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
         return Provider.Error.AlreadyInitialized;
     }
 
+    // Note technically can fail
     const res = curses.initscr();
     errdefer {
-        _ = curses.endwin();
+        _ = curses.endwin(); // error only if window uninitialized.
     }
     if (res) |res_val| {
         global_win = res_val;
@@ -83,19 +84,20 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
 
     // Instantly process events, and activate arrow keys
     // TODO Future: mouse events
-    _ = curses.raw();
-    _ = curses.noecho();
-    _ = curses.keypad(global_win, true);
 
-    if (try checkError(curses.getmaxx(global_win)) < minx) {
+    // raw/keypad/noecho: no defined error cases
+    _ = checkError(curses.raw()) catch unreachable;
+    _ = checkError(curses.keypad(global_win, true)) catch unreachable;
+    _ = checkError(curses.noecho()) catch unreachable;
+    // curs_set: ERR only if argument value is unsupported
+    _ = checkError(curses.curs_set(0)) catch unreachable;
+
+    // getmaxx/getmaxy ERR iff null window parameter
+    const display_maxx = checkError(curses.getmaxx(global_win)) catch unreachable;
+    const display_maxy = checkError(curses.getmaxy(global_win)) catch unreachable;
+    if ((display_maxx < minx) or (display_maxy < miny)) {
         return Provider.Error.DisplayTooSmall;
     }
-    if (try checkError(curses.getmaxy(global_win)) < miny) {
-        return Provider.Error.DisplayTooSmall;
-    }
-
-    _ = try checkError(curses.noecho());
-    _ = try checkError(curses.curs_set(0));
 
     return .{
         .allocator = allocator,
@@ -109,10 +111,6 @@ pub fn provider(self: *Self) Provider {
         .ptr = self,
         .vtable = &.{
             .endwin = endwin,
-            .erase = erase,
-            .getmaxx = getmaxx,
-            .getmaxy = getmaxy,
-            .mvaddch = mvaddch,
             .mvaddstr = mvaddstr,
             .refresh = refresh,
             .setTile = setTile,
@@ -137,45 +135,12 @@ fn endwin(ptr: *anyopaque) void {
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
 
-fn erase(ptr: *anyopaque) Provider.Error!void {
-    _ = ptr;
-    if (global_win == null) {
-        return Provider.Error.NotInitialized;
-    }
-    _ = try checkError(curses.werase(global_win));
-}
-
-pub fn getmaxy(ptr: *anyopaque) Provider.Error!u16 {
-    _ = ptr;
-    if (global_win == null) {
-        return Provider.Error.NotInitialized;
-    }
-    return @intCast(try checkError(curses.getmaxy(global_win)));
-}
-
-pub fn getmaxx(ptr: *anyopaque) Provider.Error!u16 {
-    _ = ptr;
-    if (global_win == null) {
-        return Provider.Error.NotInitialized;
-    }
-    return @intCast(try checkError(curses.getmaxx(global_win)));
-}
-
 fn setTile(ptr: *anyopaque, x: u16, y: u16, t: MapTile) Provider.Error!void {
     _ = ptr;
     if (global_win == null) {
         return Provider.Error.NotInitialized;
     }
     _ = try checkError(curses.mvaddch(y, x, mapToChar(t)));
-    return;
-}
-
-fn mvaddch(ptr: *anyopaque, x: u16, y: u16, ch: u8) Provider.Error!void {
-    _ = ptr;
-    if (global_win == null) {
-        return Provider.Error.NotInitialized;
-    }
-    _ = try checkError(curses.mvaddch(y, x, ch));
     return;
 }
 
@@ -194,14 +159,21 @@ fn refresh(ptr: *anyopaque) Provider.Error!void {
     if (global_win == null) {
         return Provider.Error.NotInitialized;
     }
-    _ = try checkError(curses.refresh());
+    // refresh: no error cases defined
+    _ = checkError(curses.refresh()) catch unreachable;
     return;
 }
 
-fn getCommand(ptr: *anyopaque) Provider.Error!Command {
+fn getCommand(ptr: *anyopaque) Command {
     _ = ptr;
+    if (global_win == null) {
+        // Punish programmatic errors
+        @panic("getCommand but not initialized");
+    }
+
     // TODO Future: resize 'key'
-    return switch (try checkError(curses.getch())) {
+    const ch = checkError(curses.getch()) catch unreachable;
+    return switch (ch) {
         curses.KEY_LEFT => .goWest,
         curses.KEY_RIGHT => .goEast,
         curses.KEY_UP => .goNorth,
@@ -229,11 +201,10 @@ test "Display method use without initialization (after endwin)" {
     var p = Self{ .allocator = allocator, .x = 0, .y = 0 };
     var d = p.provider();
 
-    try expectError(Provider.Error.NotInitialized, d.erase());
-    try expectError(Provider.Error.NotInitialized, d.getmaxx());
-    try expectError(Provider.Error.NotInitialized, d.getmaxy());
-    try expectError(Provider.Error.NotInitialized, d.mvaddch(1, 1, '+'));
     try expectError(Provider.Error.NotInitialized, d.refresh());
+    try expectError(Provider.Error.NotInitialized, d.setTile(0, 0, .floor));
+    // getCommand will panic
+    try expectError(Provider.Error.NotInitialized, d.mvaddstr(0, 0, "frotz"));
 }
 
 // EOF

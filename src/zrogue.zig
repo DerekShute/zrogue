@@ -249,14 +249,11 @@ pub const Region = struct {
 //
 // Common Error set
 //
-// NOCOMMIT clean this
 pub const ZrogueError = error{
-    NotInitialized,
-    AlreadyInUse, // Curses
-    DisplayTooSmall, // Curses
-    ImplementationError, // Curses is annoying at least for now
-    IndexOverflow,
-    OutOfBounds,
+    AlreadyInUse, // map
+    ImplementationError, // FIXME Curses is annoying
+    IndexOverflow, // map/grid
+    OutOfBounds, // map/grid
 };
 
 //

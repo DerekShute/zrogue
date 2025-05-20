@@ -72,10 +72,6 @@ pub const Player = struct {
         try self.provider.refresh();
     }
 
-    inline fn mvaddch(self: *Player, x: u16, y: u16, ch: u8) Provider.Error!void {
-        try self.provider.mvaddch(x, y, ch);
-    }
-
     inline fn mvaddstr(self: *Player, x: u16, y: u16, s: []const u8) Provider.Error!void {
         try self.provider.mvaddstr(x, y, s);
     }
@@ -84,10 +80,8 @@ pub const Player = struct {
         try self.provider.setTile(x, y, t);
     }
 
-    inline fn getCommand(self: *Player) ZrogueError!Command {
-        return self.provider.getCommand() catch {
-            return ZrogueError.ImplementationError; // NOCOMMIT Ugh
-        };
+    inline fn getCommand(self: *Player) Command {
+        return self.provider.getCommand();
     }
 
     inline fn getMessage(self: *Player) []u8 {
@@ -219,17 +213,17 @@ fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
     const self: *Player = @ptrCast(@alignCast(ptr));
     var ret = ThingAction.init(.none);
 
-    // NOCOMMIT ugh
+    // REFACTOR ugh
     displayScreen(self, map) catch {
         return ZrogueError.ImplementationError;
     };
 
-    var cmd = try self.getCommand();
+    var cmd = self.getCommand();
     while (cmd == .help) {
         displayHelp(self) catch {
-            return ZrogueError.ImplementationError; // NOCOMMIT ugh
+            return ZrogueError.ImplementationError; // REFACTOR ugh
         };
-        cmd = try self.getCommand();
+        cmd = self.getCommand();
     }
     ret = switch (cmd) {
         .help => ThingAction.init(.none),
