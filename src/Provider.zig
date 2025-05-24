@@ -27,7 +27,7 @@ pub const Error = error{
 //
 pub const VTable = struct {
     // constructor/destructor
-    endwin: *const fn (ctx: *anyopaque) void,
+    deinit: *const fn (ctx: *anyopaque) void,
     // display
     mvaddstr: *const fn (ctx: *anyopaque, x: u16, y: u16, s: []const u8) Error!void,
     refresh: *const fn (ctx: *anyopaque) Error!void,
@@ -49,8 +49,8 @@ vtable: *const VTable,
 // Constructor and destructor
 //
 
-pub inline fn endwin(self: Self) void {
-    self.vtable.endwin(self.ptr);
+pub inline fn deinit(self: Self) void {
+    self.vtable.deinit(self.ptr);
 }
 
 //
@@ -109,7 +109,7 @@ pub const MockProvider = struct {
         return .{
             .ptr = self,
             .vtable = &.{
-                .endwin = mock_endwin,
+                .deinit = mock_deinit,
                 .mvaddstr = mock_mvaddstr,
                 .refresh = mock_refresh,
                 .setTile = mock_setTile,
@@ -122,7 +122,7 @@ pub const MockProvider = struct {
     // Methods
     //
 
-    fn mock_endwin(ptr: *anyopaque) void {
+    fn mock_deinit(ptr: *anyopaque) void {
         const self: *MockProvider = @ptrCast(@alignCast(ptr));
         self.initialized = false;
         return;
@@ -186,17 +186,17 @@ var testlist = [_]Command{
 test "Basic use of mock provider" {
     var p = MockProvider.init(.{ .maxx = 40, .maxy = 60, .commands = &testlist });
     var d = p.provider();
-    defer d.endwin();
+    defer d.deinit();
 
     try d.refresh();
     try d.mvaddstr(0, 0, "frotz");
 }
 
-test "Method use after endwin" {
+test "Method use after deinit" {
     var p = MockProvider.init(.{ .maxx = 50, .maxy = 50, .commands = &testlist });
     var d = p.provider();
 
-    d.endwin();
+    d.deinit();
     // getCommand will panic
     try expectError(Error.NotInitialized, d.refresh());
     try expectError(Error.NotInitialized, d.setTile(0, 0, .floor));

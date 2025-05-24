@@ -110,7 +110,7 @@ pub fn provider(self: *Self) Provider {
     return .{
         .ptr = self,
         .vtable = &.{
-            .endwin = endwin,
+            .deinit = deinit,
             .mvaddstr = mvaddstr,
             .refresh = refresh,
             .setTile = setTile,
@@ -123,7 +123,7 @@ pub fn provider(self: *Self) Provider {
 // Destructor
 //
 
-fn endwin(ptr: *anyopaque) void {
+fn deinit(ptr: *anyopaque) void {
     _ = ptr;
     global_win = null;
     _ = curses.endwin(); // Liberal shut-up-and-do-it
@@ -194,7 +194,7 @@ fn getCommand(ptr: *anyopaque) Command {
 const expectError = std.testing.expectError;
 
 // Kind of nonsense because we phony up the non-init situation
-test "Display method use without initialization (after endwin)" {
+test "Display method use without initialization (after deinit)" {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 

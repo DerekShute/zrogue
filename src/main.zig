@@ -31,7 +31,7 @@ var p_provider: Provider = undefined;
 pub const panic = std.debug.FullPanic(zroguePanic);
 
 fn zroguePanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
-    p_provider.endwin();
+    p_provider.deinit();
     std.debug.print("The dungeon collapses! {s}\n", .{msg});
     std.debug.dumpCurrentStackTrace(first_trace_addr);
     @trap();
@@ -117,7 +117,7 @@ pub fn main() !void {
     };
     const provider = curses.provider();
     p_provider = provider; // Panic backdoor
-    defer provider.endwin();
+    defer provider.deinit();
 
     const player = try Player.init(allocator, provider);
     defer player.deinit();
@@ -132,7 +132,7 @@ pub fn main() !void {
     };
 
     try game.run(config);
-    provider.endwin();
+    provider.deinit();
 
     //
     // Endgame - print the player's score.
@@ -177,7 +177,7 @@ test "run the game" {
     };
     var mp = MockProvider.init(.{ .maxx = zrogue.DISPLAY_MINX, .maxy = zrogue.DISPLAY_MINY, .commands = &commandlist });
     var mp_provider = mp.provider();
-    defer mp_provider.endwin();
+    defer mp_provider.deinit();
 
     const player = try Player.init(allocator, mp_provider);
     defer player.deinit();
