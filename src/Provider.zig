@@ -79,16 +79,16 @@ pub inline fn getCommand(self: Self) Command {
 
 pub const MockProvider = struct {
     initialized: bool,
-    maxx: u16,
-    maxy: u16,
-    x: u16 = 0,
-    y: u16 = 0,
+    maxx: i16, // Match ncurses for now
+    maxy: i16,
+    x: i16 = 0,
+    y: i16 = 0,
     command_list: []Command = undefined,
     command_index: u16 = 0,
 
     pub const MockConfig = struct {
-        maxx: u16,
-        maxy: u16,
+        maxx: i16,
+        maxy: i16,
         commands: []Command,
     };
 
