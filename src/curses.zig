@@ -99,7 +99,8 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
     // getmaxx/getmaxy ERR iff null window parameter
     const display_maxx = checkError(curses.getmaxx(global_win)) catch unreachable;
     const display_maxy = checkError(curses.getmaxy(global_win)) catch unreachable;
-    if ((display_maxx < minx) or (display_maxy < miny)) {
+    // TODO: off by one error here
+    if ((display_maxx < minx) or (display_maxy < miny + 1)) {
         return Provider.Error.DisplayTooSmall;
     }
 
