@@ -12,7 +12,6 @@ const std = @import("std");
 const Grid = @import("utils/grid.zig").Grid;
 const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
-const MessageLog = @import("message_log.zig").MessageLog;
 const Provider = @import("Provider.zig");
 const Thing = @import("thing.zig").Thing;
 const zrogue = @import("zrogue.zig");
@@ -43,8 +42,7 @@ const MapView = Grid(MapViewTile);
 pub const Player = struct {
     thing: Thing, // NOTE: Must be first, for pointer coercion from *Thing
     allocator: std.mem.Allocator,
-    provider: Provider = undefined,
-    log: *MessageLog,
+    provider: *Provider = undefined,
     purse: u16 = undefined,
     map_view: MapView = undefined,
 
@@ -55,18 +53,15 @@ pub const Player = struct {
         .takeItem = playerTakeItem,
     };
 
-    pub fn init(allocator: std.mem.Allocator, provider: Provider, mapsize: Pos) !*Player {
+    pub fn init(allocator: std.mem.Allocator, provider: *Provider, mapsize: Pos) !*Player {
         const p: *Player = try allocator.create(Player);
         errdefer allocator.destroy(p);
-        const log = try MessageLog.init(allocator);
-        errdefer log.deinit();
 
         const mapview = try MapView.config(allocator, @intCast(mapsize.getX()), @intCast(mapsize.getY()));
         errdefer mapview.deinit();
 
         p.allocator = allocator;
         p.purse = 0;
-        p.log = log;
         p.provider = provider;
         p.thing = Thing.config(.player, &vtable);
         p.map_view = mapview;
@@ -76,9 +71,7 @@ pub const Player = struct {
 
     pub fn deinit(self: *Player) void {
         const allocator = self.allocator;
-        const log = self.log;
         const mapview = self.map_view;
-        log.deinit();
         mapview.deinit();
         allocator.destroy(self);
     }
@@ -96,16 +89,12 @@ pub const Player = struct {
         try self.provider.setTile(x, y, t);
     }
 
+    inline fn addMessage(self: *Player, msg: []const u8) void {
+        self.provider.addMessage(msg);
+    }
+
     inline fn getCommand(self: *Player) Command {
         return self.provider.getCommand();
-    }
-
-    inline fn getMessage(self: *Player) []u8 {
-        return self.log.get();
-    }
-
-    inline fn clearMessage(self: *Player) void {
-        return self.log.clear();
     }
 
     inline fn getPos(self: *Player) Pos {
@@ -161,8 +150,6 @@ fn updateDisplay(p: *Player, map: *Map) !void {
     // TODO: this shouldn't be necessary, eventually.  Only send new information.
 
     const provider = p.provider;
-    provider.addMessage(p.getMessage());
-    p.clearMessage();
 
     provider.updateStats(.{ .depth = map.getDepth(), .purse = p.purse });
 
@@ -196,7 +183,7 @@ fn updateDisplay(p: *Player, map: *Map) !void {
 
 fn playerAddMessage(ptr: *Thing, msg: []const u8) void {
     const self: *Player = @ptrCast(@alignCast(ptr));
-    self.log.add(msg);
+    self.addMessage(msg);
 }
 
 fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
@@ -231,7 +218,7 @@ fn playerSetKnown(ptr: *Thing, p: Pos, p2: Pos, val: bool) void {
 fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
     const self: *Player = @ptrCast(@alignCast(ptr));
 
-    self.log.add("You pick up the gold!");
+    self.addMessage("You pick up the gold!");
     map.removeItem(item);
     self.purse = self.purse + 1; // TODO 2.0: quantity/value
 }
@@ -295,8 +282,8 @@ test "fail to create a player" { // First allocation attempt
     try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp, test_mapsize));
 }
 
-test "fail to fully create a player" { // right now there are three allocations
-    var failing = std.testing.FailingAllocator.init(t_alloc, .{ .fail_index = 2 });
+test "fail to fully create a player" { // right now there are two allocations
+    var failing = std.testing.FailingAllocator.init(t_alloc, .{ .fail_index = 1 });
     var m = try MockProvider.init(mock_config);
     var mp = m.provider();
     defer mp.deinit();

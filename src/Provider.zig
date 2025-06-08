@@ -7,6 +7,7 @@
 
 const std = @import("std");
 const Grid = @import("utils/grid.zig").Grid;
+const MessageLog = @import("message_log.zig").MessageLog;
 const zrogue = @import("zrogue.zig");
 const MapTile = zrogue.MapTile;
 const Command = zrogue.Command;
@@ -53,9 +54,6 @@ pub const DisplayMap = Grid(DisplayMapTile);
 pub const VTable = struct {
     // constructor/destructor
     deinit: *const fn (ctx: *anyopaque) void,
-    // display
-    addMessage: ?*const fn (ctx: *anyopaque, msg: []const u8) void,
-    updateStats: ?*const fn (ctx: *anyopaque, stats: VisibleStats) void,
 
     // input
     getCommand: *const fn (ctx: *anyopaque) Command,
@@ -69,13 +67,19 @@ pub const VTable = struct {
 
 ptr: *anyopaque,
 vtable: *const VTable,
-display_map: *DisplayMap = undefined,
+display_map: DisplayMap = undefined,
+stats: VisibleStats = undefined,
+x: i16 = 0,
+y: i16 = 0,
+log: *MessageLog = undefined,
 
 //
 // Constructor and destructor
 //
 
 pub inline fn deinit(self: Self) void {
+    self.display_map.deinit();
+    self.log.deinit();
     self.vtable.deinit(self.ptr);
 }
 
@@ -84,9 +88,15 @@ pub inline fn deinit(self: Self) void {
 //
 
 pub inline fn addMessage(self: Self, msg: []const u8) void {
-    if (self.vtable.addMessage) |cb| {
-        cb(self.ptr, msg);
-    }
+    self.log.add(msg);
+}
+
+pub inline fn getMessage(self: Self) []u8 {
+    return self.log.get();
+}
+
+pub inline fn clearMessage(self: Self) void {
+    self.log.clear();
 }
 
 pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) Error!void {
@@ -96,10 +106,8 @@ pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) Error!void {
     val.tile = t;
 }
 
-pub fn updateStats(self: Self, stats: VisibleStats) void {
-    if (self.vtable.updateStats) |cb| {
-        cb(self.ptr, stats);
-    }
+pub fn updateStats(self: *Self, stats: VisibleStats) void {
+    self.stats = stats;
 }
 
 pub inline fn getCommand(self: Self) Command {
@@ -112,14 +120,9 @@ pub inline fn getCommand(self: Self) Command {
 
 pub const MockProvider = struct {
     allocator: std.mem.Allocator,
-    initialized: bool,
-    maxx: i16, // Match ncurses for now
-    maxy: i16,
-    x: i16 = 0,
-    y: i16 = 0,
     command_list: []Command = undefined,
     command_index: u16 = 0,
-    display_map: DisplayMap = undefined,
+    p: Self = undefined,
 
     pub const MockConfig = struct {
         allocator: std.mem.Allocator,
@@ -135,27 +138,30 @@ pub const MockProvider = struct {
     pub fn init(config: MockConfig) !MockProvider {
         const display_map = try DisplayMap.config(config.allocator, @intCast(config.maxx), @intCast(config.maxy));
         errdefer display_map.deinit();
+
+        const log = try MessageLog.init(config.allocator);
+        errdefer log.deinit();
+
         return MockProvider{
             .allocator = config.allocator,
-            .display_map = display_map,
-            .initialized = true,
-            .maxx = config.maxx,
-            .maxy = config.maxy,
             .command_list = config.commands,
+            .p = .{
+                .log = log,
+                .ptr = undefined,
+                .display_map = display_map,
+                .x = config.maxx,
+                .y = config.maxy,
+                .vtable = &.{
+                    .deinit = mock_deinit,
+                    .getCommand = mock_getCommand,
+                },
+            },
         };
     }
 
-    pub fn provider(self: *MockProvider) Self {
-        return .{
-            .ptr = self,
-            .display_map = &self.display_map,
-            .vtable = &.{
-                .deinit = mock_deinit,
-                .addMessage = null,
-                .updateStats = null,
-                .getCommand = mock_getCommand,
-            },
-        };
+    pub fn provider(self: *MockProvider) *Self {
+        self.p.ptr = self;
+        return &self.p;
     }
 
     //
@@ -163,18 +169,12 @@ pub const MockProvider = struct {
     //
 
     fn mock_deinit(ptr: *anyopaque) void {
-        const self: *MockProvider = @ptrCast(@alignCast(ptr));
-        const display_map = self.display_map;
-        display_map.deinit();
-        self.initialized = false;
+        _ = ptr;
         return;
     }
 
     fn mock_getCommand(ptr: *anyopaque) Command {
         const self: *MockProvider = @ptrCast(@alignCast(ptr));
-        if (!self.initialized) {
-            @panic("mock_getCommand before initialized");
-        }
         const i = self.command_index;
         if (i >= self.command_list.len) {
             @panic("No more mock commands to provide");

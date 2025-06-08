@@ -26,7 +26,7 @@ const ScoreList = @import("utils/ScoreList.zig");
 // for figuring out what went awry.
 //
 
-var p_provider: Provider = undefined;
+var p_provider: *Provider = undefined;
 
 pub const panic = std.debug.FullPanic(zroguePanic);
 
