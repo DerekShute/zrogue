@@ -125,9 +125,6 @@ pub fn provider(self: *Self) Provider {
         .vtable = &.{
             .deinit = deinit,
             .addMessage = addMessage,
-            .mvaddstr = mvaddstr,
-            .refresh = refresh,
-            .setTile = setTile,
             .updateStats = updateStats,
             .getCommand = getCommand,
         },
@@ -149,15 +146,67 @@ fn deinit(ptr: *anyopaque) void {
 // Gross Utility Wrappers
 //
 
-fn cursesMvaddstr(x: u16, y: u16, s: []const u8) Provider.Error!void {
+fn mvaddstr(x: u16, y: u16, s: []const u8) void {
+    // TODO errors here probably only because of display sizing
+
     if (s.len > 0) { // Interface apparently insists
-        _ = try checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
+        _ = checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len))) catch unreachable;
     }
+}
+
+fn refresh() void {
+    // refresh: no error cases defined
+    _ = checkError(curses.refresh()) catch unreachable;
+}
+
+//
+// Input Utility
+//
+
+fn readCommand() Command {
+    // TODO Future: resize 'key'
+
+    const ch = checkError(curses.getch()) catch unreachable;
+    return switch (ch) {
+        curses.KEY_LEFT => .goWest,
+        curses.KEY_RIGHT => .goEast,
+        curses.KEY_UP => .goNorth,
+        curses.KEY_DOWN => .goSouth,
+        '<' => .ascend,
+        '>' => .descend,
+        '?' => .help,
+        'q' => .quit,
+        's' => .search,
+        ',' => .takeItem,
+        else => .wait,
+    };
 }
 
 //
 // Display Utility
 //
+
+fn displayHelp() void {
+    // FIXME : This is horrible and adding to it is painful
+    mvaddstr(0, 0, "                                                 ");
+    mvaddstr(0, 1, "         Welcome to the Dungeon of Doom          ");
+    mvaddstr(0, 2, "                                                 ");
+    mvaddstr(0, 3, " Use the arrow keys to move through the dungeon  ");
+    mvaddstr(0, 4, " and collect gold.  You can only return to the   ");
+    mvaddstr(0, 5, " surface after you have descended to the bottom. ");
+    mvaddstr(0, 6, "                                                 ");
+    mvaddstr(0, 7, " Commands include:                               ");
+    mvaddstr(0, 8, "    ? - help (this)                              ");
+    mvaddstr(0, 9, "    > - descend stairs (\">\")                   ");
+    mvaddstr(0, 10, "    < - ascend stairs (\"<\")                   ");
+    mvaddstr(0, 11, "    , - pick up gold  (\"$\")                   ");
+    mvaddstr(0, 12, "    s - search for hidden doors                 ");
+    mvaddstr(0, 13, "    q - chicken out and quit                    ");
+    mvaddstr(0, 14, "                                                ");
+    mvaddstr(0, 15, " [type a command or any other key to continue]  ");
+    mvaddstr(0, 16, "                                                ");
+    refresh();
+}
 
 fn displayScreen(self: *Self) !void {
     // TODO: only updates
@@ -167,8 +216,8 @@ fn displayScreen(self: *Self) !void {
     //
     // TODO: too narrow
     //
-    try cursesMvaddstr(0, 0, "                                                  ");
-    try cursesMvaddstr(0, 0, self.msgbuf);
+    mvaddstr(0, 0, "                                                  ");
+    mvaddstr(0, 0, self.msgbuf);
     self.msgbuf = &.{}; // Zap it
 
     //
@@ -189,7 +238,7 @@ fn displayScreen(self: *Self) !void {
     const line = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
     // TODO if too narrow
     // TODO explicitly the bottom row, whatever the current screen height
-    try cursesMvaddstr(0, @intCast(self.y), line);
+    mvaddstr(0, @intCast(self.y), line);
 
     //
     // Output map display
@@ -204,6 +253,8 @@ fn displayScreen(self: *Self) !void {
             _ = checkError(curses.mvaddch(@intCast(y + 1), @intCast(x), mapToChar(t.tile))) catch unreachable;
         }
     }
+
+    refresh();
 }
 
 //
@@ -211,15 +262,6 @@ fn displayScreen(self: *Self) !void {
 //
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
-
-fn setTile(ptr: *anyopaque, x: u16, y: u16, t: MapTile) Provider.Error!void {
-    _ = ptr;
-    if (global_win == null) {
-        return Provider.Error.NotInitialized;
-    }
-    _ = try checkError(curses.mvaddch(y, x, mapToChar(t)));
-    return;
-}
 
 fn addMessage(ptr: *anyopaque, msg: []const u8) void {
     const self: *Self = @ptrCast(@alignCast(ptr));
@@ -233,24 +275,6 @@ fn updateStats(ptr: *anyopaque, stats: Provider.VisibleStats) void {
     self.stats = stats;
 }
 
-fn mvaddstr(ptr: *anyopaque, x: u16, y: u16, s: []const u8) Provider.Error!void {
-    _ = ptr;
-    if (global_win == null) {
-        return Provider.Error.NotInitialized;
-    }
-    try cursesMvaddstr(x, y, s);
-}
-
-fn refresh(ptr: *anyopaque) Provider.Error!void {
-    _ = ptr;
-    if (global_win == null) {
-        return Provider.Error.NotInitialized;
-    }
-    // refresh: no error cases defined
-    _ = checkError(curses.refresh()) catch unreachable;
-    return;
-}
-
 fn getCommand(ptr: *anyopaque) Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
 
@@ -261,22 +285,12 @@ fn getCommand(ptr: *anyopaque) Command {
 
     self.displayScreen() catch unreachable; // TODO
 
-    // TODO Future: resize 'key'
-    // TODO get-keypress command
-    const ch = checkError(curses.getch()) catch unreachable;
-    return switch (ch) {
-        curses.KEY_LEFT => .goWest,
-        curses.KEY_RIGHT => .goEast,
-        curses.KEY_UP => .goNorth,
-        curses.KEY_DOWN => .goSouth,
-        '<' => .ascend,
-        '>' => .descend,
-        '?' => .help,
-        'q' => .quit,
-        's' => .search,
-        ',' => .takeItem,
-        else => .wait,
-    };
+    var cmd = readCommand();
+    while (cmd == .help) {
+        displayHelp();
+        cmd = readCommand();
+    }
+    return cmd;
 }
 
 //
