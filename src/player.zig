@@ -92,14 +92,6 @@ pub const Player = struct {
 
     // REFACTOR: interfaces on top of Thing
 
-    inline fn refresh(self: *Player) Provider.Error!void {
-        try self.provider.refresh();
-    }
-
-    inline fn mvaddstr(self: *Player, x: u16, y: u16, s: []const u8) Provider.Error!void {
-        try self.provider.mvaddstr(x, y, s);
-    }
-
     inline fn setDisplayTile(self: *Player, x: u16, y: u16, t: MapTile) Provider.Error!void {
         try self.provider.setTile(x, y, t);
     }
@@ -165,29 +157,6 @@ fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
     return .unknown;
 }
 
-fn displayHelp(p: *Player) !void {
-    // FIXME : This is horrible and adding to it is painful
-    // TODO: pull in command keys from input provider?
-    try p.mvaddstr(0, 0, "                                                 ");
-    try p.mvaddstr(0, 1, "         Welcome to the Dungeon of Doom          ");
-    try p.mvaddstr(0, 2, "                                                 ");
-    try p.mvaddstr(0, 3, " Use the arrow keys to move through the dungeon  ");
-    try p.mvaddstr(0, 4, " and collect gold.  You can only return to the   ");
-    try p.mvaddstr(0, 5, " surface after you have descended to the bottom. ");
-    try p.mvaddstr(0, 6, "                                                 ");
-    try p.mvaddstr(0, 7, " Commands include:                               ");
-    try p.mvaddstr(0, 8, "    ? - help (this)                              ");
-    try p.mvaddstr(0, 9, "    > - descend stairs (\">\")                   ");
-    try p.mvaddstr(0, 10, "    < - ascend stairs (\"<\")                   ");
-    try p.mvaddstr(0, 11, "    , - pick up gold  (\"$\")                   ");
-    try p.mvaddstr(0, 12, "    s - search for hidden doors                 ");
-    try p.mvaddstr(0, 13, "    q - chicken out and quit                    ");
-    try p.mvaddstr(0, 14, "                                                ");
-    try p.mvaddstr(0, 15, " [type a command or any other key to continue]  ");
-    try p.mvaddstr(0, 16, "                                                ");
-    try p.refresh();
-}
-
 fn updateDisplay(p: *Player, map: *Map) !void {
     // TODO: this shouldn't be necessary, eventually.  Only send new information.
 
@@ -232,18 +201,10 @@ fn playerAddMessage(ptr: *Thing, msg: []const u8) void {
 
 fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
     const self: *Player = @ptrCast(@alignCast(ptr));
-    var ret = ThingAction.init(.none);
 
     updateDisplay(self, map) catch unreachable; // TODO
 
-    var cmd = self.getCommand();
-    while (cmd == .help) {
-        displayHelp(self) catch {
-            return ZrogueError.ImplementationError; // REFACTOR ugh
-        };
-        cmd = self.getCommand();
-    }
-    ret = switch (cmd) {
+    return switch (self.getCommand()) {
         .help => ThingAction.init(.none),
         .quit => ThingAction.init(.quit),
         .goNorth => ThingAction.init_dir(.move, .north),
@@ -256,8 +217,6 @@ fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
         .takeItem => ThingAction.init_pos(.take, self.getPos()),
         else => ThingAction.init(.wait),
     };
-
-    return ret;
 }
 
 fn playerSetKnown(ptr: *Thing, p: Pos, p2: Pos, val: bool) void {

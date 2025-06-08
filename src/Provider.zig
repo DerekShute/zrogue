@@ -55,9 +55,6 @@ pub const VTable = struct {
     deinit: *const fn (ctx: *anyopaque) void,
     // display
     addMessage: ?*const fn (ctx: *anyopaque, msg: []const u8) void,
-    mvaddstr: *const fn (ctx: *anyopaque, x: u16, y: u16, s: []const u8) Error!void,
-    refresh: *const fn (ctx: *anyopaque) Error!void,
-    setTile: *const fn (ctx: *anyopaque, x: u16, y: u16, t: MapTile) Error!void,
     updateStats: ?*const fn (ctx: *anyopaque, stats: VisibleStats) void,
 
     // input
@@ -92,20 +89,11 @@ pub inline fn addMessage(self: Self, msg: []const u8) void {
     }
 }
 
-pub inline fn mvaddstr(self: Self, x: u16, y: u16, s: []const u8) Error!void {
-    try self.vtable.mvaddstr(self.ptr, x, y, s);
-}
-
-pub inline fn refresh(self: Self) Error!void {
-    return self.vtable.refresh(self.ptr);
-}
-
 pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) Error!void {
     var val = self.display_map.find(x, y) catch {
         @panic("Bad pos sent to Provider.setTile"); // THINK: ignore?
     };
     val.tile = t;
-    try self.vtable.setTile(self.ptr, x, y, t); // TODO rid
 }
 
 pub fn updateStats(self: Self, stats: VisibleStats) void {
@@ -164,9 +152,6 @@ pub const MockProvider = struct {
             .vtable = &.{
                 .deinit = mock_deinit,
                 .addMessage = null,
-                .mvaddstr = mock_mvaddstr,
-                .refresh = mock_refresh,
-                .setTile = mock_setTile,
                 .updateStats = null,
                 .getCommand = mock_getCommand,
             },
@@ -182,36 +167,6 @@ pub const MockProvider = struct {
         const display_map = self.display_map;
         display_map.deinit();
         self.initialized = false;
-        return;
-    }
-
-    fn mock_mvaddstr(ptr: *anyopaque, x: u16, y: u16, s: []const u8) Error!void {
-        const self: *MockProvider = @ptrCast(@alignCast(ptr));
-        if (!self.initialized) {
-            return Error.NotInitialized;
-        }
-        _ = x;
-        _ = y;
-        _ = s;
-        return;
-    }
-
-    fn mock_refresh(ptr: *anyopaque) Error!void {
-        const self: *MockProvider = @ptrCast(@alignCast(ptr));
-        if (!self.initialized) {
-            return Error.NotInitialized;
-        }
-        return;
-    }
-
-    fn mock_setTile(ptr: *anyopaque, x: u16, y: u16, t: MapTile) Error!void {
-        const self: *MockProvider = @ptrCast(@alignCast(ptr));
-        if (!self.initialized) {
-            return Error.NotInitialized;
-        }
-        _ = x;
-        _ = y;
-        _ = t;
         return;
     }
 
@@ -247,8 +202,7 @@ test "Basic use of mock provider" {
     var d = p.provider();
     defer d.deinit();
 
-    try d.refresh();
-    try d.mvaddstr(0, 0, "frotz");
+    d.addMessage("frotz");
 }
 
 test "fail to create mock provider" { // First allocation attempt
