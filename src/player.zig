@@ -91,6 +91,7 @@ pub const Player = struct {
     }
 
     // REFACTOR: interfaces on top of Thing
+
     inline fn refresh(self: *Player) Provider.Error!void {
         try self.provider.refresh();
     }
@@ -187,36 +188,20 @@ fn displayHelp(p: *Player) !void {
     try p.refresh();
 }
 
-fn displayScreen(p: *Player, map: *Map) !void {
-    try p.mvaddstr(0, 0, "                                                  ");
-    try p.mvaddstr(0, 0, p.getMessage());
+fn updateDisplay(p: *Player, map: *Map) !void {
+    // TODO: this shouldn't be necessary, eventually.  Only send new information.
+
+    const provider = p.provider;
+    provider.addMessage(p.getMessage());
     p.clearMessage();
 
-    // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
+    provider.updateStats(.{ .depth = map.getDepth(), .purse = p.purse });
 
-    var stats: [80]u8 = undefined; // does this need to be allocated?  size?
-
-    const fmt = "Level: {}  Gold: {:<5}  Hp: some";
-    const output = .{
-        map.getDepth(),
-        p.purse,
-    };
-
-    // We know that error.NoSpaceLeft can't happen here
-    const line = std.fmt.bufPrint(&stats, fmt, output) catch unreachable;
-    try p.mvaddstr(0, @intCast(map.getHeight() + 1), line);
-
-    //
-    // Convert map to display
-    //
-    // Shift down one row to make room for message bar
-    //
-    // TODO: let display figure this out
-    for (0..@intCast(map.getHeight() - 1)) |y| {
+    // Send visible map
+    for (0..@intCast(map.getHeight())) |y| {
         for (0..@intCast(map.getWidth())) |x| {
             const t = try render(map, p, @intCast(x), @intCast(y));
-
-            try p.setDisplayTile(@intCast(x), @intCast(y + 1), t);
+            try provider.setTile(@intCast(x), @intCast(y), t);
         }
     }
 
@@ -229,11 +214,9 @@ fn displayScreen(p: *Player, map: *Map) !void {
             const x = pos.getX();
             const y = pos.getY();
             const tile = try map.getTile(x, y);
-            try p.setDisplayTile(@intCast(x), @intCast(y + 1), tile);
+            try provider.setTile(@intCast(x), @intCast(y), tile);
         }
     }
-
-    try p.refresh();
 }
 
 //
@@ -248,15 +231,10 @@ fn playerAddMessage(ptr: *Thing, msg: []const u8) void {
 }
 
 fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
-    // Map is the _visible_ or _known_ map presented to the player
-
     const self: *Player = @ptrCast(@alignCast(ptr));
     var ret = ThingAction.init(.none);
 
-    // REFACTOR ugh
-    displayScreen(self, map) catch {
-        return ZrogueError.ImplementationError;
-    };
+    updateDisplay(self, map) catch unreachable; // TODO
 
     var cmd = self.getCommand();
     while (cmd == .help) {
