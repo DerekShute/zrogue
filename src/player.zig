@@ -211,7 +211,8 @@ fn displayScreen(p: *Player, map: *Map) !void {
     //
     // Shift down one row to make room for message bar
     //
-    for (0..@intCast(map.getHeight())) |y| {
+    // TODO: let display figure this out
+    for (0..@intCast(map.getHeight() - 1)) |y| {
         for (0..@intCast(map.getWidth())) |x| {
             const t = try render(map, p, @intCast(x), @intCast(y));
 
@@ -304,21 +305,24 @@ fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
 
 const MockProvider = @import("Provider.zig").MockProvider;
 const expect = std.testing.expect;
+const t_alloc = std.testing.allocator;
+
 const Room = @import("map.zig").Room;
 const mapgen = @import("mapgen/mapgen.zig");
-
 const test_mapsize = Pos.init(30, 30);
-const mock_config: MockProvider.MockConfig = .{ .maxx = test_mapsize.getX(), .maxy = test_mapsize.getY(), .commands = &.{} };
+const mock_config: MockProvider.MockConfig = .{ .allocator = t_alloc, .maxx = test_mapsize.getX(), .maxy = test_mapsize.getY(), .commands = &.{} };
 
 test "create a player" {
-    var mp = MockProvider.init(mock_config);
-    const player = try Player.init(std.testing.allocator, mp.provider(), test_mapsize);
+    var m = try MockProvider.init(mock_config);
+    var mp = m.provider();
+    defer mp.deinit();
+    const player = try Player.init(t_alloc, mp, test_mapsize);
     defer player.deinit();
 
     //
     // Try out rendering
     //
-    var map = try Map.init(std.testing.allocator, test_mapsize.getX(), test_mapsize.getY(), 1, 1);
+    var map = try Map.init(t_alloc, test_mapsize.getX(), test_mapsize.getY(), 1, 1);
     defer map.deinit();
 
     try map.setMonster(player.toThing(), 6, 6);
@@ -346,17 +350,21 @@ test "create a player" {
 }
 
 test "fail to create a player" { // First allocation attempt
-    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    var mp = MockProvider.init(mock_config);
+    var failing = std.testing.FailingAllocator.init(t_alloc, .{ .fail_index = 0 });
+    var m = try MockProvider.init(mock_config);
+    var mp = m.provider();
+    defer mp.deinit();
 
-    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp.provider(), test_mapsize));
+    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp, test_mapsize));
 }
 
 test "fail to fully create a player" { // right now there are three allocations
-    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 2 });
-    var mp = MockProvider.init(mock_config);
+    var failing = std.testing.FailingAllocator.init(t_alloc, .{ .fail_index = 2 });
+    var m = try MockProvider.init(mock_config);
+    var mp = m.provider();
+    defer mp.deinit();
 
-    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp.provider(), test_mapsize));
+    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp, test_mapsize));
 }
 
 // Visualization

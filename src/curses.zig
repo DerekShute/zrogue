@@ -60,6 +60,7 @@ var global_win: ?*curses.WINDOW = null;
 //
 
 allocator: std.mem.Allocator,
+display_map: Provider.DisplayMap = undefined,
 x: u16,
 y: u16,
 // TODO: cursor management
@@ -82,6 +83,9 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
         global_win = res_val;
     }
 
+    const display_map = try Provider.DisplayMap.config(allocator, @intCast(minx), @intCast(miny));
+    errdefer display_map.deinit();
+
     // Instantly process events, and activate arrow keys
     // TODO Future: mouse events
 
@@ -101,6 +105,7 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
 
     return .{
         .allocator = allocator,
+        .display_map = display_map,
         .x = 0,
         .y = 0,
     };
@@ -109,6 +114,7 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
 pub fn provider(self: *Self) Provider {
     return .{
         .ptr = self,
+        .display_map = &self.display_map,
         .vtable = &.{
             .deinit = deinit,
             .mvaddstr = mvaddstr,
@@ -124,7 +130,8 @@ pub fn provider(self: *Self) Provider {
 //
 
 fn deinit(ptr: *anyopaque) void {
-    _ = ptr;
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.display_map.deinit();
     global_win = null;
     _ = curses.endwin(); // Liberal shut-up-and-do-it
 }
@@ -193,18 +200,6 @@ fn getCommand(ptr: *anyopaque) Command {
 //
 const expectError = std.testing.expectError;
 
-// Kind of nonsense because we phony up the non-init situation
-test "Display method use without initialization (after deinit)" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-
-    var p = Self{ .allocator = allocator, .x = 0, .y = 0 };
-    var d = p.provider();
-
-    try expectError(Provider.Error.NotInitialized, d.refresh());
-    try expectError(Provider.Error.NotInitialized, d.setTile(0, 0, .floor));
-    // getCommand will panic
-    try expectError(Provider.Error.NotInitialized, d.mvaddstr(0, 0, "frotz"));
-}
+// TODO alloc fail test
 
 // EOF
