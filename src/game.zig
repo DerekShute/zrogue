@@ -43,12 +43,13 @@ pub fn run(s_config: new_level.LevelConfig) !void {
     var player_thing = config.player.?;
     player_thing.addMessage("Welcome to the dungeon!");
 
-    // TODO: master copy of the map versus player copy
-
     var state: GameState = .run;
     while (state != .end) {
         var map = try new_level.createLevel(config);
         defer map.deinit();
+
+        // Reset player map knowledge with new map
+        player_thing.setKnown(Pos.init(0, 0), Pos.init(s_config.xSize - 1, s_config.ySize - 1), false);
 
         var result: ActionResult = .continue_game;
         while (result == .continue_game) {
@@ -87,7 +88,7 @@ pub fn run(s_config: new_level.LevelConfig) !void {
         } // Playing loop
     } // Game ends
 
-    // TODO 0.1 : level == 0 game endings
+    // TODO : level == 0 game endings
 
 }
 
@@ -146,9 +147,10 @@ fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
         try map.removeMonster(pos.getX(), pos.getY());
         try map.setMonster(entity, new_x, new_y);
 
-        // TODO if not blind
-        try map.setRegionKnown(new_x - 1, new_y - 1, new_x + 1, new_y + 1);
-        try map.revealRoom(entity.getPos());
+        // TODO: if not blind
+        // REFACTOR: reverse this -- entity.discover(map)
+        entity.setKnown(Pos.init(new_x - 1, new_y - 1), Pos.init(new_x + 1, new_y + 1), true);
+        map.reveal(entity);
         entity.moves += 1;
     } else {
         // TODO: entity 'bump' callback

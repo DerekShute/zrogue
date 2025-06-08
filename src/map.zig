@@ -27,17 +27,13 @@ const ItemManager = Manager(Item);
 //
 const Place = struct {
     tile: MapTile = .unknown,
-    flags: packed struct {
-        known: bool,
-        // TODO Future: 'has object'
-    },
+    // TODO future flags -- has monster, has object
     monst: ?*Thing,
 
     // Constructor, probably not idiomatic
 
     pub fn config(self: *Place) void {
         self.tile = .wall;
-        self.flags = .{ .known = false };
         self.monst = null;
     }
 
@@ -74,14 +70,6 @@ const Place = struct {
         if (self.monst) |_| {
             self.monst = null;
         }
-    }
-
-    pub fn isKnown(self: *Place) bool {
-        return self.flags.known;
-    }
-
-    pub fn setKnown(self: *Place, val: bool) void {
-        self.flags.known = val;
     }
 };
 
@@ -129,18 +117,6 @@ pub const Room = struct {
             return false;
         }
         return true;
-    }
-
-    // TODO Future: Vtable for different shaped rooms
-    pub fn reveal(self: *Room, map: *Map) !void {
-        const minx = self.getMinX();
-        const miny = self.getMinY();
-        const maxx = self.getMaxX();
-        const maxy = self.getMaxY();
-        // REFACTOR: do only once via self.flags.known
-        if (self.isLit()) {
-            try map.setRegionKnown(minx, miny, maxx, maxy);
-        }
     }
 
     pub usingnamespace Region.Methods(@This());
@@ -303,28 +279,9 @@ pub const Map = struct {
         }
     }
 
-    pub fn isKnown(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
-        const place = try self.toPlace(x, y);
-        return place.isKnown();
-    }
-
-    pub fn setKnown(self: *Map, x: Pos.Dim, y: Pos.Dim, val: bool) !void {
-        const place = try self.toPlace(x, y);
-        place.setKnown(val);
-    }
-
-    pub fn setRegionKnown(self: *Map, x: Pos.Dim, y: Pos.Dim, maxx: Pos.Dim, maxy: Pos.Dim) !void {
-        var r = Region.config(Pos.init(x, y), Pos.init(maxx, maxy));
-        var ri = r.iterator();
-        while (ri.next()) |pos| {
-            const place = try self.toPlace(pos.getX(), pos.getY());
-            place.setKnown(true);
-        }
-    }
-
     // rooms
 
-    pub fn getRoomNum(self: *Map, p: Pos) ?usize {
+    fn getRoomNum(self: *Map, p: Pos) ?usize {
         if ((p.getX() < 0) or (p.getY() < 0)) {
             return null;
         } else if ((p.getX() >= self.width) or (p.getY() >= self.height)) {
@@ -349,6 +306,17 @@ pub const Map = struct {
         if (self.getRoomNum(p)) |loc| {
             return &self.rooms[loc];
         }
+        return null;
+    }
+
+    fn getInRoom(self: *Map, p: Pos) ?*Room {
+        // If in the room, return it, else null
+        if (self.getRoom(p)) |room| {
+            if (room.isInside(p)) {
+                return room;
+            }
+        } // else ugh
+
         return null;
     }
 
@@ -408,13 +376,17 @@ pub const Map = struct {
         return false; // TODO: ugh
     }
 
-    pub fn revealRoom(self: *Map, p: Pos) !void {
-        if (self.getRoom(p)) |room| {
-            if (room.isInside(p)) {
-                try room.reveal(self);
+    // Reveal a room to the entity in question
+    // TODO: this is entity logic
+    // TODO: really wants a 'enter room' callback
+    pub fn reveal(self: *Map, entity: *Thing) void {
+        if (self.getInRoom(entity.getPos())) |room| {
+            if (room.isLit()) {
+                // FUTURE: shaped rooms
+                // TODO: hand it a region
+                // TODO: a map update to the player's provider
+                entity.setKnown(room.getMin(), room.getMax(), true);
             }
-        } else {
-            return ZrogueError.OutOfBounds;
         }
     }
 };
@@ -457,22 +429,6 @@ test "add a room and ask about it" {
     try expect(map.inRoom(Pos.init(7, 7)) == true);
     try expect(map.inRoom(Pos.init(19, 19)) == false);
     try expect(map.inRoom(Pos.init(-1, -1)) == false);
-}
-
-test "reveal room" {
-    var map = try Map.init(std.testing.allocator, 20, 20, 1, 1);
-    defer map.deinit();
-
-    const r1 = Room.config(Pos.init(5, 5), Pos.init(10, 10));
-    map.addRoom(r1);
-    try expect(try map.isKnown(7, 7) == false);
-    try expect(try map.isKnown(4, 4) == false);
-    try expect(try map.isKnown(11, 11) == false);
-    try map.revealRoom(Pos.init(7, 7));
-    try expect(try map.isKnown(5, 5) == true);
-    try expect(try map.isKnown(10, 10) == true);
-    try expect(try map.isKnown(4, 4) == false);
-    try expect(try map.isKnown(11, 11) == false);
 }
 
 // Map
@@ -559,10 +515,6 @@ test "inquire about room at invalid location" {
 
     try expectError(ZrogueError.OutOfBounds, map.getRoomRegion(Pos.init(21, 21)));
     try expectError(ZrogueError.OutOfBounds, map.getRoomRegion(Pos.init(-1, -1)));
-    try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(-1, -1)));
-    try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(100, 100)));
-    try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(0, 40)));
-    try expectError(ZrogueError.OutOfBounds, map.revealRoom(Pos.init(40, 0)));
 
     try expect(map.getRoomNum(Pos.init(19, 0)) == 0);
     try expect(map.getRoomNum(Pos.init(20, 0)) == null);
