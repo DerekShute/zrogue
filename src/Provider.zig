@@ -213,9 +213,10 @@ var testlist = [_]Command{
     .goWest,
     .quit,
 };
+const mock_config: MockProvider.MockConfig = .{ .allocator = t_alloc, .maxx = 40, .maxy = 60, .commands = &testlist };
 
 test "Basic use of mock provider" {
-    var p = try MockProvider.init(.{ .allocator = t_alloc, .maxx = 40, .maxy = 60, .commands = &testlist });
+    var p = try MockProvider.init(mock_config);
     var d = p.provider();
     defer d.deinit();
 
@@ -223,7 +224,12 @@ test "Basic use of mock provider" {
     try d.mvaddstr(0, 0, "frotz");
 }
 
-// TODO: method use after deinit broken
+test "fail to create mock provider" { // First allocation attempt
+    var failing = std.testing.FailingAllocator.init(t_alloc, .{ .fail_index = 0 });
+    const config: MockProvider.MockConfig = .{ .allocator = failing.allocator(), .maxx = 40, .maxy = 60, .commands = &testlist };
+
+    try std.testing.expectError(error.OutOfMemory, MockProvider.init(config));
+}
 
 // Visualization
 
