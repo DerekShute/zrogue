@@ -114,14 +114,15 @@ pub fn main() !void {
             try stderr_out.print("ERROR: Minimum {}x{} display required\n", .{ mapsize.getX(), mapsize.getY() });
             std.process.exit(1);
         },
-        else => {
+        else => { // Includes out of memory
             try stderr_out.print("Unexpected error {}\n\n", .{err});
             std.process.exit(1);
         },
     };
     const provider = curses.provider();
     p_provider = provider; // Panic backdoor
-    defer provider.deinit();
+    // TODO: error path is squirrelly - can't defer or errdefer because of
+    // explicit handling.  Should this be nested?
 
     const player = try Player.init(allocator, provider, mapsize);
     defer player.deinit();
@@ -179,7 +180,7 @@ test "run the game" {
         Command.wait,
         Command.quit,
     };
-    var mp = MockProvider.init(.{ .maxx = mapsize.getX(), .maxy = mapsize.getY(), .commands = &commandlist });
+    var mp = try MockProvider.init(.{ .allocator = allocator, .maxx = mapsize.getX(), .maxy = mapsize.getY(), .commands = &commandlist });
     var mp_provider = mp.provider();
     defer mp_provider.deinit();
 

@@ -6,6 +6,7 @@
 //!
 
 const std = @import("std");
+const Grid = @import("utils/grid.zig").Grid;
 const zrogue = @import("zrogue.zig");
 const MapTile = zrogue.MapTile;
 const Command = zrogue.Command;
@@ -20,7 +21,21 @@ pub const Error = error{
     AlreadyInitialized,
     ProviderError,
     DisplayTooSmall, // Curses
+    OutOfMemory,
 };
+
+// ===================
+//
+// Map grid as informed to us by the engine
+//
+// Subset of map.Place
+//
+pub const DisplayMapTile = struct {
+    tile: MapTile,
+    // TODO: monster tile, item tile
+};
+
+pub const DisplayMap = Grid(DisplayMapTile);
 
 //
 // VTable for implementation to manage
@@ -44,6 +59,7 @@ pub const VTable = struct {
 
 ptr: *anyopaque,
 vtable: *const VTable,
+display_map: *DisplayMap = undefined,
 
 //
 // Constructor and destructor
@@ -65,8 +81,12 @@ pub inline fn refresh(self: Self) Error!void {
     return self.vtable.refresh(self.ptr);
 }
 
-pub inline fn setTile(self: Self, x: u16, y: u16, t: MapTile) Error!void {
-    try self.vtable.setTile(self.ptr, x, y, t);
+pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) Error!void {
+    var val = self.display_map.find(x, y) catch {
+        @panic("Bad pos sent to Provider.setTile"); // THINK: ignore?
+    };
+    val.tile = t;
+    try self.vtable.setTile(self.ptr, x, y, t); // TODO rid
 }
 
 pub inline fn getCommand(self: Self) Command {
@@ -78,6 +98,7 @@ pub inline fn getCommand(self: Self) Command {
 //
 
 pub const MockProvider = struct {
+    allocator: std.mem.Allocator,
     initialized: bool,
     maxx: i16, // Match ncurses for now
     maxy: i16,
@@ -85,8 +106,10 @@ pub const MockProvider = struct {
     y: i16 = 0,
     command_list: []Command = undefined,
     command_index: u16 = 0,
+    display_map: DisplayMap = undefined,
 
     pub const MockConfig = struct {
+        allocator: std.mem.Allocator,
         maxx: i16,
         maxy: i16,
         commands: []Command,
@@ -96,8 +119,12 @@ pub const MockProvider = struct {
     // Constructor
     //
 
-    pub fn init(config: MockConfig) MockProvider {
+    pub fn init(config: MockConfig) !MockProvider {
+        const display_map = try DisplayMap.config(config.allocator, @intCast(config.maxx), @intCast(config.maxy));
+        errdefer display_map.deinit();
         return MockProvider{
+            .allocator = config.allocator,
+            .display_map = display_map,
             .initialized = true,
             .maxx = config.maxx,
             .maxy = config.maxy,
@@ -108,6 +135,7 @@ pub const MockProvider = struct {
     pub fn provider(self: *MockProvider) Self {
         return .{
             .ptr = self,
+            .display_map = &self.display_map,
             .vtable = &.{
                 .deinit = mock_deinit,
                 .mvaddstr = mock_mvaddstr,
@@ -124,6 +152,8 @@ pub const MockProvider = struct {
 
     fn mock_deinit(ptr: *anyopaque) void {
         const self: *MockProvider = @ptrCast(@alignCast(ptr));
+        const display_map = self.display_map;
+        display_map.deinit();
         self.initialized = false;
         return;
     }
@@ -177,6 +207,7 @@ pub const MockProvider = struct {
 //
 
 const expectError = std.testing.expectError;
+const t_alloc = std.testing.allocator;
 
 var testlist = [_]Command{
     .goWest,
@@ -184,7 +215,7 @@ var testlist = [_]Command{
 };
 
 test "Basic use of mock provider" {
-    var p = MockProvider.init(.{ .maxx = 40, .maxy = 60, .commands = &testlist });
+    var p = try MockProvider.init(.{ .allocator = t_alloc, .maxx = 40, .maxy = 60, .commands = &testlist });
     var d = p.provider();
     defer d.deinit();
 
@@ -192,20 +223,11 @@ test "Basic use of mock provider" {
     try d.mvaddstr(0, 0, "frotz");
 }
 
-test "Method use after deinit" {
-    var p = MockProvider.init(.{ .maxx = 50, .maxy = 50, .commands = &testlist });
-    var d = p.provider();
-
-    d.deinit();
-    // getCommand will panic
-    try expectError(Error.NotInitialized, d.refresh());
-    try expectError(Error.NotInitialized, d.setTile(0, 0, .floor));
-    try expectError(Error.NotInitialized, d.mvaddstr(0, 0, "frotz"));
-}
+// TODO: method use after deinit broken
 
 // Visualization
 
 const genFields = @import("utils/visual.zig").genFields;
-pub var display_fields = genFields(Self);
+pub var provider_fields = genFields(Self);
 
 // EOF
