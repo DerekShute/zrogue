@@ -12,6 +12,7 @@ const zrogue = @import("zrogue.zig");
 const Command = zrogue.Command;
 const MapTile = zrogue.MapTile;
 const ZrogueError = zrogue.ZrogueError;
+const MessageLog = @import("message_log.zig").MessageLog;
 const Provider = @import("Provider.zig");
 const curses = @cImport(@cInclude("curses.h"));
 
@@ -60,14 +61,7 @@ var global_win: ?*curses.WINDOW = null;
 //
 
 allocator: std.mem.Allocator,
-display_map: Provider.DisplayMap = undefined,
-// Message log which should be done better
-// REFACTOR: part of Provider, imported from player
-msgmem: [zrogue.MESSAGE_MAXSIZE]u8 = undefined,
-msgbuf: []u8 = &.{},
-stats: Provider.VisibleStats = undefined,
-x: u16 = 0,
-y: u16 = 0,
+p: Provider = undefined,
 
 // TODO: cursor management
 
@@ -75,7 +69,7 @@ y: u16 = 0,
 // Constructor
 //
 
-pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Self {
+pub fn init(x: u8, y: u8, allocator: std.mem.Allocator) Provider.Error!Self {
     if (global_win != null) {
         return Provider.Error.AlreadyInitialized;
     }
@@ -89,8 +83,11 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
         global_win = res_val;
     }
 
-    const display_map = try Provider.DisplayMap.config(allocator, @intCast(minx), @intCast(miny));
+    const display_map = try Provider.DisplayMap.config(allocator, @intCast(x), @intCast(y));
     errdefer display_map.deinit();
+
+    const log = try MessageLog.init(allocator);
+    errdefer log.deinit();
 
     // Instantly process events, and activate arrow keys
     // TODO Future: mouse events
@@ -105,30 +102,30 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
     // getmaxx/getmaxy ERR iff null window parameter
     const display_maxx = checkError(curses.getmaxx(global_win)) catch unreachable;
     const display_maxy = checkError(curses.getmaxy(global_win)) catch unreachable;
-    // TODO: off by one error here
-    if ((display_maxx < minx) or (display_maxy < miny + 1)) {
+    // FIXME: off by one error here
+    if ((display_maxx < x) or (display_maxy < y + 1)) {
         return Provider.Error.DisplayTooSmall;
     }
 
     return .{
         .allocator = allocator,
-        .display_map = display_map,
-        .x = minx,
-        .y = miny,
+        .p = .{
+            .log = log,
+            .ptr = undefined,
+            .display_map = display_map,
+            .x = x,
+            .y = y,
+            .vtable = &.{
+                .deinit = deinit,
+                .getCommand = getCommand,
+            },
+        },
     };
 }
 
-pub fn provider(self: *Self) Provider {
-    return .{
-        .ptr = self,
-        .display_map = &self.display_map,
-        .vtable = &.{
-            .deinit = deinit,
-            .addMessage = addMessage,
-            .updateStats = updateStats,
-            .getCommand = getCommand,
-        },
-    };
+pub fn provider(self: *Self) *Provider {
+    self.p.ptr = self;
+    return &self.p;
 }
 
 //
@@ -136,8 +133,7 @@ pub fn provider(self: *Self) Provider {
 //
 
 fn deinit(ptr: *anyopaque) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.display_map.deinit();
+    _ = ptr;
     global_win = null;
     _ = curses.endwin(); // Liberal shut-up-and-do-it
 }
@@ -217,8 +213,8 @@ fn displayScreen(self: *Self) !void {
     // TODO: too narrow
     //
     mvaddstr(0, 0, "                                                  ");
-    mvaddstr(0, 0, self.msgbuf);
-    self.msgbuf = &.{}; // Zap it
+    mvaddstr(0, 0, self.p.getMessage());
+    self.p.clearMessage();
 
     //
     // Bottom line: stat block
@@ -230,15 +226,15 @@ fn displayScreen(self: *Self) !void {
 
     const fmt = "Level: {}  Gold: {:<5}  Hp: some";
     const output = .{
-        self.stats.depth,
-        self.stats.purse,
+        self.p.stats.depth,
+        self.p.stats.purse,
     };
 
     // We know that error.NoSpaceLeft can't happen here
     const line = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
     // TODO if too narrow
     // TODO explicitly the bottom row, whatever the current screen height
-    mvaddstr(0, @intCast(self.y), line);
+    mvaddstr(0, @intCast(self.p.y), line);
 
     //
     // Output map display
@@ -246,9 +242,9 @@ fn displayScreen(self: *Self) !void {
     // TODO off by one
     // TODO iterator
     //
-    const map = self.display_map;
-    for (0..@intCast(self.y - 1)) |y| {
-        for (0..@intCast(self.x)) |x| {
+    const map = self.p.display_map;
+    for (0..@intCast(self.p.y - 1)) |y| {
+        for (0..@intCast(self.p.x)) |x| {
             const t = map.find(@intCast(x), @intCast(y)) catch unreachable; // TODO
             _ = checkError(curses.mvaddch(@intCast(y + 1), @intCast(x), mapToChar(t.tile))) catch unreachable;
         }
@@ -262,18 +258,6 @@ fn displayScreen(self: *Self) !void {
 //
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
-
-fn addMessage(ptr: *anyopaque, msg: []const u8) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.msgbuf = &self.msgmem; // Reset slice to max length and content
-    @memcpy(self.msgbuf[0..msg.len], msg);
-    self.msgbuf = self.msgbuf[0..msg.len]; // Fix up the slice for length
-}
-
-fn updateStats(ptr: *anyopaque, stats: Provider.VisibleStats) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
-    self.stats = stats;
-}
 
 fn getCommand(ptr: *anyopaque) Command {
     const self: *Self = @ptrCast(@alignCast(ptr));
