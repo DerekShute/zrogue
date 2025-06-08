@@ -134,14 +134,8 @@ test "mapgen smoke test" {
 
     try expect(m.isLit(Pos.init(15, 15)) == true);
 
-    try expect(try m.isKnown(15, 15) == false);
     try expect(try m.getTile(0, 0) == .wall);
     try expect(try m.getTile(10, 10) == .wall);
-
-    try m.setKnown(15, 15, true);
-    try expect(try m.isKnown(15, 15) == true);
-    try m.setKnown(15, 15, false);
-    try expect(try m.isKnown(15, 15) == false);
 
     // Explicit set tile inside a known room
     try m.setTile(17, 17, .wall);
@@ -149,12 +143,6 @@ test "mapgen smoke test" {
 
     try m.setTile(18, 18, .door);
     try expect(try m.getTile(18, 18) == .door);
-
-    try m.setRegionKnown(12, 12, 15, 15);
-    try expect(try m.isKnown(12, 12) == true);
-    try expect(try m.isKnown(15, 15) == true);
-    try expect(try m.isKnown(16, 16) == false);
-    try expect(try m.isKnown(11, 11) == false);
 }
 
 // Corridors

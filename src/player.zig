@@ -9,6 +9,7 @@
 //!
 
 const std = @import("std");
+const Grid = @import("utils/grid.zig").Grid;
 const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
 const MessageLog = @import("message_log.zig").MessageLog;
@@ -20,7 +21,20 @@ const ZrogueError = zrogue.ZrogueError;
 const Command = zrogue.Command;
 const MapTile = zrogue.MapTile;
 const Pos = zrogue.Pos;
+const Region = zrogue.Region;
 const ThingAction = zrogue.ThingAction;
+
+// ===================
+//
+// Player knowledge of map
+//
+const MapViewTile = struct {
+    flags: packed struct {
+        known: bool,
+    },
+};
+
+const MapView = Grid(MapViewTile);
 
 // ===================
 //
@@ -32,31 +46,40 @@ pub const Player = struct {
     provider: Provider = undefined,
     log: *MessageLog,
     purse: u16 = undefined,
+    map_view: MapView = undefined,
 
     const vtable = Thing.VTable{
-        .getAction = playerGetAction,
         .addMessage = playerAddMessage,
+        .getAction = playerGetAction,
+        .setKnown = playerSetKnown,
         .takeItem = playerTakeItem,
     };
 
-    pub fn init(allocator: std.mem.Allocator, provider: Provider) !*Player {
+    pub fn init(allocator: std.mem.Allocator, provider: Provider, mapsize: Pos) !*Player {
         const p: *Player = try allocator.create(Player);
         errdefer allocator.destroy(p);
         const log = try MessageLog.init(allocator);
         errdefer log.deinit();
+
+        const mapview = try MapView.config(allocator, @intCast(mapsize.getX()), @intCast(mapsize.getY()));
+        errdefer mapview.deinit();
 
         p.allocator = allocator;
         p.purse = 0;
         p.log = log;
         p.provider = provider;
         p.thing = Thing.config(.player, &vtable);
+        p.map_view = mapview;
+
         return p;
     }
 
     pub fn deinit(self: *Player) void {
         const allocator = self.allocator;
         const log = self.log;
+        const mapview = self.map_view;
         log.deinit();
+        mapview.deinit();
         allocator.destroy(self);
     }
 
@@ -105,6 +128,20 @@ pub const Player = struct {
         const i = @as(i32, self.purse * 1000) - t.getMoves();
         return if (i < 0) 0 else @intCast(i);
     }
+
+    pub fn setKnown(self: *Player, p: Pos, known: bool) void {
+        var val = self.map_view.find(@intCast(p.getX()), @intCast(p.getY())) catch {
+            @panic("Bad pos sent to Player.setKnown"); // THINK: ignore?
+        };
+        val.flags.known = known;
+    }
+
+    pub fn getKnown(self: *Player, p: Pos) bool {
+        const val = self.map_view.find(@intCast(p.getX()), @intCast(p.getY())) catch {
+            @panic("Bad pos sent to Player.getKnown"); // THINK: ignore?
+        };
+        return val.flags.known;
+    }
 };
 
 //
@@ -118,9 +155,10 @@ pub const Player = struct {
 //
 fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
     const tile = try map.getTile(x, y);
-    if (tile.isFeature() and try map.isKnown(x, y)) {
+    const loc = Pos.init(x, y);
+    if (tile.isFeature() and player.getKnown(loc)) {
         return tile;
-    } else if (player.getDistance(Pos.init(x, y)) <= 1) {
+    } else if (player.getDistance(loc) <= 1) {
         return tile;
     }
     return .unknown;
@@ -181,6 +219,7 @@ fn displayScreen(p: *Player, map: *Map) !void {
         }
     }
 
+    // TODO: becomes a path through room reveal
     if (map.inRoom(p.getPos()) and map.isLit(p.getPos())) {
         var r = map.getRoomRegion(p.getPos()) catch unreachable; // Known
         var ri = r.iterator();
@@ -242,6 +281,15 @@ fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
     return ret;
 }
 
+fn playerSetKnown(ptr: *Thing, p: Pos, p2: Pos, val: bool) void {
+    const self: *Player = @ptrCast(@alignCast(ptr));
+    var r = Region.config(p, p2);
+    var ri = r.iterator();
+    while (ri.next()) |pos| {
+        self.setKnown(pos, val);
+    }
+}
+
 fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
     const self: *Player = @ptrCast(@alignCast(ptr));
 
@@ -259,15 +307,18 @@ const expect = std.testing.expect;
 const Room = @import("map.zig").Room;
 const mapgen = @import("mapgen/mapgen.zig");
 
+const test_mapsize = Pos.init(30, 30);
+const mock_config: MockProvider.MockConfig = .{ .maxx = test_mapsize.getX(), .maxy = test_mapsize.getY(), .commands = &.{} };
+
 test "create a player" {
-    var mp = MockProvider.init(.{ .maxx = 20, .maxy = 20, .commands = &.{} });
-    const player = try Player.init(std.testing.allocator, mp.provider());
+    var mp = MockProvider.init(mock_config);
+    const player = try Player.init(std.testing.allocator, mp.provider(), test_mapsize);
     defer player.deinit();
 
     //
     // Try out rendering
     //
-    var map = try Map.init(std.testing.allocator, 30, 30, 1, 1);
+    var map = try Map.init(std.testing.allocator, test_mapsize.getX(), test_mapsize.getY(), 1, 1);
     defer map.deinit();
 
     try map.setMonster(player.toThing(), 6, 6);
@@ -285,27 +336,27 @@ test "create a player" {
     try expect(try render(map, player, 5, 5) == .wall);
     try expect(try render(map, player, 7, 7) == .floor);
     // distant 'known' floor not rendered
-    try map.setKnown(10, 10, true);
+    player.setKnown(Pos.init(10, 10), true);
     try expect(try render(map, player, 10, 10) == .unknown);
     // distant unknown feature
     try expect(try render(map, player, 20, 20) == .unknown);
     // distant known feature
-    try map.setKnown(19, 20, true);
+    player.setKnown(Pos.init(19, 20), true);
     try expect(try render(map, player, 19, 20) == .wall);
 }
 
 test "fail to create a player" { // First allocation attempt
     var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
-    var mp = MockProvider.init(.{ .maxx = 20, .maxy = 20, .commands = &.{} });
+    var mp = MockProvider.init(mock_config);
 
-    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp.provider()));
+    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp.provider(), test_mapsize));
 }
 
-test "fail to fully create a player" { // right now there are two allocations
-    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 1 });
-    var mp = MockProvider.init(.{ .maxx = 20, .maxy = 20, .commands = &.{} });
+test "fail to fully create a player" { // right now there are three allocations
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 2 });
+    var mp = MockProvider.init(mock_config);
 
-    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp.provider()));
+    try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp.provider(), test_mapsize));
 }
 
 // Visualization

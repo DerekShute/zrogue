@@ -66,6 +66,10 @@ fn print_help(file: std.fs.File) !void {
     try out.print("{s}\n", .{help});
 }
 
+// Map size limits
+
+const mapsize = zrogue.Pos.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY);
+
 //
 // Main entrypoint
 //
@@ -105,9 +109,9 @@ pub fn main() !void {
     var prng = std.Random.DefaultPrng.init(seed);
     var r = prng.random();
 
-    var curses = CursesProvider.init(zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY, allocator) catch |err| switch (err) {
+    var curses = CursesProvider.init(mapsize.getX(), mapsize.getY(), allocator) catch |err| switch (err) {
         Provider.Error.DisplayTooSmall => {
-            try stderr_out.print("ERROR: Minimum {}x{} display required\n", .{ zrogue.DISPLAY_MINX, zrogue.DISPLAY_MINY });
+            try stderr_out.print("ERROR: Minimum {}x{} display required\n", .{ mapsize.getX(), mapsize.getY() });
             std.process.exit(1);
         },
         else => {
@@ -119,15 +123,15 @@ pub fn main() !void {
     p_provider = provider; // Panic backdoor
     defer provider.deinit();
 
-    const player = try Player.init(allocator, provider);
+    const player = try Player.init(allocator, provider, mapsize);
     defer player.deinit();
 
     const config = LevelConfig{
         .allocator = allocator,
         .rand = &r,
         .player = player.toThing(),
-        .xSize = zrogue.MAPSIZE_X,
-        .ySize = zrogue.MAPSIZE_Y,
+        .xSize = mapsize.getX(),
+        .ySize = mapsize.getY(),
         .mapgen = .ROGUE,
     };
 
@@ -175,18 +179,18 @@ test "run the game" {
         Command.wait,
         Command.quit,
     };
-    var mp = MockProvider.init(.{ .maxx = zrogue.DISPLAY_MINX, .maxy = zrogue.DISPLAY_MINY, .commands = &commandlist });
+    var mp = MockProvider.init(.{ .maxx = mapsize.getX(), .maxy = mapsize.getY(), .commands = &commandlist });
     var mp_provider = mp.provider();
     defer mp_provider.deinit();
 
-    const player = try Player.init(allocator, mp_provider);
+    const player = try Player.init(allocator, mp_provider, mapsize);
     defer player.deinit();
 
     const config = LevelConfig{
         .allocator = allocator,
         .player = player.toThing(),
-        .xSize = zrogue.MAPSIZE_X,
-        .ySize = zrogue.MAPSIZE_Y,
+        .xSize = mapsize.getX(),
+        .ySize = mapsize.getY(),
         .mapgen = .TEST,
     };
 

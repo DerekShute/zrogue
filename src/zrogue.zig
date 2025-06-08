@@ -223,9 +223,17 @@ pub const Region = struct {
                 return self.r;
             }
 
+            pub fn getMin(self: *Self) Pos {
+                return self.r.getMin();
+            }
+
             pub fn getMinX(self: *Self) Pos.Dim {
                 const min = self.r.getMin();
                 return min.getX();
+            }
+
+            pub fn getMax(self: *Self) Pos {
+                return self.r.getMax();
             }
 
             pub fn getMaxX(self: *Self) Pos.Dim {
@@ -381,6 +389,9 @@ test "Region and region methods" {
     var x = Frotz{ .r = Region.config(min, max) };
     try expect(x.getMinX() == 2);
     try expect(x.getMaxX() == 9);
+
+    try expect(x.getMin().eql(min));
+    try expect(x.getMax().eql(max));
 
     // We will call 1x1 valid for now. 1x1 at 0,0 is the uninitialized room
     _ = Region.config(Pos.init(0, 0), Pos.init(0, 0));
