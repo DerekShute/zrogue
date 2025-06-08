@@ -61,8 +61,14 @@ var global_win: ?*curses.WINDOW = null;
 
 allocator: std.mem.Allocator,
 display_map: Provider.DisplayMap = undefined,
-x: u16,
-y: u16,
+// Message log which should be done better
+// REFACTOR: part of Provider, imported from player
+msgmem: [zrogue.MESSAGE_MAXSIZE]u8 = undefined,
+msgbuf: []u8 = &.{},
+stats: Provider.VisibleStats = undefined,
+x: u16 = 0,
+y: u16 = 0,
+
 // TODO: cursor management
 
 //
@@ -107,8 +113,8 @@ pub fn init(minx: u8, miny: u8, allocator: std.mem.Allocator) Provider.Error!Sel
     return .{
         .allocator = allocator,
         .display_map = display_map,
-        .x = 0,
-        .y = 0,
+        .x = minx,
+        .y = miny,
     };
 }
 
@@ -118,9 +124,11 @@ pub fn provider(self: *Self) Provider {
         .display_map = &self.display_map,
         .vtable = &.{
             .deinit = deinit,
+            .addMessage = addMessage,
             .mvaddstr = mvaddstr,
             .refresh = refresh,
             .setTile = setTile,
+            .updateStats = updateStats,
             .getCommand = getCommand,
         },
     };
@@ -138,7 +146,68 @@ fn deinit(ptr: *anyopaque) void {
 }
 
 //
-// Methods
+// Gross Utility Wrappers
+//
+
+fn cursesMvaddstr(x: u16, y: u16, s: []const u8) Provider.Error!void {
+    if (s.len > 0) { // Interface apparently insists
+        _ = try checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
+    }
+}
+
+//
+// Display Utility
+//
+
+fn displayScreen(self: *Self) !void {
+    // TODO: only updates
+
+    //
+    // Top line: messages
+    //
+    // TODO: too narrow
+    //
+    try cursesMvaddstr(0, 0, "                                                  ");
+    try cursesMvaddstr(0, 0, self.msgbuf);
+    self.msgbuf = &.{}; // Zap it
+
+    //
+    // Bottom line: stat block
+    //
+    // msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s", ...)
+    //
+    // TODO: defined length, here
+    var buf: [80]u8 = undefined; // does this need to be allocated?  size?
+
+    const fmt = "Level: {}  Gold: {:<5}  Hp: some";
+    const output = .{
+        self.stats.depth,
+        self.stats.purse,
+    };
+
+    // We know that error.NoSpaceLeft can't happen here
+    const line = std.fmt.bufPrint(&buf, fmt, output) catch unreachable;
+    // TODO if too narrow
+    // TODO explicitly the bottom row, whatever the current screen height
+    try cursesMvaddstr(0, @intCast(self.y), line);
+
+    //
+    // Output map display
+    //
+    // TODO off by one
+    // TODO iterator
+    //
+    const map = self.display_map;
+    for (0..@intCast(self.y - 1)) |y| {
+        for (0..@intCast(self.x)) |x| {
+            const t = map.find(@intCast(x), @intCast(y)) catch unreachable; // TODO
+            _ = checkError(curses.mvaddch(@intCast(y + 1), @intCast(x), mapToChar(t.tile))) catch unreachable;
+        }
+    }
+}
+
+//
+// VTable Methods
 //
 // NotInitialized in here could be a panic instead of error return but
 // the mock display also uses it to test for API correctness.
@@ -152,14 +221,24 @@ fn setTile(ptr: *anyopaque, x: u16, y: u16, t: MapTile) Provider.Error!void {
     return;
 }
 
+fn addMessage(ptr: *anyopaque, msg: []const u8) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.msgbuf = &self.msgmem; // Reset slice to max length and content
+    @memcpy(self.msgbuf[0..msg.len], msg);
+    self.msgbuf = self.msgbuf[0..msg.len]; // Fix up the slice for length
+}
+
+fn updateStats(ptr: *anyopaque, stats: Provider.VisibleStats) void {
+    const self: *Self = @ptrCast(@alignCast(ptr));
+    self.stats = stats;
+}
+
 fn mvaddstr(ptr: *anyopaque, x: u16, y: u16, s: []const u8) Provider.Error!void {
     _ = ptr;
     if (global_win == null) {
         return Provider.Error.NotInitialized;
     }
-    if (s.len > 0) { // Interface apparently insists
-        _ = try checkError(curses.mvaddnstr(y, x, s.ptr, @intCast(s.len)));
-    }
+    try cursesMvaddstr(x, y, s);
 }
 
 fn refresh(ptr: *anyopaque) Provider.Error!void {
@@ -173,13 +252,17 @@ fn refresh(ptr: *anyopaque) Provider.Error!void {
 }
 
 fn getCommand(ptr: *anyopaque) Command {
-    _ = ptr;
+    const self: *Self = @ptrCast(@alignCast(ptr));
+
     if (global_win == null) {
         // Punish programmatic errors
         @panic("getCommand but not initialized");
     }
 
+    self.displayScreen() catch unreachable; // TODO
+
     // TODO Future: resize 'key'
+    // TODO get-keypress command
     const ch = checkError(curses.getch()) catch unreachable;
     return switch (ch) {
         curses.KEY_LEFT => .goWest,

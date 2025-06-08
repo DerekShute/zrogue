@@ -26,6 +26,16 @@ pub const Error = error{
 
 // ===================
 //
+// Exported player/game stats
+//
+
+pub const VisibleStats = struct {
+    depth: usize = 0,
+    purse: u16 = 0,
+};
+
+// ===================
+//
 // Map grid as informed to us by the engine
 //
 // Subset of map.Place
@@ -44,9 +54,12 @@ pub const VTable = struct {
     // constructor/destructor
     deinit: *const fn (ctx: *anyopaque) void,
     // display
+    addMessage: ?*const fn (ctx: *anyopaque, msg: []const u8) void,
     mvaddstr: *const fn (ctx: *anyopaque, x: u16, y: u16, s: []const u8) Error!void,
     refresh: *const fn (ctx: *anyopaque) Error!void,
     setTile: *const fn (ctx: *anyopaque, x: u16, y: u16, t: MapTile) Error!void,
+    updateStats: ?*const fn (ctx: *anyopaque, stats: VisibleStats) void,
+
     // input
     getCommand: *const fn (ctx: *anyopaque) Command,
 };
@@ -73,6 +86,12 @@ pub inline fn deinit(self: Self) void {
 // Methods
 //
 
+pub inline fn addMessage(self: Self, msg: []const u8) void {
+    if (self.vtable.addMessage) |cb| {
+        cb(self.ptr, msg);
+    }
+}
+
 pub inline fn mvaddstr(self: Self, x: u16, y: u16, s: []const u8) Error!void {
     try self.vtable.mvaddstr(self.ptr, x, y, s);
 }
@@ -87,6 +106,12 @@ pub fn setTile(self: Self, x: u16, y: u16, t: MapTile) Error!void {
     };
     val.tile = t;
     try self.vtable.setTile(self.ptr, x, y, t); // TODO rid
+}
+
+pub fn updateStats(self: Self, stats: VisibleStats) void {
+    if (self.vtable.updateStats) |cb| {
+        cb(self.ptr, stats);
+    }
 }
 
 pub inline fn getCommand(self: Self) Command {
@@ -138,9 +163,11 @@ pub const MockProvider = struct {
             .display_map = &self.display_map,
             .vtable = &.{
                 .deinit = mock_deinit,
+                .addMessage = null,
                 .mvaddstr = mock_mvaddstr,
                 .refresh = mock_refresh,
                 .setTile = mock_setTile,
+                .updateStats = null,
                 .getCommand = mock_getCommand,
             },
         };
