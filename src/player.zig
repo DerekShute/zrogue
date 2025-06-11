@@ -85,10 +85,6 @@ pub const Player = struct {
 
     // REFACTOR: interfaces on top of Thing
 
-    inline fn setDisplayTile(self: *Player, x: u16, y: u16, t: MapTile) Provider.Error!void {
-        try self.provider.setTile(x, y, t);
-    }
-
     inline fn addMessage(self: *Player, msg: []const u8) void {
         self.provider.addMessage(msg);
     }
