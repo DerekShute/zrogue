@@ -115,6 +115,11 @@ pub const Pos = struct {
         return ((self.getX() == other.getX()) and (self.getY() == other.getY()));
     }
 
+    // Implication is that one of these is a delta
+    pub inline fn add(pos1: Pos, pos2: Pos) Pos {
+        return Pos.init(pos1.getX() + pos2.getX(), pos1.getY() + pos2.getY());
+    }
+
     // Chebyshev distance
     pub inline fn distance(pos1: Pos, pos2: Pos) Dim {
         const maxx = @abs(pos1.getX() - pos2.getX());

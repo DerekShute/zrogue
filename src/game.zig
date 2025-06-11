@@ -138,24 +138,26 @@ fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResu
 
 fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     const pos = entity.getPos();
-    const newPos = do_action.getPos();
+    const new_pos = Pos.add(pos, do_action.getPos());
 
-    const new_x = pos.getX() + newPos.getX();
-    const new_y = pos.getY() + newPos.getY();
+    const tl = Pos.init(-1, -1);
+    const br = Pos.init(1, 1);
 
-    if (try map.passable(new_x, new_y)) {
-        try map.removeMonster(pos.getX(), pos.getY());
-        try map.setMonster(entity, new_x, new_y);
-
-        // TODO: if not blind
-        // REFACTOR: reverse this -- entity.discover(map)
-        entity.setKnown(Pos.init(new_x - 1, new_y - 1), Pos.init(new_x + 1, new_y + 1), true);
-        map.reveal(entity);
-        entity.moves += 1;
-    } else {
+    if (!try map.passable(new_pos)) {
         // TODO: entity 'bump' callback
+        entity.moves += 5; // That hurt
         entity.addMessage("Ouch!");
+        return ActionResult.continue_game;
     }
+
+    try entity.move(map, new_pos);
+
+    // TODO: if not blind
+    // REFACTOR: reverse this -- entity.discover(map)
+    // REFACTOR: setKnown(new_pos, tl, br, true)
+    entity.setKnown(Pos.add(new_pos, tl), Pos.add(new_pos, br), true);
+    map.reveal(entity);
+    entity.moves += 1;
 
     return ActionResult.continue_game;
 }

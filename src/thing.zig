@@ -44,6 +44,13 @@ pub const Thing = struct {
         return self.tile;
     }
 
+    pub fn move(self: *Thing, map: *Map, new: Pos) !void {
+        const old = self.getPos();
+        // REFACTOR: to pos interface
+        try map.removeMonster(old.getX(), old.getY());
+        try map.setMonster(self, new.getX(), new.getY());
+    }
+
     // VTable
 
     pub fn addMessage(self: *Thing, msg: []const u8) void {

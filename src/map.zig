@@ -230,8 +230,8 @@ pub const Map = struct {
         place.setTile(tile);
     }
 
-    pub fn passable(self: *Map, x: Pos.Dim, y: Pos.Dim) !bool {
-        const place = try self.toPlace(x, y);
+    pub fn passable(self: *Map, p: Pos) !bool {
+        const place = try self.toPlace(p.getX(), p.getY());
         return place.passable();
     }
 
