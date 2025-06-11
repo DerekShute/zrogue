@@ -293,9 +293,7 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
 
     if (config.player) |p| {
         const pos = findAnyFloor(config.rand, map);
-
-        // REFACTOR: setMonster takes Pos instead?
-        try map.setMonster(p, pos.getX(), pos.getY());
+        try p.move(map, pos);
     }
 
     return map;

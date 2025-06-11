@@ -27,8 +27,9 @@ pub const Thing = struct {
 
     pub const VTable = struct {
         addMessage: ?*const fn (self: *Thing, msg: []const u8) void,
-        getAction: *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction,
+        getAction: ?*const fn (self: *Thing, map: *Map) ZrogueError!ThingAction,
         setKnown: ?*const fn (self: *Thing, p: Pos, p2: Pos, val: bool) void,
+        setPos: ?*const fn (self: *Thing, p: Pos) void,
         takeItem: ?*const fn (self: *Thing, item: *Item, map: *Map) void,
     };
 
@@ -45,10 +46,17 @@ pub const Thing = struct {
     }
 
     pub fn move(self: *Thing, map: *Map, new: Pos) !void {
-        const old = self.getPos();
-        // REFACTOR: to pos interface
-        try map.removeMonster(old.getX(), old.getY());
-        try map.setMonster(self, new.getX(), new.getY());
+        try map.removeMonster(self.getX(), self.getY());
+        self.setPos(new);
+        try map.setMonster(self);
+    }
+
+    pub fn setPos(self: *Thing, p: Pos) void {
+        // TODO: combine with move() ?
+        if (self.vtable.setPos) |cb| {
+            cb(self, p);
+        }
+        self.setXY(p.getX(), p.getY());
     }
 
     // VTable
@@ -60,7 +68,11 @@ pub const Thing = struct {
     }
 
     pub fn getAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
-        return try self.vtable.getAction(self, map);
+        // Only optional for testing rigs in map code
+        if (self.vtable.getAction) |cb| {
+            return try cb(self, map);
+        }
+        @panic("getAction on invalid Thing");
     }
 
     pub fn setKnown(self: *Thing, p: Pos, p2: Pos, val: bool) void {

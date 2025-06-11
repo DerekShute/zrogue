@@ -45,11 +45,13 @@ pub const Player = struct {
     provider: *Provider = undefined,
     purse: u16 = undefined,
     map_view: MapView = undefined,
+    update_region: Region = undefined,
 
     const vtable = Thing.VTable{
         .addMessage = playerAddMessage,
         .getAction = playerGetAction,
         .setKnown = playerSetKnown,
+        .setPos = null,
         .takeItem = playerTakeItem,
     };
 
@@ -64,6 +66,7 @@ pub const Player = struct {
         p.purse = 0;
         p.provider = provider;
         p.thing = Thing.config(.player, &vtable);
+        p.update_region = Region.config(Pos.init(0, 0), Pos.init(0, 0));
         p.map_view = mapview;
 
         return p;
@@ -245,7 +248,8 @@ test "create a player" {
     var map = try Map.init(t_alloc, test_mapsize.getX(), test_mapsize.getY(), 1, 1);
     defer map.deinit();
 
-    try map.setMonster(player.toThing(), 6, 6);
+    const p_t = player.toThing();
+    try p_t.move(map, Pos.init(6, 6));
 
     var room = Room.config(Pos.init(5, 5), Pos.init(20, 20));
     room.setDark();
