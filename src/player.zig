@@ -50,6 +50,7 @@ pub const Player = struct {
         .addMessage = playerAddMessage,
         .getAction = playerGetAction,
         .setKnown = playerSetKnown,
+        .setPos = null, // TODO also handles setKnown
         .takeItem = playerTakeItem,
     };
 

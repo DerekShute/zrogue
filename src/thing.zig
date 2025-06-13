@@ -29,6 +29,7 @@ pub const Thing = struct {
         addMessage: ?*const fn (self: *Thing, msg: []const u8) void,
         getAction: *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction,
         setKnown: ?*const fn (self: *Thing, p: Pos, p2: Pos, val: bool) void,
+        setPos: ?*const fn (self: *Thing, new: Pos) void,
         takeItem: ?*const fn (self: *Thing, item: *Item, map: *Map) void,
     };
 
@@ -48,6 +49,11 @@ pub const Thing = struct {
         const old = self.getPos();
         if (old.getX() != -1) { // Initialization case
             try map.removeMonster(old);
+        }
+        if (self.vtable) |vt| {
+            if (vt.setPos) |cb| {
+                cb(self, new);
+            }
         }
         self.setPos(new);
         try map.setMonster(self);
