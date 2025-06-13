@@ -149,6 +149,10 @@ pub const Pos = struct {
                 return self.p;
             }
 
+            pub fn setPos(self: *Self, new: Pos) void {
+                self.p = new;
+            }
+
             pub fn distance(self: *Self, other: anytype) Pos.Dim {
                 return Pos.distance(self.getPos(), other.getPos());
             }
@@ -359,8 +363,9 @@ test "Pos methods" {
         pub usingnamespace Pos.Methods(@This());
     };
 
-    var x = Frotz{ .p = Pos.init(25, -25) };
+    var x = Frotz{ .p = Pos.init(0, 0) };
 
+    x.setPos(Pos.init(25, -25));
     try expect(x.getX() == 25);
     try expect(x.getY() == -25);
     try expect(x.atXY(25, -25));
