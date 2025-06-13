@@ -264,19 +264,14 @@ pub const Map = struct {
         return place.getMonst();
     }
 
-    pub fn setMonster(self: *Map, monst: *Thing, x: Pos.Dim, y: Pos.Dim) !void {
-        const place = try self.toPlace(x, y);
+    pub fn setMonster(self: *Map, monst: *Thing) !void {
+        const place = try self.toPlace(monst.getX(), monst.getY());
         try place.setMonst(monst);
-        monst.setXY(x, y);
     }
 
-    pub fn removeMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !void {
-        const place = try self.toPlace(x, y);
-        const monst = place.getMonst();
-        if (monst) |m| {
-            try place.removeMonst();
-            m.setXY(-1, -1);
-        }
+    pub fn removeMonster(self: *Map, p: Pos) !void {
+        const place = try self.toPlace(p.getX(), p.getY());
+        try place.removeMonst();
     }
 
     // rooms
@@ -565,9 +560,12 @@ test "put item on map" {
 
     // Monster's tile has precedence
 
-    var thing = Thing{ .p = Pos.init(0, 0), .tile = .player };
-    try map.setMonster(&thing, 25, 25);
+    var thing = Thing{ .p = Pos.init(25, 25), .tile = .player };
+    try map.setMonster(&thing);
     try expect(try map.getTile(25, 25) == .player);
+
+    try map.removeMonster(Pos.init(25, 25));
+    try expect(try map.getTile(25, 25) == .gold);
 }
 
 // Monsters
@@ -575,13 +573,11 @@ test "put item on map" {
 test "putting monsters places" {
     var map = try Map.init(std.testing.allocator, 50, 50, 1, 1);
     defer map.deinit();
-    var thing = Thing{ .p = Pos.init(0, 0), .tile = .player };
-    var thing2 = Thing{ .p = Pos.init(0, 0), .tile = .player };
+    var thing = Thing{ .p = Pos.init(10, 10), .tile = .player };
+    var thing2 = Thing{ .p = Pos.init(10, 10), .tile = .player };
 
-    try map.setMonster(&thing, 10, 10);
-    try expect(thing.atXY(10, 10));
-
-    try expectError(error.AlreadyInUse, map.setMonster(&thing2, 10, 10));
+    try map.setMonster(&thing);
+    try expectError(error.AlreadyInUse, map.setMonster(&thing2));
 }
 
 // Visualize

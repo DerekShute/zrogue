@@ -245,7 +245,10 @@ test "create a player" {
     var map = try Map.init(t_alloc, test_mapsize.getX(), test_mapsize.getY(), 1, 1);
     defer map.deinit();
 
-    try map.setMonster(player.toThing(), 6, 6);
+    // TODO: Player.move() wrapper
+
+    const p_t = player.toThing();
+    try p_t.move(map, Pos.init(6, 6));
 
     var room = Room.config(Pos.init(5, 5), Pos.init(20, 20));
     room.setDark();

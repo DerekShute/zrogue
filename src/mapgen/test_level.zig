@@ -38,7 +38,7 @@ pub fn createTestLevel(config: LevelConfig) !*Map {
     // FIXME: add stairs down, figure that into test regimen
 
     if (config.player) |p| {
-        try map.setMonster(p, 6, 6);
+        try p.move(map, Pos.init(6, 6));
     }
 
     return map;

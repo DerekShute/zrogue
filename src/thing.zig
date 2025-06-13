@@ -46,9 +46,11 @@ pub const Thing = struct {
 
     pub fn move(self: *Thing, map: *Map, new: Pos) !void {
         const old = self.getPos();
-        // REFACTOR: to pos interface
-        try map.removeMonster(old.getX(), old.getY());
-        try map.setMonster(self, new.getX(), new.getY());
+        if (old.getX() != -1) { // Initialization case
+            try map.removeMonster(old);
+        }
+        self.setPos(new);
+        try map.setMonster(self);
     }
 
     // VTable
