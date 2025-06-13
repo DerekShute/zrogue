@@ -22,7 +22,7 @@ pub const Thing = struct {
     // TODO Future: timer, action queue
     p: Pos = undefined,
     tile: MapTile = undefined,
-    vtable: *const VTable = undefined,
+    vtable: ?*const VTable = null,
     moves: i32 = 0,
 
     pub const VTable = struct {
@@ -56,24 +56,34 @@ pub const Thing = struct {
     // VTable
 
     pub fn addMessage(self: *Thing, msg: []const u8) void {
-        if (self.vtable.addMessage) |cb| {
-            cb(self, msg);
+        if (self.vtable) |vt| {
+            if (vt.addMessage) |cb| {
+                cb(self, msg);
+            }
         }
     }
 
     pub fn getAction(self: *Thing, map: *Map) ZrogueError!ThingAction {
-        return try self.vtable.getAction(self, map);
+        if (self.vtable) |vt| {
+            return try vt.getAction(self, map);
+        }
+        // TODO: maybe there's a situation for some totally passive Thing
+        @panic("getAction on no vtable");
     }
 
     pub fn setKnown(self: *Thing, p: Pos, p2: Pos, val: bool) void {
-        if (self.vtable.setKnown) |cb| {
-            cb(self, p, p2, val);
+        if (self.vtable) |vt| {
+            if (vt.setKnown) |cb| {
+                cb(self, p, p2, val);
+            }
         }
     }
 
     pub fn takeItem(self: *Thing, item: *Item, map: *Map) void {
-        if (self.vtable.takeItem) |cb| {
-            cb(self, item, map);
+        if (self.vtable) |vt| {
+            if (vt.takeItem) |cb| {
+                cb(self, item, map);
+            }
         }
     }
 
