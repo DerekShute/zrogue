@@ -50,7 +50,7 @@ pub const Player = struct {
         .addMessage = playerAddMessage,
         .getAction = playerGetAction,
         .setKnown = playerSetKnown,
-        .setPos = null, // TODO also handles setKnown
+        .setPos = playerSetPos,
         .takeItem = playerTakeItem,
     };
 
@@ -210,6 +210,15 @@ fn playerSetKnown(ptr: *Thing, p: Pos, p2: Pos, val: bool) void {
     while (ri.next()) |pos| {
         self.setKnown(pos, val);
     }
+}
+
+fn playerSetPos(ptr: *Thing, new: Pos) void {
+    const tl = Pos.add(new, Pos.init(-1, -1));
+    const br = Pos.add(new, Pos.init(1, 1));
+
+    // TODO: if not blind
+    playerSetKnown(ptr, tl, br, true);
+    // TODO: modify update region
 }
 
 fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
