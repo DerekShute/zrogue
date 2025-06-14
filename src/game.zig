@@ -46,6 +46,7 @@ pub fn run(s_config: new_level.LevelConfig) !void {
     var state: GameState = .run;
     while (state != .end) {
         // Reset player map knowledge with new map
+        // TODO this needs better handling of the update region initialization
         player_thing.setKnown(Pos.init(0, 0), Pos.init(s_config.xSize - 1, s_config.ySize - 1), false);
 
         var map = try new_level.createLevel(config);

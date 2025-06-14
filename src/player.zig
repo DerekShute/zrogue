@@ -45,6 +45,7 @@ pub const Player = struct {
     provider: *Provider = undefined,
     purse: u16 = undefined,
     map_view: MapView = undefined,
+    update_region: Region = undefined,
 
     const vtable = Thing.VTable{
         .addMessage = playerAddMessage,
@@ -65,6 +66,7 @@ pub const Player = struct {
         p.purse = 0;
         p.provider = provider;
         p.thing = Thing.config(.player, &vtable);
+        p.update_region = Region.config(Pos.init(0, 0), Pos.init(mapsize.getX() - 1, mapsize.getY() - 1));
         p.map_view = mapview;
 
         return p;
@@ -113,6 +115,9 @@ pub const Player = struct {
             @panic("Bad pos sent to Player.setKnown"); // THINK: ignore?
         };
         val.flags.known = known;
+        if (known == false) { // TODO kind of hacky
+            self.expandUpdateRegion(p);
+        }
     }
 
     pub fn getKnown(self: *Player, p: Pos) bool {
@@ -120,6 +125,28 @@ pub const Player = struct {
             @panic("Bad pos sent to Player.getKnown"); // THINK: ignore?
         };
         return val.flags.known;
+    }
+
+    pub fn expandUpdateRegion(self: *Player, p: Pos) void {
+        // Make the update region include the given position
+        // expansion allows (better) handling for teleportation
+        // TODO still not good
+
+        var region_min = self.update_region.getMin();
+        var region_max = self.update_region.getMax();
+
+        if (p.getX() < region_min.getX()) {
+            region_min = Pos.init(p.getX(), region_min.getY());
+        } else if (p.getX() > region_max.getX()) {
+            region_max = Pos.init(p.getX(), region_max.getY());
+        }
+
+        if (p.getY() < region_min.getY()) {
+            region_min = Pos.init(region_min.getX(), p.getY());
+        } else if (p.getY() > region_max.getY()) {
+            region_max = Pos.init(region_max.getX(), p.getY());
+        }
+        self.update_region = Region.config(region_min, region_max);
     }
 };
 
@@ -144,18 +171,17 @@ fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
 }
 
 fn updateDisplay(p: *Player, map: *Map) !void {
-    // TODO: this shouldn't be necessary, eventually.  Only send new information.
-
     const provider = p.provider;
 
     provider.updateStats(.{ .depth = map.getDepth(), .purse = p.purse });
 
-    // Send visible map
-    for (0..@intCast(map.getHeight())) |y| {
-        for (0..@intCast(map.getWidth())) |x| {
-            const t = try render(map, p, @intCast(x), @intCast(y));
-            try provider.setTile(@intCast(x), @intCast(y), t);
-        }
+    // Send the part of the map that may have changed appearance
+    var i = p.update_region.iterator();
+    while (i.next()) |pos| {
+        const x = pos.getX();
+        const y = pos.getY();
+        const t = try render(map, p, @intCast(x), @intCast(y));
+        try provider.setTile(@intCast(x), @intCast(y), t);
     }
 
     // TODO: becomes a path through room reveal
@@ -170,6 +196,11 @@ fn updateDisplay(p: *Player, map: *Map) !void {
             try provider.setTile(@intCast(x), @intCast(y), tile);
         }
     }
+
+    // Update region is player location only
+    // TODO: unless you are in a lit room
+    // TODO: or blind
+    p.update_region = Region.config(p.getPos(), p.getPos());
 }
 
 //
@@ -213,12 +244,17 @@ fn playerSetKnown(ptr: *Thing, p: Pos, p2: Pos, val: bool) void {
 }
 
 fn playerSetPos(ptr: *Thing, new: Pos) void {
+    // TODO: takes the map and can detect room entry
+    const self: *Player = @ptrCast(@alignCast(ptr));
+
     const tl = Pos.add(new, Pos.init(-1, -1));
     const br = Pos.add(new, Pos.init(1, 1));
 
     // TODO: if not blind
+
     playerSetKnown(ptr, tl, br, true);
-    // TODO: modify update region
+    self.expandUpdateRegion(tl);
+    self.expandUpdateRegion(br);
 }
 
 fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
@@ -299,6 +335,8 @@ test "fail to fully create a player" { // right now there are two allocations
 
     try std.testing.expectError(error.OutOfMemory, Player.init(failing.allocator(), mp, test_mapsize));
 }
+
+// TODO: test of update region changes
 
 // Visualization
 
