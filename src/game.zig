@@ -140,9 +140,6 @@ fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
     const pos = entity.getPos();
     const new_pos = Pos.add(pos, do_action.getPos());
 
-    const tl = Pos.init(-1, -1);
-    const br = Pos.init(1, 1);
-
     if (!try map.passable(new_pos)) {
         // TODO: entity 'bump' callback
         entity.moves += 5; // That hurt
@@ -151,12 +148,6 @@ fn moveAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
     }
 
     try entity.move(map, new_pos);
-
-    // TODO: if not blind
-    // REFACTOR: reverse this -- entity.discover(map)
-    // REFACTOR: setKnown(new_pos, tl, br, true)
-    entity.setKnown(Pos.add(new_pos, tl), Pos.add(new_pos, br), true);
-    map.reveal(entity);
     entity.moves += 1;
 
     return ActionResult.continue_game;
