@@ -120,6 +120,10 @@ pub const Player = struct {
         };
         return val.flags.known;
     }
+
+    pub fn isVisible(self: *Player, at: Pos) bool {
+        return self.toThing().isVisible(at);
+    }
 };
 
 //
@@ -127,23 +131,32 @@ pub const Player = struct {
 // distance-from-player, light, etc.
 //
 // * If known and wall/door/stairs (feature), display it.
-// * If blind, don't display it
+// * FUTURE: If blind, don't display it
 // * If lit and in current room (line of sight simplification), display it.
 // * If known and close, display it
 //
 fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
     const loc = Pos.init(x, y);
     const tile = try map.getTile(loc);
-    if (tile.isFeature() and player.getKnown(loc)) {
+
+    // FUTURE: this has to be optimized
+
+    if (player.isVisible(loc)) {
+        return tile;
+    } else if (tile.isFeature() and player.getKnown(loc)) {
         return tile;
     } else if (player.getDistance(loc) <= 1) {
+        // The edge case of standing in a doorway
         return tile;
     }
+
     return .unknown;
 }
 
 fn updateDisplay(p: *Player, map: *Map) !void {
-    // TODO: this shouldn't be necessary, eventually.  Only send new information.
+    // FUTURE: this is inefficient.  Only need to send what could have
+    //   changed or what did change.  At the very least, set up a bounding
+    //   box to iterate through.
 
     const provider = p.provider;
 
@@ -154,17 +167,6 @@ fn updateDisplay(p: *Player, map: *Map) !void {
         for (0..@intCast(map.getWidth())) |x| {
             const t = try render(map, p, @intCast(x), @intCast(y));
             try provider.setTile(@intCast(x), @intCast(y), t);
-        }
-    }
-
-    // TODO: becomes a path through room reveal
-    if (map.inRoom(p.getPos()) and map.isLit(p.getPos())) {
-        var r = map.getRoomRegion(p.getPos()) catch unreachable; // Known
-        var ri = r.iterator();
-
-        while (ri.next()) |pos| {
-            const tile = try map.getTile(pos);
-            try provider.setTile(@intCast(pos.getX()), @intCast(pos.getY()), tile);
         }
     }
 }

@@ -13,6 +13,7 @@ const ZrogueError = zrogue.ZrogueError;
 const ThingAction = zrogue.ThingAction;
 const MapTile = zrogue.MapTile;
 const Pos = zrogue.Pos;
+const Region = zrogue.Region;
 
 // ===================
 //
@@ -24,6 +25,7 @@ pub const Thing = struct {
     tile: MapTile = undefined,
     vtable: *const VTable = undefined,
     moves: i32 = 0,
+    los: Region = undefined, // line of sight
 
     pub const VTable = struct {
         addMessage: ?*const fn (self: *Thing, msg: []const u8) void,
@@ -37,6 +39,7 @@ pub const Thing = struct {
             .p = Pos.init(-1, -1),
             .tile = tile,
             .vtable = vtable,
+            .los = Region.config(Pos.init(0, 0), Pos.init(0, 0)), // TODO invalid
         };
     }
 
@@ -54,6 +57,14 @@ pub const Thing = struct {
         // TODO: if not blind
         map.reveal(self);
         try map.setMonster(self);
+    }
+
+    pub fn setVisible(self: *Thing, new: Region) void {
+        self.los = new;
+    }
+
+    pub fn isVisible(self: *Thing, at: Pos) bool {
+        return self.los.isInside(at);
     }
 
     // VTable
