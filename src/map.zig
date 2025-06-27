@@ -112,13 +112,6 @@ pub const Room = struct {
         self.flags.gone = true;
     }
 
-    pub fn isInside(self: *Room, p: Pos) bool {
-        if ((p.getX() < self.getMinX()) or (p.getX() > self.getMaxX()) or (p.getY() < self.getMinY()) or (p.getY() > self.getMaxY())) {
-            return false;
-        }
-        return true;
-    }
-
     pub usingnamespace Region.Methods(@This());
 };
 
@@ -399,16 +392,7 @@ test "create a room and test properties" {
     try expect(room.getMaxY() == 20);
     try expect(room.getMinX() == 10);
     try expect(room.getMinY() == 10);
-    try expect(room.isInside(Pos.init(15, 15)));
-    try expect(room.isInside(Pos.init(10, 10)));
-    try expect(room.isInside(Pos.init(20, 20)));
-    try expect(room.isInside(Pos.init(10, 20)));
-    try expect(room.isInside(Pos.init(20, 10)));
-    try expect(!room.isInside(Pos.init(0, 0)));
-    try expect(!room.isInside(Pos.init(-10, -10)));
-    try expect(!room.isInside(Pos.init(10, 0)));
-    try expect(!room.isInside(Pos.init(0, 10)));
-    try expect(!room.isInside(Pos.init(15, 21)));
+    try expect(room.isInside(Pos.init(15, 15))); // Smoke: methods available
 
     try expect(room.isLit() == true);
     room.setDark();

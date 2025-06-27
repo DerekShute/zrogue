@@ -206,6 +206,16 @@ pub const Region = struct {
         return .{ .from = from, .to = to };
     }
 
+    pub fn isInside(self: *Region, p: Pos) bool {
+        const from = self.getMin();
+        const to = self.getMax();
+
+        if ((p.getX() < from.getX()) or (p.getX() > to.getX()) or (p.getY() < from.getY()) or (p.getY() > to.getY())) {
+            return false;
+        }
+        return true;
+    }
+
     pub fn iterator(self: *Region) Region.Iterator {
         return .{ .r = self, .x = self.from.getX(), .y = self.from.getY() };
     }
@@ -258,6 +268,10 @@ pub const Region = struct {
             pub fn getMaxY(self: *Self) Pos.Dim {
                 const max = self.r.getMax();
                 return max.getY();
+            }
+
+            pub fn isInside(self: *Self, at: Pos) bool {
+                return self.r.isInside(at);
             }
         };
     }
@@ -402,6 +416,17 @@ test "Region and region methods" {
 
     try expect(x.getMin().eql(min));
     try expect(x.getMax().eql(max));
+
+    try expect(x.isInside(Pos.init(4, 10)));
+    try expect(x.isInside(Pos.init(2, 7)));
+    try expect(x.isInside(Pos.init(9, 11)));
+    try expect(x.isInside(Pos.init(2, 11)));
+    try expect(x.isInside(Pos.init(9, 7)));
+    try expect(!x.isInside(Pos.init(0, 0)));
+    try expect(!x.isInside(Pos.init(-10, -10)));
+    try expect(!x.isInside(Pos.init(10, 0)));
+    try expect(!x.isInside(Pos.init(0, 10)));
+    try expect(!x.isInside(Pos.init(15, 21)));
 
     // We will call 1x1 valid for now. 1x1 at 0,0 is the uninitialized room
     _ = Region.config(Pos.init(0, 0), Pos.init(0, 0));
