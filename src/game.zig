@@ -198,8 +198,7 @@ fn searchAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResul
         // REFACTOR: takes Pos interface?
         const tile = try map.getOnlyTile(pos.getX(), pos.getY());
         if (tile == .secret_door) {
-            // REFACTOR: takes Pos interface?
-            try map.setTile(pos.getX(), pos.getY(), .door);
+            try map.setTile(pos, .door);
             found = true;
         }
     }

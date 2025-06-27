@@ -79,7 +79,7 @@ fn makeDoor(map: *Map, r: *std.Random, p: Pos) !void {
     if ((r.intRangeAtMost(u16, 1, 10) < map.level) and (r.intRangeAtMost(u16, 0, 4) == 0)) {
         tile = .secret_door;
     }
-    try map.setTile(p.getX(), p.getY(), tile);
+    try map.setTile(p, tile);
 }
 
 // TODO: into Map?  It assumes a room grid
@@ -277,17 +277,14 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
         roomcount -= 1;
     }
 
-    // TODO 0.1 : keep track of map.passages[] for serialization
-
     // Place the stairs.  In the original they can't go in a gone room, but why not?
     {
         const pos = findAnyFloor(config.rand, map);
 
-        // REFACTOR: setTile takes Pos instead?
         if (config.going_down) {
-            try map.setTile(pos.getX(), pos.getY(), .stairs_down);
+            try map.setTile(pos, .stairs_down);
         } else {
-            try map.setTile(pos.getX(), pos.getY(), .stairs_up);
+            try map.setTile(pos, .stairs_up);
         }
     }
 

@@ -132,8 +132,8 @@ pub const Player = struct {
 // * If known and close, display it
 //
 fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
-    const tile = try map.getTile(x, y);
     const loc = Pos.init(x, y);
+    const tile = try map.getTile(loc);
     if (tile.isFeature() and player.getKnown(loc)) {
         return tile;
     } else if (player.getDistance(loc) <= 1) {
@@ -163,10 +163,8 @@ fn updateDisplay(p: *Player, map: *Map) !void {
         var ri = r.iterator();
 
         while (ri.next()) |pos| {
-            const x = pos.getX();
-            const y = pos.getY();
-            const tile = try map.getTile(x, y);
-            try provider.setTile(@intCast(x), @intCast(y), tile);
+            const tile = try map.getTile(pos);
+            try provider.setTile(@intCast(pos.getX()), @intCast(pos.getY()), tile);
         }
     }
 }

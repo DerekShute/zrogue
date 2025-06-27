@@ -203,23 +203,23 @@ pub const Map = struct {
         return place.tile;
     }
 
-    pub fn getTile(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapTile {
-        const place = try self.toPlace(x, y);
+    pub fn getTile(self: *Map, p: Pos) !MapTile {
+        const place = try self.toPlace(p.getX(), p.getY());
         var tile = place.getTile();
 
         // Monster tile takes precedence and we only see an object if it is
         // on the visible floor
         if (tile == .floor) {
             // REFACTOR: set bit in Place to see if even worth looking
-            if (self.getItem(Pos.init(x, y))) |item| {
+            if (self.getItem(p)) |item| {
                 tile = item.getTile();
             }
         }
         return tile; // TODO 0.2 : returns tuple of tile, object, monster
     }
 
-    pub fn setTile(self: *Map, x: Pos.Dim, y: Pos.Dim, tile: MapTile) !void {
-        const place = try self.toPlace(x, y);
+    pub fn setTile(self: *Map, p: Pos, tile: MapTile) !void {
+        const place = try self.toPlace(p.getX(), p.getY());
         place.setTile(tile);
     }
 
@@ -417,9 +417,9 @@ test "map smoke test" {
     defer map.deinit();
 
     map.addRoom(Room.config(Pos.init(10, 10), Pos.init(20, 20)));
-    try map.setTile(15, 15, .stairs_down);
+    try map.setTile(Pos.init(15, 15), .stairs_down);
     try std.testing.expect(try map.getOnlyTile(15, 15) == .stairs_down);
-    try map.setTile(16, 16, .stairs_up);
+    try map.setTile(Pos.init(16, 16), .stairs_up);
     try std.testing.expect(try map.getOnlyTile(16, 16) == .stairs_up);
 
     try std.testing.expect(map.getHeight() == 50);
@@ -474,8 +474,8 @@ test "ask about thing at invalid map location" {
 test "ask about invalid character on the map" {
     var map = try Map.init(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
-    try expectError(ZrogueError.IndexOverflow, map.getTile(20, 0));
-    try expectError(ZrogueError.IndexOverflow, map.getTile(0, 20));
+    try expectError(ZrogueError.IndexOverflow, map.getTile(Pos.init(20, 0)));
+    try expectError(ZrogueError.IndexOverflow, map.getTile(Pos.init(0, 20)));
 }
 
 //
@@ -539,17 +539,19 @@ test "put item on map" {
         unreachable;
     }
 
-    try map.setTile(25, 25, .floor); // Must be floor to show it
-    try expect(try map.getTile(25, 25) == .gold);
+    const p = Pos.init(25, 25);
+
+    try map.setTile(p, .floor); // Must be floor to show it
+    try expect(try map.getTile(p) == .gold);
 
     // Monster's tile has precedence
 
-    var thing = Thing{ .p = Pos.init(25, 25), .tile = .player };
+    var thing = Thing{ .p = p, .tile = .player };
     try map.setMonster(&thing);
-    try expect(try map.getTile(25, 25) == .player);
+    try expect(try map.getTile(p) == .player);
 
-    try map.removeMonster(Pos.init(25, 25));
-    try expect(try map.getTile(25, 25) == .gold);
+    try map.removeMonster(p);
+    try expect(try map.getTile(p) == .gold);
 }
 
 // Monsters
