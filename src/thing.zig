@@ -50,6 +50,9 @@ pub const Thing = struct {
             try map.removeMonster(old);
         }
         self.setPos(new);
+        // TODO: player callback?
+        // TODO: if not blind
+        map.reveal(self);
         try map.setMonster(self);
     }
 

@@ -365,8 +365,6 @@ pub const Map = struct {
     }
 
     // Reveal a room to the entity in question
-    // TODO: this is entity logic
-    // TODO: really wants a 'enter room' callback
     pub fn reveal(self: *Map, entity: *Thing) void {
         if (self.getInRoom(entity.getPos())) |room| {
             if (room.isLit()) {
@@ -374,8 +372,15 @@ pub const Map = struct {
                 // TODO: hand it a region
                 // TODO: a map update to the player's provider
                 entity.setKnown(room.getMin(), room.getMax(), true);
+                return;
             }
         }
+
+        // Fallback: only surroundings
+
+        const tl = Pos.add(entity.getPos(), Pos.init(-1, -1));
+        const br = Pos.add(entity.getPos(), Pos.init(1, 1));
+        entity.setKnown(tl, br, true);
     }
 };
 
