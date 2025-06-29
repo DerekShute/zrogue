@@ -30,7 +30,7 @@ pub const Thing = struct {
     pub const VTable = struct {
         addMessage: ?*const fn (self: *Thing, msg: []const u8) void,
         getAction: *const fn (self: *Thing, map: *Map) ZrogueError!ThingAction,
-        setKnown: ?*const fn (self: *Thing, p: Pos, p2: Pos, val: bool) void,
+        setKnown: ?*const fn (self: *Thing, r: Region, val: bool) void,
         takeItem: ?*const fn (self: *Thing, item: *Item, map: *Map) void,
     };
 
@@ -79,9 +79,9 @@ pub const Thing = struct {
         return try self.vtable.getAction(self, map);
     }
 
-    pub fn setKnown(self: *Thing, p: Pos, p2: Pos, val: bool) void {
+    pub fn setKnown(self: *Thing, r: Region, val: bool) void {
         if (self.vtable.setKnown) |cb| {
-            cb(self, p, p2, val);
+            cb(self, r, val);
         }
     }
 

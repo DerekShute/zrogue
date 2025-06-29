@@ -49,7 +49,8 @@ pub fn run(s_config: new_level.LevelConfig) !void {
         defer map.deinit();
 
         // Reset player map knowledge with new map
-        player_thing.setKnown(Pos.init(0, 0), Pos.init(s_config.xSize - 1, s_config.ySize - 1), false);
+        const r = Region.config(Pos.init(0, 0), Pos.init(s_config.xSize - 1, s_config.ySize - 1));
+        player_thing.setKnown(r, false);
 
         var result: ActionResult = .continue_game;
         while (result == .continue_game) {

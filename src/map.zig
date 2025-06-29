@@ -369,9 +369,7 @@ pub const Map = struct {
         if (self.getInRoom(entity.getPos())) |room| {
             if (room.isLit()) {
                 // FUTURE: shaped rooms
-                // TODO: hand it a region
-                // TODO: a map update to the player's provider
-                entity.setKnown(room.getMin(), room.getMax(), true);
+                entity.setKnown(room.getRegion(), true);
                 entity.setVisible(room.getRegion());
                 return;
             }
@@ -381,7 +379,7 @@ pub const Map = struct {
 
         const tl = Pos.add(entity.getPos(), Pos.init(-1, -1));
         const br = Pos.add(entity.getPos(), Pos.init(1, 1));
-        entity.setKnown(tl, br, true);
+        entity.setKnown(Region.config(tl, br), true);
         entity.setVisible(Region.config(tl, br));
     }
 };
