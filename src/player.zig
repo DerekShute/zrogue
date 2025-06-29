@@ -202,10 +202,10 @@ fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
     };
 }
 
-fn playerSetKnown(ptr: *Thing, p: Pos, p2: Pos, val: bool) void {
+fn playerSetKnown(ptr: *Thing, r: Region, val: bool) void {
     const self: *Player = @ptrCast(@alignCast(ptr));
-    var r = Region.config(p, p2);
-    var ri = r.iterator();
+    var _r = r; // Resolve const
+    var ri = _r.iterator();
     while (ri.next()) |pos| {
         self.setKnown(pos, val);
     }
