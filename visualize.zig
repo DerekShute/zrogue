@@ -16,6 +16,7 @@ const player = @import("src/player.zig");
 const Provider = @import("src/Provider.zig");
 const thing = @import("src/thing.zig");
 const itemFields = @import("src/item.zig").fields;
+const Feature = @import("src/Feature.zig");
 const zrogue = @import("src/zrogue.zig");
 const log = @import("src/message_log.zig");
 
@@ -38,6 +39,7 @@ pub fn main() !void {
     printer(zrogue.pos_fields);
     printer(zrogue.action_fields);
     printer(itemFields);
+    printer(Feature.feature_fields);
     printer(log.log_fields);
 }
 

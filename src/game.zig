@@ -6,6 +6,7 @@
 
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
+const Feature = @import("Feature.zig");
 const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
 const Room = @import("map.zig").Room;
@@ -180,9 +181,8 @@ fn searchAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResul
     var i = r.iterator();
     var found: bool = false;
     while (i.next()) |pos| {
-        if (try map.getFloorTile(pos) == .secret_door) {
-            try map.setTile(pos, .door);
-            found = true;
+        if (try map.getFeature(pos)) |f| {
+            found = f.find(map);
         }
     }
 
