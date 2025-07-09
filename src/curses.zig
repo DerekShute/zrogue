@@ -41,7 +41,6 @@ fn mapToChar(ch: MapTile) u8 {
         .floor => '.',
         .gold => '$',
         .wall => '#',
-        .secret_door => '#', // Unfound: looks like wall
         .door => '+',
         .player => '@',
         .stairs_down => '>',

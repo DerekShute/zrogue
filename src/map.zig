@@ -9,6 +9,7 @@ const Grid = @import("utils/grid.zig").Grid;
 const Item = @import("item.zig").Item;
 const Manager = @import("utils/list_manager.zig").Manager;
 const Thing = @import("thing.zig").Thing;
+const Feature = @import("Feature.zig");
 const zrogue = @import("zrogue.zig");
 const Pos = zrogue.Pos;
 const Region = zrogue.Region;
@@ -21,15 +22,18 @@ const MapTile = zrogue.MapTile;
 //
 const ItemManager = Manager(Item);
 
+// Feature Management
+const FeatureManager = Manager(Feature);
+
 // ===================
 //
 // Spot on the map
 //
 const Place = struct {
     tile: MapTile = .unknown,
-    monst: ?*Thing,
-    item: ?*Item,
-    // TODO: hidden / disguised
+    monst: ?*Thing = undefined,
+    item: ?*Item = undefined,
+    feature: ?*Feature = undefined,
 
     // Constructor, probably not idiomatic
 
@@ -37,6 +41,7 @@ const Place = struct {
         self.tile = .wall;
         self.monst = null;
         self.item = null;
+        self.feature = null;
     }
 
     // Methods
@@ -89,6 +94,23 @@ const Place = struct {
         if (self.monst) |_| {
             self.monst = null;
         }
+    }
+
+    // Feature at place
+
+    pub fn addFeature(self: *Place, new: *Feature) !void {
+        if (self.feature) |_| {
+            return error.AlreadyInUse;
+        }
+        self.feature = new;
+    }
+
+    pub fn removeFeature(self: *Place) void {
+        self.feature = null;
+    }
+
+    pub fn getFeature(self: *Place) ?*Feature {
+        return self.feature;
     }
 };
 
@@ -143,6 +165,7 @@ pub const Map = struct {
 
     allocator: std.mem.Allocator,
     items: ItemManager,
+    features: FeatureManager,
     places: PlaceGrid,
     rooms: []Room,
     height: Pos.Dim,
@@ -176,6 +199,7 @@ pub const Map = struct {
 
         m.allocator = allocator;
         m.items = ItemManager.config(allocator);
+        m.features = FeatureManager.config(allocator);
         m.height = height;
         m.width = width;
         m.places = places;
@@ -191,6 +215,7 @@ pub const Map = struct {
     pub fn deinit(self: *Map) void {
         const allocator = self.allocator;
         self.items.deinit();
+        self.features.deinit();
         self.places.deinit();
         allocator.free(self.rooms);
         allocator.destroy(self);
@@ -285,6 +310,30 @@ pub const Map = struct {
     pub fn removeMonster(self: *Map, p: Pos) !void {
         const place = try self.toPlace(p.getX(), p.getY());
         place.removeMonster();
+    }
+
+    // features
+
+    pub fn getFeature(self: *Map, p: Pos) !?*Feature {
+        const place = try self.toPlace(p.getX(), p.getY());
+        return place.getFeature();
+    }
+
+    pub fn addFeature(self: *Map, new: Feature) !void {
+        // FUTURE: this creates the item from the copy sent in
+        const f = try self.features.node(new);
+        errdefer self.features.deinitNode(f);
+
+        const p = f.getPos(); // TODO: this is lame
+        const place = try self.toPlace(p.getX(), p.getY());
+        try place.addFeature(f);
+    }
+
+    pub fn removeFeature(self: *Map, f: *Feature) !void {
+        const p = f.getPos(); // TODO: this is lame
+        const place = try self.toPlace(p.getX(), p.getY());
+        place.removeFeature();
+        self.features.deinitNode(f); // Destructor
     }
 
     // rooms
@@ -589,6 +638,20 @@ test "putting monsters places" {
     try expectError(error.AlreadyInUse, map.setMonster(&thing2));
 }
 
+// Features
+
+test "putting features places" {
+    var map = try Map.init(std.testing.allocator, 50, 50, 1, 1);
+    defer map.deinit();
+
+    var f = Feature{ .pos = Pos.init(10, 10), .vtable = null };
+    try map.addFeature(f);
+    try expectError(error.AlreadyInUse, map.addFeature(f));
+    const f2 = try map.getFeature(f.getPos());
+    try expect(f2 != null);
+    try map.removeFeature(f2.?);
+}
+
 // Visualize
 
 const genFields = @import("utils/visual.zig").genFields;
@@ -597,5 +660,6 @@ pub var map_fields = genFields(Map);
 pub var place_fields = genFields(Place);
 pub var room_fields = genFields(Room);
 pub var items_fields = genFields(ItemManager);
+pub var features_field = genFields(FeatureManager);
 
 // EOF

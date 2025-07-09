@@ -48,7 +48,6 @@ pub const MapTile = enum {
     floor,
     wall, // Start of features
     door,
-    secret_door, // looks like wall
     stairs_down,
     stairs_up, // Last feature
     gold,
@@ -63,7 +62,7 @@ pub const MapTile = enum {
     }
 
     pub fn isPassable(self: MapTile) bool {
-        return ((self != .wall) and (self != .secret_door));
+        return (self != .wall);
     }
 };
 
@@ -346,7 +345,7 @@ test "lock MapTile behavior" {
 
         // Walls and undiscovered secret doors are not passable.
         // .unknown is unclear
-        const passable = ((i != @intFromEnum(MapTile.wall)) and (i != @intFromEnum(MapTile.secret_door)));
+        const passable = (i != @intFromEnum(MapTile.wall));
         try expect(tile.isPassable() == passable);
     }
 }

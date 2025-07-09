@@ -11,6 +11,7 @@ const MapTile = zrogue.MapTile;
 const Pos = zrogue.Pos;
 const Region = zrogue.Region;
 const Room = map.Room;
+const Feature = @import("../Feature.zig");
 const Thing = @import("../thing.zig").Thing;
 
 //
@@ -113,6 +114,26 @@ pub fn addEastCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) !void {
     try drawHorizLine(m, start, mid, .floor);
     try drawVertLine(m, Pos.init(mid, start.getY()), end.getY(), .floor);
     try drawHorizLine(m, Pos.init(mid, end.getY()), end.getX(), .floor);
+}
+
+// Secret Door
+
+fn findSecretDoor(s: *Feature, m: *Map) bool {
+    // TODO: chance to succeed
+    m.setTile(s.getPos(), .door) catch unreachable; // bad Pos of feature?
+    m.removeFeature(s) catch unreachable; // bad Pos?
+    return true; // Found
+}
+
+const secretdoor_vtable: Feature.VTable = .{
+    .find = findSecretDoor,
+};
+
+pub fn configSecretDoor(p: Pos) Feature {
+    return .{
+        .pos = p,
+        .vtable = &secretdoor_vtable,
+    };
 }
 
 // TODO: common functions...

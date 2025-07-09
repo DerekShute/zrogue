@@ -77,7 +77,8 @@ fn makeDoor(map: *Map, r: *std.Random, p: Pos) !void {
 
     var tile: MapTile = .door;
     if ((r.intRangeAtMost(u16, 1, 10) < map.level) and (r.intRangeAtMost(u16, 0, 4) == 0)) {
-        tile = .secret_door;
+        try map.addFeature(mapgen.configSecretDoor(p));
+        tile = .wall;
     }
     try map.setTile(p, tile);
 }
