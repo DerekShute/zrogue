@@ -134,15 +134,15 @@ test "mapgen smoke test" {
 
     try expect(m.isLit(Pos.init(15, 15)) == true);
 
-    try expect(try m.getTile(Pos.init(0, 0)) == .wall);
-    try expect(try m.getTile(Pos.init(10, 10)) == .wall);
+    try expect(try m.getFloorTile(Pos.init(0, 0)) == .wall);
+    try expect(try m.getFloorTile(Pos.init(10, 10)) == .wall);
 
     // Explicit set tile inside a known room
     try m.setTile(Pos.init(17, 17), .wall);
-    try expect(try m.getTile(Pos.init(17, 17)) == .wall);
+    try expect(try m.getFloorTile(Pos.init(17, 17)) == .wall);
 
     try m.setTile(Pos.init(18, 18), .door);
-    try expect(try m.getTile(Pos.init(18, 18)) == .door);
+    try expect(try m.getFloorTile(Pos.init(18, 18)) == .door);
 }
 
 // Corridors
@@ -156,38 +156,38 @@ test "dig corridors" {
 
     // Eastward dig, southgoing vertical
     try addEastCorridor(m, Pos.init(4, 4), Pos.init(20, 10), 12);
-    try expect(try m.getTile(Pos.init(12, 7)) == .floor); // halfway
-    try expect(try m.getTile(Pos.init(12, 4)) == .floor);
-    try expect(try m.getTile(Pos.init(12, 10)) == .floor);
-    try expect(try m.getTile(Pos.init(4, 4)) == .floor);
-    try expect(try m.getTile(Pos.init(20, 10)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(12, 7)) == .floor); // halfway
+    try expect(try m.getFloorTile(Pos.init(12, 4)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(12, 10)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(4, 4)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(20, 10)) == .floor);
     try drawField(m, Pos.init(4, 4), Pos.init(20, 10), .wall); // reset
 
     // Eastward dig, northgoing vertical
     try addEastCorridor(m, Pos.init(4, 10), Pos.init(20, 4), 12);
-    try expect(try m.getTile(Pos.init(12, 7)) == .floor); // halfway
-    try expect(try m.getTile(Pos.init(12, 4)) == .floor);
-    try expect(try m.getTile(Pos.init(12, 10)) == .floor);
-    try expect(try m.getTile(Pos.init(4, 10)) == .floor);
-    try expect(try m.getTile(Pos.init(20, 4)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(12, 7)) == .floor); // halfway
+    try expect(try m.getFloorTile(Pos.init(12, 4)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(12, 10)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(4, 10)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(20, 4)) == .floor);
     try drawField(m, Pos.init(4, 4), Pos.init(20, 10), .wall); // reset
 
     // Southward dig, westgoing horizontal
     try addSouthCorridor(m, Pos.init(10, 8), Pos.init(3, 14), 11);
-    try expect(try m.getTile(Pos.init(6, 11)) == .floor); // halfway
-    try expect(try m.getTile(Pos.init(3, 11)) == .floor);
-    try expect(try m.getTile(Pos.init(10, 11)) == .floor);
-    try expect(try m.getTile(Pos.init(10, 8)) == .floor);
-    try expect(try m.getTile(Pos.init(3, 14)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(6, 11)) == .floor); // halfway
+    try expect(try m.getFloorTile(Pos.init(3, 11)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(10, 11)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(10, 8)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(3, 14)) == .floor);
     try drawField(m, Pos.init(3, 8), Pos.init(10, 14), .wall); // reset
 
     // Southward dig, eastgoing horizontal
     try addSouthCorridor(m, Pos.init(3, 8), Pos.init(10, 14), 11);
-    try expect(try m.getTile(Pos.init(6, 11)) == .floor); // halfway
-    try expect(try m.getTile(Pos.init(3, 11)) == .floor);
-    try expect(try m.getTile(Pos.init(10, 11)) == .floor);
-    try expect(try m.getTile(Pos.init(3, 8)) == .floor);
-    try expect(try m.getTile(Pos.init(10, 14)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(6, 11)) == .floor); // halfway
+    try expect(try m.getFloorTile(Pos.init(3, 11)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(10, 11)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(3, 8)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(10, 14)) == .floor);
     try drawField(m, Pos.init(3, 8), Pos.init(10, 14), .wall); // reset
 }
 
@@ -197,19 +197,19 @@ test "dig unusual corridors" {
 
     // One tile
     try addSouthCorridor(m, Pos.init(5, 10), Pos.init(5, 12), 11);
-    try expect(try m.getTile(Pos.init(5, 11)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(5, 11)) == .floor);
 
     // straight East
     try addEastCorridor(m, Pos.init(10, 5), Pos.init(15, 5), 12);
-    try expect(try m.getTile(Pos.init(11, 5)) == .floor);
-    try expect(try m.getTile(Pos.init(13, 5)) == .floor);
-    try expect(try m.getTile(Pos.init(14, 5)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(11, 5)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(13, 5)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(14, 5)) == .floor);
 
     // straight South
     try addSouthCorridor(m, Pos.init(16, 8), Pos.init(16, 13), 10);
-    try expect(try m.getTile(Pos.init(16, 9)) == .floor);
-    try expect(try m.getTile(Pos.init(16, 10)) == .floor);
-    try expect(try m.getTile(Pos.init(16, 12)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(16, 9)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(16, 10)) == .floor);
+    try expect(try m.getFloorTile(Pos.init(16, 12)) == .floor);
 }
 
 // EOF
