@@ -27,23 +27,21 @@ const ItemManager = Manager(Item);
 //
 const Place = struct {
     tile: MapTile = .unknown,
-    // TODO future flags -- has monster, has object
     monst: ?*Thing,
+    item: ?*Item,
+    // TODO: hidden / disguised
 
     // Constructor, probably not idiomatic
 
     pub fn config(self: *Place) void {
         self.tile = .wall;
         self.monst = null;
+        self.item = null;
     }
 
     // Methods
 
     pub fn getTile(self: *Place) MapTile {
-        // TODO Future: monsters on list
-        if (self.monst) |monst| {
-            return monst.getTile();
-        }
         return self.tile;
     }
 
@@ -55,18 +53,39 @@ const Place = struct {
         self.tile = to;
     }
 
-    pub fn getMonst(self: *Place) ?*Thing {
+    // Item at place
+
+    pub fn getItem(self: *Place) ?*Item {
+        return self.item;
+    }
+
+    pub fn setItem(self: *Place, new: *Item) !void {
+        if (self.item) |_| {
+            return error.AlreadyInUse;
+        }
+        self.item = new;
+    }
+
+    pub fn removeItem(self: *Place) void {
+        if (self.item) |_| {
+            self.item = null;
+        }
+    }
+
+    // Monster at place
+
+    pub fn getMonster(self: *Place) ?*Thing {
         return self.monst;
     }
 
-    pub fn setMonst(self: *Place, new_monst: *Thing) !void {
+    pub fn setMonster(self: *Place, new_monst: *Thing) !void {
         if (self.monst) |_| {
             return error.AlreadyInUse;
         }
         self.monst = new_monst;
     }
 
-    pub fn removeMonst(self: *Place) !void {
+    pub fn removeMonster(self: *Place) void {
         if (self.monst) |_| {
             self.monst = null;
         }
@@ -197,25 +216,25 @@ pub const Map = struct {
         return self.level;
     }
 
-    pub fn getOnlyTile(self: *Map, x: Pos.Dim, y: Pos.Dim) !MapTile {
-        // (ignore monster) - for stairs
-        const place = try self.toPlace(x, y);
-        return place.tile;
+    pub fn getFloorTile(self: *Map, p: Pos) !MapTile {
+        const place = try self.toPlace(p.getX(), p.getY());
+        return place.getTile();
     }
 
-    pub fn getTile(self: *Map, p: Pos) !MapTile {
+    pub fn getMonsterTile(self: *Map, p: Pos) !MapTile {
         const place = try self.toPlace(p.getX(), p.getY());
-        var tile = place.getTile();
-
-        // Monster tile takes precedence and we only see an object if it is
-        // on the visible floor
-        if (tile == .floor) {
-            // REFACTOR: set bit in Place to see if even worth looking
-            if (self.getItem(p)) |item| {
-                tile = item.getTile();
-            }
+        if (place.getMonster()) |m| {
+            return m.getTile();
         }
-        return tile; // TODO 0.2 : returns tuple of tile, object, monster
+        return .unknown;
+    }
+
+    pub fn getItemTile(self: *Map, p: Pos) !MapTile {
+        const place = try self.toPlace(p.getX(), p.getY());
+        if (place.getItem()) |i| {
+            return i.getTile();
+        }
+        return .unknown;
     }
 
     pub fn setTile(self: *Map, p: Pos, tile: MapTile) !void {
@@ -231,22 +250,23 @@ pub const Map = struct {
     // items
 
     pub fn addItem(self: *Map, item: Item) !void {
-        _ = try self.items.node(item);
+        // FUTURE: this creates the item from the copy sent in
+        const i = try self.items.node(item);
+        errdefer self.items.deinitNode(i);
+
+        const place = try self.toPlace(i.getX(), i.getY());
+        try place.setItem(i);
     }
 
-    pub fn getItem(self: *Map, pos: Pos) ?*Item {
-        // TODO 2.0: first found
-        var it = self.items.iterator();
-
-        while (it.next()) |item| {
-            if (pos.eql(item.getPos())) {
-                return item;
-            }
-        }
-        return null;
+    pub fn getItem(self: *Map, pos: Pos) !?*Item {
+        const place = try self.toPlace(pos.getX(), pos.getY());
+        return place.getItem();
     }
 
-    pub fn removeItem(self: *Map, item: *Item) void {
+    pub fn removeItem(self: *Map, item: *Item) !void {
+        // FUTURE: this deletes the item
+        const place = try self.toPlace(item.getX(), item.getY());
+        place.removeItem();
         self.items.deinitNode(item);
     }
 
@@ -254,17 +274,17 @@ pub const Map = struct {
 
     pub fn getMonster(self: *Map, x: Pos.Dim, y: Pos.Dim) !?*Thing {
         const place = try self.toPlace(x, y);
-        return place.getMonst();
+        return place.getMonster();
     }
 
     pub fn setMonster(self: *Map, monst: *Thing) !void {
         const place = try self.toPlace(monst.getX(), monst.getY());
-        try place.setMonst(monst);
+        try place.setMonster(monst);
     }
 
     pub fn removeMonster(self: *Map, p: Pos) !void {
         const place = try self.toPlace(p.getX(), p.getY());
-        try place.removeMonst();
+        place.removeMonster();
     }
 
     // rooms
@@ -423,9 +443,9 @@ test "map smoke test" {
 
     map.addRoom(Room.config(Pos.init(10, 10), Pos.init(20, 20)));
     try map.setTile(Pos.init(15, 15), .stairs_down);
-    try std.testing.expect(try map.getOnlyTile(15, 15) == .stairs_down);
+    try std.testing.expect(try map.getFloorTile(Pos.init(15, 15)) == .stairs_down);
     try map.setTile(Pos.init(16, 16), .stairs_up);
-    try std.testing.expect(try map.getOnlyTile(16, 16) == .stairs_up);
+    try std.testing.expect(try map.getFloorTile(Pos.init(16, 16)) == .stairs_up);
 
     try std.testing.expect(map.getHeight() == 50);
     try std.testing.expect(map.getWidth() == 100);
@@ -479,8 +499,8 @@ test "ask about thing at invalid map location" {
 test "ask about invalid character on the map" {
     var map = try Map.init(std.testing.allocator, 10, 10, 1, 1);
     defer map.deinit();
-    try expectError(ZrogueError.IndexOverflow, map.getTile(Pos.init(20, 0)));
-    try expectError(ZrogueError.IndexOverflow, map.getTile(Pos.init(0, 20)));
+    try expectError(ZrogueError.IndexOverflow, map.getFloorTile(Pos.init(20, 0)));
+    try expectError(ZrogueError.IndexOverflow, map.getFloorTile(Pos.init(0, 20)));
 }
 
 //
@@ -532,31 +552,29 @@ test "put item on map" {
     var map = try Map.init(std.testing.allocator, 50, 50, 1, 1);
     defer map.deinit();
 
-    try map.addItem(Item.config(25, 25, .gold));
+    const p = Pos.init(25, 25);
 
-    const item = map.getItem(Pos.init(25, 25));
+    try map.setTile(p, .floor);
+    try expect(try map.getFloorTile(p) == .floor);
+
+    try expect(try map.getItemTile(p) == .unknown);
+    try map.addItem(Item.config(p.getX(), p.getY(), .gold));
+    try expect(try map.getItemTile(p) == .gold);
+
+    const item = try map.getItem(p);
     if (item) |i| { // Convenience
         try expect(i.getTile() == .gold);
-        const p = i.getPos();
-        try expect(p.getX() == 25);
-        try expect(p.getY() == 25);
+        try expect(p.eql(i.getPos()));
     } else {
         unreachable;
     }
 
-    const p = Pos.init(25, 25);
-
-    try map.setTile(p, .floor); // Must be floor to show it
-    try expect(try map.getTile(p) == .gold);
-
-    // Monster's tile has precedence
-
     var thing = Thing{ .p = p, .tile = .player };
+    try expect(try map.getMonsterTile(p) == .unknown);
     try map.setMonster(&thing);
-    try expect(try map.getTile(p) == .player);
-
+    try expect(try map.getMonsterTile(p) == .player);
     try map.removeMonster(p);
-    try expect(try map.getTile(p) == .gold);
+    try expect(try map.getMonsterTile(p) == .unknown);
 }
 
 // Monsters

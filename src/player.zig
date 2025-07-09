@@ -122,6 +122,11 @@ pub const Player = struct {
     }
 
     pub fn isVisible(self: *Player, at: Pos) bool {
+        // distance <=1 is corner case of standing in a doorway
+
+        if (self.getDistance(at) <= 1) {
+            return true;
+        }
         return self.toThing().isVisible(at);
     }
 };
@@ -137,20 +142,30 @@ pub const Player = struct {
 //
 fn render(map: *Map, player: *Player, x: Pos.Dim, y: Pos.Dim) !MapTile {
     const loc = Pos.init(x, y);
-    const tile = try map.getTile(loc);
+    const f_tile = try map.getFloorTile(loc);
 
-    // FUTURE: this has to be optimized
+    // If you can (not) see it
+    if (!player.isVisible(loc)) {
+        // ...but you know about it
+        if (f_tile.isFeature() and player.getKnown(loc)) {
+            return f_tile;
+        }
 
-    if (player.isVisible(loc)) {
-        return tile;
-    } else if (tile.isFeature() and player.getKnown(loc)) {
-        return tile;
-    } else if (player.getDistance(loc) <= 1) {
-        // The edge case of standing in a doorway
-        return tile;
+        return .unknown;
     }
 
-    return .unknown;
+    const m_tile = try map.getMonsterTile(loc);
+    const i_tile = try map.getItemTile(loc);
+
+    // Otherwise, monster > item > floor
+    if (m_tile != .unknown) {
+        return m_tile;
+    }
+    if (i_tile != .unknown) {
+        return i_tile;
+    }
+
+    return f_tile;
 }
 
 fn updateDisplay(p: *Player, map: *Map) !void {
@@ -215,7 +230,7 @@ fn playerTakeItem(ptr: *Thing, item: *Item, map: *Map) void {
     const self: *Player = @ptrCast(@alignCast(ptr));
 
     self.addMessage("You pick up the gold!");
-    map.removeItem(item);
+    map.removeItem(item) catch unreachable;
     self.purse = self.purse + 1; // TODO 2.0: quantity/value
 }
 

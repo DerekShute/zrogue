@@ -109,10 +109,7 @@ fn doNothingAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionRe
 
 fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
-    // TODO 0.2 - smarten this
-    const p = entity.getPos();
-    const tile = try map.getOnlyTile(p.getX(), p.getY());
-    if (tile == .stairs_up) {
+    if (try map.getFloorTile(entity.getPos()) == .stairs_up) {
         entity.addMessage("You ascend closer to the exit...");
         entity.moves += 10;
         return ActionResult.ascend;
@@ -124,10 +121,7 @@ fn ascendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResul
 
 fn descendAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
-    // TODO 0.2 - smarten this
-    const p = entity.getPos();
-    const tile = try map.getOnlyTile(p.getX(), p.getY());
-    if (tile == .stairs_down) {
+    if (try map.getFloorTile(entity.getPos()) == .stairs_down) {
         entity.addMessage("You go ever deeper into the dungeon...");
         entity.moves += 10;
         return ActionResult.descend;
@@ -165,8 +159,7 @@ fn quitAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
 }
 
 fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
-    const item = map.getItem(do_action.getPos());
-    if (item) |i| {
+    if (try map.getItem(do_action.getPos())) |i| {
         entity.takeItem(i, map);
         entity.moves += 10;
     } else {
@@ -187,9 +180,7 @@ fn searchAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResul
     var i = r.iterator();
     var found: bool = false;
     while (i.next()) |pos| {
-        // REFACTOR: takes Pos interface?
-        const tile = try map.getOnlyTile(pos.getX(), pos.getY());
-        if (tile == .secret_door) {
+        if (try map.getFloorTile(pos) == .secret_door) {
             try map.setTile(pos, .door);
             found = true;
         }
