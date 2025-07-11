@@ -14,6 +14,7 @@ const std = @import("std");
 const map = @import("src/map.zig");
 const player = @import("src/player.zig");
 const Provider = @import("src/Provider.zig");
+const Region = @import("src/Region.zig");
 const thing = @import("src/thing.zig");
 const itemFields = @import("src/item.zig").fields;
 const Feature = @import("src/Feature.zig");
@@ -34,8 +35,8 @@ pub fn main() !void {
     printer(map.place_fields);
     printer(player.player_fields);
     printer(Provider.provider_fields);
+    printer(Region.region_fields);
     printer(thing.thing_fields);
-    printer(zrogue.region_fields);
     printer(zrogue.pos_fields);
     printer(zrogue.action_fields);
     printer(itemFields);
