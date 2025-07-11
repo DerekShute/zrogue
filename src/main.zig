@@ -166,17 +166,18 @@ test "run the game" {
     const Command = zrogue.Command;
     const MockProvider = @import("Provider.zig").MockProvider;
 
+    // TODO search
     // TODO Future: need a recording to iterate through
     var commandlist = [_]Command{
         Command.help,
         Command.help, // press any key
-        Command.goWest,
-        Command.goEast,
-        Command.goNorth,
-        Command.goSouth,
+        Command.go_west,
+        Command.go_east,
+        Command.go_north,
+        Command.go_south,
         Command.ascend,
         Command.descend,
-        Command.takeItem,
+        Command.take_item,
         Command.wait,
         Command.quit,
     };

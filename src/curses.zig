@@ -163,16 +163,16 @@ fn readCommand() Command {
 
     const ch = checkError(curses.getch()) catch unreachable;
     return switch (ch) {
-        curses.KEY_LEFT => .goWest,
-        curses.KEY_RIGHT => .goEast,
-        curses.KEY_UP => .goNorth,
-        curses.KEY_DOWN => .goSouth,
+        curses.KEY_LEFT => .go_west,
+        curses.KEY_RIGHT => .go_east,
+        curses.KEY_UP => .go_north,
+        curses.KEY_DOWN => .go_south,
         '<' => .ascend,
         '>' => .descend,
         '?' => .help,
         'q' => .quit,
         's' => .search,
-        ',' => .takeItem,
+        ',' => .take_item,
         else => .wait,
     };
 }

@@ -192,7 +192,7 @@ const expectError = std.testing.expectError;
 const t_alloc = std.testing.allocator;
 
 var testlist = [_]Command{
-    .goWest,
+    .go_west,
     .quit,
 };
 const mock_config: MockProvider.MockConfig = .{ .allocator = t_alloc, .maxx = 40, .maxy = 60, .commands = &testlist };

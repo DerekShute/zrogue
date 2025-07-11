@@ -83,8 +83,6 @@ pub const Player = struct {
         return &self.thing;
     }
 
-    // REFACTOR: interfaces on top of Thing
-
     inline fn addMessage(self: *Player, msg: []const u8) void {
         self.provider.addMessage(msg);
     }
@@ -205,14 +203,14 @@ fn playerGetAction(ptr: *Thing, map: *Map) ZrogueError!ThingAction {
     return switch (self.getCommand()) {
         .help => ThingAction.init(.none),
         .quit => ThingAction.init(.quit),
-        .goNorth => ThingAction.init_dir(.move, .north),
-        .goEast => ThingAction.init_dir(.move, .east),
-        .goSouth => ThingAction.init_dir(.move, .south),
-        .goWest => ThingAction.init_dir(.move, .west),
+        .go_north => ThingAction.init_dir(.move, .north),
+        .go_east => ThingAction.init_dir(.move, .east),
+        .go_south => ThingAction.init_dir(.move, .south),
+        .go_west => ThingAction.init_dir(.move, .west),
         .ascend => ThingAction.init(.ascend),
         .descend => ThingAction.init(.descend),
         .search => ThingAction.init(.search),
-        .takeItem => ThingAction.init_pos(.take, self.getPos()),
+        .take_item => ThingAction.init_pos(.take, self.getPos()),
         else => ThingAction.init(.wait),
     };
 }
