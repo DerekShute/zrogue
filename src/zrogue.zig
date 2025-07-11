@@ -21,20 +21,19 @@ pub const MESSAGE_MAXSIZE = DISPLAY_MINX;
 //
 // Input abstraction
 //
-// REFACTOR: snake case for enums
 // REFACTOR: is this an input.zig thing?
 // REFACTOR: Partially duplicates ThingAction.type
 pub const Command = enum {
     wait,
     quit,
-    goNorth, // 'up'/'down' confusing w/r/t stairs
-    goEast,
-    goSouth,
-    goWest,
+    go_north, // 'up'/'down' confusing w/r/t stairs
+    go_east,
+    go_south,
+    go_west,
     ascend,
     descend,
     help,
-    takeItem,
+    take_item,
     search,
 };
 
