@@ -324,14 +324,12 @@ pub const Map = struct {
         const f = try self.features.node(new);
         errdefer self.features.deinitNode(f);
 
-        const p = f.getPos(); // TODO: this is lame
-        const place = try self.toPlace(p.getX(), p.getY());
+        const place = try self.toPlace(f.getX(), f.getY());
         try place.addFeature(f);
     }
 
     pub fn removeFeature(self: *Map, f: *Feature) !void {
-        const p = f.getPos(); // TODO: this is lame
-        const place = try self.toPlace(p.getX(), p.getY());
+        const place = try self.toPlace(f.getX(), f.getY());
         place.removeFeature();
         self.features.deinitNode(f); // Destructor
     }
@@ -644,7 +642,7 @@ test "putting features places" {
     var map = try Map.init(std.testing.allocator, 50, 50, 1, 1);
     defer map.deinit();
 
-    var f = Feature{ .pos = Pos.init(10, 10), .vtable = null };
+    var f = Feature{ .p = Pos.init(10, 10), .vtable = null };
     try map.addFeature(f);
     try expectError(error.AlreadyInUse, map.addFeature(f));
     const f2 = try map.getFeature(f.getPos());

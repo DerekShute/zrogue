@@ -131,7 +131,7 @@ const secretdoor_vtable: Feature.VTable = .{
 
 pub fn configSecretDoor(p: Pos) Feature {
     return .{
-        .pos = p,
+        .p = p,
         .vtable = &secretdoor_vtable,
     };
 }

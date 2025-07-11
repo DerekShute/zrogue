@@ -18,13 +18,8 @@ pub const Config = struct {
     vtable: ?*VTable,
 };
 
-pos: zrogue.Pos = undefined,
+p: zrogue.Pos = undefined,
 vtable: ?*const VTable = null,
-
-// TODO: Pos features
-pub fn getPos(self: *Self) zrogue.Pos {
-    return self.pos;
-}
 
 pub fn find(self: *Self, map: *Map) bool {
     if (self.vtable) |v| {
@@ -32,6 +27,10 @@ pub fn find(self: *Self, map: *Map) bool {
     }
     return false;
 }
+
+// Import Pos functions
+
+pub usingnamespace zrogue.Pos.Methods(@This());
 
 // Visualization
 
