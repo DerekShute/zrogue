@@ -94,9 +94,9 @@ pub fn isInside(self: *Self, p: Pos) bool {
 //
 
 pub fn Methods(comptime MSelf: type) type {
-
-    // assumes a field 'r: Region' in whatever Self pulls this in
-    // TODO test for field
+    if (@FieldType(MSelf, "r") != Self) {
+        @compileError("Expected a field r:Region in " ++ @typeName(MSelf));
+    }
 
     return struct {
         pub fn getRegion(self: *MSelf) Self {
