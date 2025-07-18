@@ -8,6 +8,7 @@ comptime {
     _ = @import("src/map.zig");
     _ = @import("src/main.zig");
     _ = @import("src/new_level.zig");
+    _ = @import("src/Feature.zig");
     _ = @import("src/Provider.zig");
     _ = @import("src/Region.zig");
     _ = @import("src/thing.zig");
