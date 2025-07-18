@@ -131,8 +131,9 @@ pub const Pos = struct {
     // use this as follows:  pub usingnamespace Pos.Methods(@This());
     //
     pub fn Methods(comptime Self: type) type {
-
-        // assumes a field 'p: Pos' in whatever Self pulls this in
+        if (@FieldType(Self, "p") != Pos) {
+            @compileError("Expected a field p:Pos in " ++ @typeName(Self));
+        }
 
         return struct {
             pub fn getX(self: *Self) Pos.Dim {
