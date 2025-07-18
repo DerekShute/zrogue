@@ -46,6 +46,7 @@ pub const MapTile = enum {
     unknown,
     floor,
     wall, // Start of features
+    trap,
     door,
     stairs_down,
     stairs_up, // Last feature
