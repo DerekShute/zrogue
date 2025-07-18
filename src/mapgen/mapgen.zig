@@ -120,6 +120,7 @@ pub fn addEastCorridor(m: *Map, start: Pos, end: Pos, mid: Pos.Dim) !void {
 //
 
 pub const configSecretDoor = @import("features.zig").configSecretDoor;
+pub const configTrap = @import("features.zig").configTrap;
 
 // TODO: common functions...
 // * locate a place for a door

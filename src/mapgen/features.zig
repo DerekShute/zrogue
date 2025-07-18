@@ -6,6 +6,7 @@ const std = @import("std");
 const Feature = @import("../Feature.zig");
 const Pos = @import("../zrogue.zig").Pos;
 const Map = @import("../map.zig").Map;
+const Thing = @import("../thing.zig").Thing;
 
 //
 // Secret Door
@@ -20,6 +21,7 @@ fn findSecretDoor(s: *Feature, m: *Map) bool {
 
 const secretdoor_vtable: Feature.VTable = .{
     .find = findSecretDoor,
+    .enter = null,
 };
 
 pub fn configSecretDoor(p: Pos) Feature {
@@ -39,9 +41,17 @@ fn findTrap(s: *Feature, m: *Map) bool {
     return true; // Found
 }
 
-// TODO: step on
+fn enterTrap(s: *Feature, m: *Map, t: *Thing) void {
+    // TODO: chance to avoid
+    m.setTile(s.getPos(), .trap) catch unreachable; // bad Pos of feature?
+    t.addMessage("You step on a trap!");
+    // TODO: increment moves or something
+}
 
-const trap_vtable: Feature.VTable = .{ .find = findTrap };
+const trap_vtable: Feature.VTable = .{
+    .find = findTrap,
+    .enter = enterTrap,
+};
 
 pub fn configTrap(p: Pos) Feature {
     // TODO: kind of trap
@@ -82,7 +92,7 @@ test "Place a trap" {
     try m.setTile(p, .floor); // Precondition
     try m.addFeature(configTrap(p));
 
-    // Secret doors are floors until discovered
+    // Traps appear as floors until discovered
 
     try expect(try m.getFloorTile(p) == .floor);
     var f = try m.getFeature(p);
@@ -90,6 +100,7 @@ test "Place a trap" {
     const found = f.?.find(m);
     try expect(found);
     try expect(try m.getFloorTile(p) == .trap);
+    // TODO: step on one
 }
 
 // EOF
