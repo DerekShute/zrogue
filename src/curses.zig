@@ -42,6 +42,7 @@ fn mapToChar(ch: MapTile) u8 {
         .gold => '$',
         .wall => '#',
         .door => '+',
+        .trap => '^',
         .player => '@',
         .stairs_down => '>',
         .stairs_up => '<',
