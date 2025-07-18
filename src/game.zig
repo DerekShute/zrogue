@@ -174,10 +174,10 @@ fn takeAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult 
 fn searchAction(entity: *Thing, do_action: *ThingAction, map: *Map) !ActionResult {
     _ = do_action;
 
-    // TODO Future: This is clunky.  We want an iterator in one step.
-    const min = Pos.init(entity.getX() - 1, entity.getY() - 1);
-    const max = Pos.init(entity.getX() + 1, entity.getY() + 1);
-    var r = Region.config(min, max);
+    // TODO: want a map iterator that takes a region and only returns positions
+    // with Features
+
+    var r = Region.configRadius(entity.getPos(), 1);
     var i = r.iterator();
     var found: bool = false;
     while (i.next()) |pos| {
