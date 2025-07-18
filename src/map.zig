@@ -444,10 +444,9 @@ pub const Map = struct {
 
         // Fallback: only surroundings
 
-        const tl = Pos.add(entity.getPos(), Pos.init(-1, -1));
-        const br = Pos.add(entity.getPos(), Pos.init(1, 1));
-        entity.setKnown(Region.config(tl, br), true);
-        entity.setVisible(Region.config(tl, br));
+        const r = Region.configRadius(entity.getPos(), 1);
+        entity.setKnown(r, true);
+        entity.setVisible(r);
     }
 };
 

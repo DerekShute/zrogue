@@ -29,6 +29,14 @@ pub fn config(from: Pos, to: Pos) Self {
     return .{ .from = from, .to = to };
 }
 
+pub fn configRadius(center: Pos, radius: Pos.Dim) Self {
+    // Square centered on 'center', radius 'radius'
+    const min = Pos.init(center.getX() - radius, center.getY() - radius);
+    const max = Pos.init(center.getX() + radius, center.getY() + radius);
+
+    return config(min, max);
+}
+
 //
 // Iterator
 //
@@ -137,7 +145,7 @@ pub fn Methods(comptime MSelf: type) type {
 
 const expect = std.testing.expect;
 
-test "Region and region methods" {
+test "Region and Region methods" {
     const min = Pos.init(2, 7);
     const max = Pos.init(9, 11);
 
@@ -173,7 +181,7 @@ test "Region and region methods" {
     _ = Self.config(Pos.init(0, 0), Pos.init(0, 0));
 }
 
-test "region iterator" {
+test "Region iterator" {
     const ARRAYDIM = 14;
     var a = [_]u8{0} ** (ARRAYDIM * ARRAYDIM);
 
@@ -201,6 +209,15 @@ test "region iterator" {
             }
         }
     }
+}
+
+test "Region radius constructor" {
+    var r = Self.configRadius(Pos.init(10, 15), 2);
+
+    try expect(r.getMin().getX() == 8);
+    try expect(r.getMin().getY() == 13);
+    try expect(r.getMax().getX() == 12);
+    try expect(r.getMax().getY() == 17);
 }
 
 //
