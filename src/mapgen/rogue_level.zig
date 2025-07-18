@@ -83,6 +83,24 @@ fn makeDoor(map: *Map, r: *std.Random, p: Pos) !void {
     try map.setTile(p, tile);
 }
 
+fn makeTraps(map: *Map, r: *std.Random, level: usize) !void {
+    // This is from the original sources
+
+    if (r.intRangeAtMost(usize, 0, 9) >= level) {
+        return;
+    }
+
+    const count = r.intRangeAtMost(usize, 1, @divTrunc(level, 4) + 1);
+    for (0..count) |_| {
+        const pos = findAnyFloor(r, map);
+        if (try map.getFeature(pos) == null) {
+            // TODO: definitely suboptimal.  findAnyFloor should only return empty floor
+            // TODO: trap types and effects
+            try map.addFeature(mapgen.configTrap(pos));
+        }
+    }
+}
+
 // TODO: into Map?  It assumes a room grid
 fn isRoomAdjacent(i: usize, j: usize) bool {
     const i_row = @divTrunc(i, rooms_dim);
@@ -277,6 +295,10 @@ pub fn createRogueLevel(config: mapgen.LevelConfig) !*Map {
 
         roomcount -= 1;
     }
+
+    // Place the traps
+
+    try makeTraps(map, config.rand, config.level);
 
     // Place the stairs.  In the original they can't go in a gone room, but why not?
     {

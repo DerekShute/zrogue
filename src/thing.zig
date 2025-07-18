@@ -5,6 +5,7 @@
 //! two (plus items?) for purposes of consolidating list management code.
 
 const std = @import("std");
+const Feature = @import("Feature.zig");
 const Item = @import("item.zig").Item;
 const Map = @import("map.zig").Map;
 const zrogue = @import("zrogue.zig");
@@ -57,6 +58,10 @@ pub const Thing = struct {
         // TODO: if not blind
         map.reveal(self);
         try map.setMonster(self);
+        // REFACTOR map method to bundle
+        if (try map.getFeature(new)) |f| {
+            f.enter(map, self);
+        }
     }
 
     pub fn setVisible(self: *Thing, new: Region) void {
