@@ -33,6 +33,22 @@ Which started from the very instructive v2 TCOD tutorial:
 
    https://rogueliketutorials.com/tutorials/tcod/v2/
 
+## Package Dependencies
+
+### Whatever the zig snap provides
+
+### graphviz (version unspecified)
+
+For visualization
+
+### kublkon/zig-yaml
+
+For structured configuration and data files via YAML
+
+### Hejsil/zig-clap
+
+For command-line goodness
+
 ## Releases
 
 ### 0.2 (forward looking)
@@ -51,6 +67,8 @@ Traps?  Probably necessary to intrude randomization into the action callback
 Food?  Implies timers, possibly inventory, statuses
 
 Refactoring?  Making the modules more Zig-idiomatic.  My C roots are showing.
+
+Test Rig: more rigorous "take action, validate expectations" framework
 
 ### 0.1 - Run around the dungeon and collect gold
 

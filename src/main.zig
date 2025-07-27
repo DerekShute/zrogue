@@ -3,6 +3,7 @@
 //!
 
 const std = @import("std");
+const clap = @import("clap");
 
 const CursesProvider = @import("curses.zig");
 const Provider = @import("Provider.zig");
@@ -38,33 +39,22 @@ fn zroguePanic(msg: []const u8, first_trace_addr: ?usize) noreturn {
 }
 
 // Command arguments
+// TODO: set random seed, wizard mode, save game file, etc.
+// TODO: force test level
+// FUTURE: version
 
-const help_arg_flags = [_][]const u8{ "-h", "-help", "--help" };
+const cli_titles =
+    \\Zrogue : Adventuring in the Dungeons of Doom
+    \\
+    \\ This program requires a 80x24 text display.
+    \\
+;
 
-fn arg_in_list(programarg: []u8, l: []const []const u8) bool {
-    for (l) |a| {
-        if (std.mem.eql(u8, programarg, a)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-fn print_help(file: std.fs.File) !void {
-    const help =
-        \\Zrogue : Adventuring in the Dungeons of Doom
-        \\
-        \\ This program requires a 80x24 text display.
-        \\
-        \\ options:
-        \\   --help, -h : help
-        \\
-        \\ Press '?' for in-game help
-        \\
-    ;
-    const out = file.writer(); // Anytype grinds my gears
-    try out.print("{s}\n", .{help});
-}
+const param_text =
+    \\-h, --help                 Display this help and exit.
+    \\
+;
+const cli_params = clap.parseParamsComptime(param_text);
 
 // Map size limits
 
@@ -82,21 +72,24 @@ pub fn main() !void {
     const stdout = std.io.getStdOut();
     const stderr_out = std.io.getStdErr().writer();
 
-    // Handle CLI arguments.  Note that this does not work from 'build run'
+    // Handle CLI arguments.
 
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-    if (args.len > 1) { // program name is args[0]
-        for (args) |arg| {
-            if (arg_in_list(arg, &help_arg_flags)) {
-                try print_help(stdout);
-                std.process.exit(0);
-            }
-            // TODO: set random seed, wizard mode, save game file, etc.
-            // TODO: force test level
-        }
-        try print_help(stdout);
-        std.process.exit(1);
+    var diag = clap.Diagnostic{};
+    var res = clap.parse(clap.Help, &cli_params, clap.parsers.default, .{
+        .diagnostic = &diag,
+        .allocator = allocator,
+    }) catch |err| {
+        // FUTURE: clap > 0.10 does better
+        return diag.report(stderr_out, err);
+    };
+    defer res.deinit();
+
+    // Argument breakout
+
+    if (res.args.help != 0) {
+        var writer = stdout.writer();
+        try writer.print("{s}\n", .{cli_titles});
+        return clap.help(writer, clap.Help, &cli_params, .{});
     }
 
     // TODO Future: not the best place for this file
