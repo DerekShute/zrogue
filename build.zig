@@ -15,9 +15,11 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "zrogue",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     exe.root_module.addImport("zig_yaml", yml.module("yaml"));
@@ -36,9 +38,11 @@ pub fn build(b: *std.Build) void {
     //
 
     const unit_tests = b.addTest(.{
-        .root_source_file = b.path("unit_tests.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("unit_tests.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     unit_tests.root_module.addImport("zig_yaml", yml.module("yaml"));
     unit_tests.linkLibC();
@@ -55,9 +59,11 @@ pub fn build(b: *std.Build) void {
 
     const viz = b.addExecutable(.{
         .name = "viz",
-        .root_source_file = b.path("visualize.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("visualize.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     viz.linkLibC();

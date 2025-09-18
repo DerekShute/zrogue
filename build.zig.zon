@@ -2,16 +2,18 @@
 // so that this can be used for the executable version and usable inside the
 // program itself
 
+// 0.15.1 - from nonstandard location to pick up zig-yaml build fixes
 .{
     .name = .zrogue,
     .version = "0.1.0",
     .paths = .{""},
     .fingerprint = 0xd9241e3fb14af744,
+    .minimum_zig_version = "0.15.1",
     .dependencies = .{
         .zig_yaml = .{
-           // zig fetch --save git+https://github.com/kubkon/zig-yaml
-           .url = "https://github.com/kubkon/zig-yaml/archive/refs/tags/0.1.1.tar.gz",
-           .hash = "zig_yaml-0.1.0-C1161miEAgBCwL3YAEQZwV_4GyaaT2Xqj9nKB6hNe_TL",
+            // zig fetch --save https://github.com/carlmontanari/zig-yaml/archive/refs/heads/feat/zig-0.15.0-support.tar.gz
+            .url = "https://github.com/carlmontanari/zig-yaml/archive/refs/heads/feat/zig-0.15.0-support.tar.gz",
+            .hash = "zig_yaml-0.2.0-C1161pmrAgDnipDTh_4v4RQD27XN5GNaVlzzvlXf1jfW",
         },
     },
 }
