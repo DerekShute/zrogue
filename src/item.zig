@@ -31,7 +31,23 @@ pub const Item = struct {
         return self.tile;
     }
 
-    pub usingnamespace Pos.Methods(@This());
+    // Pos not-mixin methods
+
+    pub fn getX(self: @This()) Pos.Dim {
+        return self.p.getX();
+    }
+
+    pub fn getY(self: @This()) Pos.Dim {
+        return self.p.getY();
+    }
+
+    pub fn setPos(self: *@This(), new: Pos) void {
+        self.p = new;
+    }
+
+    pub fn atXY(self: *@This(), x: Pos.Dim, y: Pos.Dim) bool {
+        return self.p.eql(Pos.init(x, y));
+    }
 };
 
 //
