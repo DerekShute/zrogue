@@ -41,6 +41,10 @@ pub const Item = struct {
         return self.p.getY();
     }
 
+    pub fn getPos(self: *@This()) Pos {
+        return self.p;
+    }
+
     pub fn setPos(self: *@This(), new: Pos) void {
         self.p = new;
     }
