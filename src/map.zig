@@ -153,7 +153,43 @@ pub const Room = struct {
         self.flags.gone = true;
     }
 
-    pub usingnamespace Region.Methods(@This());
+    // Not-mixin Region methods
+
+    pub fn getRegion(self: *@This()) Region {
+        return self.r;
+    }
+
+    pub fn getMin(self: *@This()) Pos {
+        return self.r.getMin();
+    }
+
+    pub fn getMinX(self: *@This()) Pos.Dim {
+        const m = self.r.getMin();
+        return m.getX();
+    }
+
+    pub fn getMax(self: *@This()) Pos {
+        return self.r.getMax();
+    }
+
+    pub fn getMaxX(self: *@This()) Pos.Dim {
+        const m = self.r.getMax();
+        return m.getX();
+    }
+
+    pub fn getMinY(self: *@This()) Pos.Dim {
+        const m = self.r.getMin();
+        return m.getY();
+    }
+
+    pub fn getMaxY(self: *@This()) Pos.Dim {
+        const m = self.r.getMax();
+        return m.getY();
+    }
+
+    pub fn isInside(self: *@This(), at: Pos) bool {
+        return self.r.isInside(at);
+    }
 };
 
 // ===================
