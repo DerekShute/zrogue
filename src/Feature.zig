@@ -53,10 +53,24 @@ pub fn find(self: *Self, map: *Map) bool {
 }
 
 //
-// Import Pos functions
+// Pos not-mixin methods
 //
 
-pub usingnamespace zrogue.Pos.Methods(@This());
+pub fn getX(self: Self) zrogue.Pos.Dim {
+    return self.p.getX();
+}
+
+pub fn getY(self: Self) zrogue.Pos.Dim {
+    return self.p.getY();
+}
+
+pub fn setPos(self: *Self, new: zrogue.Pos) void {
+    self.p = new;
+}
+
+pub fn atXY(self: *Self, x: zrogue.Pos.Dim, y: zrogue.Pos.Dim) bool {
+    return self.p.eql(zrogue.Pos.init(x, y));
+}
 
 //
 // Unit test
