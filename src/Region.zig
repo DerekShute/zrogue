@@ -88,56 +88,6 @@ pub fn isInside(self: *Self, p: Pos) bool {
 }
 
 //
-// Mixin Methods : mixin for clients of Region to lift up common functions
-//
-// use this as follows:  pub usingnamespace Region.Methods(@This());
-//
-
-pub fn Methods(comptime MSelf: type) type {
-    if (@FieldType(MSelf, "r") != Self) {
-        @compileError("Expected a field r:Region in " ++ @typeName(MSelf));
-    }
-
-    return struct {
-        pub fn getRegion(self: *MSelf) Self {
-            return self.r;
-        }
-
-        pub fn getMin(self: *MSelf) Pos {
-            return self.r.getMin();
-        }
-
-        pub fn getMinX(self: *MSelf) Pos.Dim {
-            const min = self.r.getMin();
-            return min.getX();
-        }
-
-        pub fn getMax(self: *MSelf) Pos {
-            return self.r.getMax();
-        }
-
-        pub fn getMaxX(self: *MSelf) Pos.Dim {
-            const max = self.r.getMax();
-            return max.getX();
-        }
-
-        pub fn getMinY(self: *MSelf) Pos.Dim {
-            const min = self.r.getMin();
-            return min.getY();
-        }
-
-        pub fn getMaxY(self: *MSelf) Pos.Dim {
-            const max = self.r.getMax();
-            return max.getY();
-        }
-
-        pub fn isInside(self: *MSelf, at: Pos) bool {
-            return self.r.isInside(at);
-        }
-    };
-}
-
-//
 // Unit tests
 //
 // Invalid regions will panic
@@ -152,7 +102,41 @@ test "Region and Region methods" {
     const Frotz = struct {
         r: Self = undefined,
 
-        pub usingnamespace Methods(@This());
+        pub fn getRegion(self: *@This()) Self {
+            return self.r;
+        }
+
+        pub fn getMin(self: *@This()) Pos {
+            return self.r.getMin();
+        }
+
+        pub fn getMinX(self: *@This()) Pos.Dim {
+            const m = self.r.getMin();
+            return m.getX();
+        }
+
+        pub fn getMax(self: *@This()) Pos {
+            return self.r.getMax();
+        }
+
+        pub fn getMaxX(self: *@This()) Pos.Dim {
+            const m = self.r.getMax();
+            return m.getX();
+        }
+
+        pub fn getMinY(self: *@This()) Pos.Dim {
+            const m = self.r.getMin();
+            return m.getY();
+        }
+
+        pub fn getMaxY(self: *@This()) Pos.Dim {
+            const m = self.r.getMax();
+            return m.getY();
+        }
+
+        pub fn isInside(self: *@This(), at: Pos) bool {
+            return self.r.isInside(at);
+        }
     };
 
     var r = Self.config(min, max);
