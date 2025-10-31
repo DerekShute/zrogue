@@ -3,11 +3,11 @@
 //!
 
 comptime {
-    _ = @import("grid.zig");
+    // _ = @import("grid.zig");
     _ = @import("list_manager.zig");
-    _ = @import("Pos.zig");
-    _ = @import("ScoreList.zig");
-    _ = @import("StructuredRecords.zig");
+    // _ = @import("Pos.zig");
+    //    _ = @import("ScoreList.zig");
+    // _ = @import("StructuredRecords.zig");
 }
 
 // EOF

@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
+const ManagedNode = @import("utils/list_manager.zig").ManagedNode;
 const Map = @import("map.zig").Map;
 const Thing = @import("thing.zig").Thing;
 
@@ -24,6 +25,7 @@ pub const VTable = struct {
 //
 
 p: zrogue.Pos = undefined,
+node: ManagedNode = undefined,
 vtable: ?*const VTable = null,
 
 //
@@ -98,7 +100,7 @@ const test_vtable: VTable = .{
 test "Feature vtable execution" {
     const m = try Map.init(std.testing.allocator, 50, 50, 1, 1);
     defer m.deinit();
-    var f = Self{ .p = zrogue.Pos.init(1, 1), .vtable = &test_vtable };
+    var f = Self{ .p = zrogue.Pos.init(1, 1), .node = .{}, .vtable = &test_vtable };
     var t = Thing{};
 
     try expect(find(&f, m) == true);
@@ -108,7 +110,7 @@ test "Feature vtable execution" {
 test "Feature vtable fallthrough" {
     const m = try Map.init(std.testing.allocator, 50, 50, 1, 1);
     defer m.deinit();
-    var f = Self{ .p = zrogue.Pos.init(1, 1), .vtable = null };
+    var f = Self{ .p = zrogue.Pos.init(1, 1), .node = .{}, .vtable = null };
     var t = Thing{};
 
     try expect(find(&f, m) == false);

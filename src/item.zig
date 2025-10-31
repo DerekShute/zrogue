@@ -4,6 +4,7 @@
 
 const std = @import("std");
 const zrogue = @import("zrogue.zig");
+const ManagedNode = @import("utils/list_manager.zig").ManagedNode;
 
 const expect = std.testing.expect;
 const expectError = std.testing.expectError;
@@ -16,13 +17,16 @@ const Pos = zrogue.Pos;
 //
 pub const Item = struct {
     p: Pos = undefined,
+    node: ManagedNode = undefined,
     tile: MapTile = .unknown,
+
     // TODO Future: note if in player inventory
     // TODO Future: 'known' : identified to know # of charges / bonuses
 
     pub fn config(x: Pos.Dim, y: Pos.Dim, tile: MapTile) Item {
         return .{
             .p = Pos.init(x, y),
+            .node = .{},
             .tile = tile,
         };
     }

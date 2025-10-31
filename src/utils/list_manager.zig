@@ -6,18 +6,19 @@
 
 const std = @import("std");
 
-const expect = std.testing.expect;
+pub const ManagedNode = std.DoublyLinkedList.Node;
+const ManagedList = std.DoublyLinkedList;
 
 pub fn Manager(comptime T: type) type {
+    // Assumes that there's a method 'getNode' that returns the node pointer
     return struct {
         const Self = @This();
-        const L = std.DoublyLinkedList(T);
 
         allocator: std.mem.Allocator,
-        list: L = .{},
+        list: ManagedList = undefined,
 
         pub const Iterator = struct {
-            curr: ?*L.Node = null,
+            curr: ?*ManagedNode = null,
 
             pub fn next(self: *Self.Iterator) ?*T {
                 if (self.curr == null) {
@@ -26,9 +27,12 @@ pub fn Manager(comptime T: type) type {
 
                 const ret = self.curr.?;
                 self.curr = ret.next;
-                return &ret.data;
+                const ret_t: *T = @fieldParentPtr("node", ret); // backwards
+                return ret_t;
             }
         };
+
+        // Methods
 
         pub fn config(allocator: std.mem.Allocator) Self {
             return .{
@@ -39,23 +43,23 @@ pub fn Manager(comptime T: type) type {
 
         pub fn deinit(self: *Self) void {
             while (self.list.pop()) |n| {
-                self.allocator.destroy(n);
+                const pop: *T = @fieldParentPtr("node", n);
+                self.allocator.destroy(pop);
             }
         }
 
-        pub fn node(self: *Self, t: T) !*T {
-            var n = try self.allocator.create(L.Node);
+        pub fn initNode(self: *Self, t: T) !*T {
+            var n = try self.allocator.create(T);
+            errdefer self.allocator.destroy(n);
 
-            n.data = t;
+            n = t;
             self.list.append(n); // at end
-            return &n.data;
+            return n;
         }
 
         pub fn deinitNode(self: *Self, t: *T) void {
-            const pint: usize = @intFromPtr(t) - @offsetOf(L.Node, "data");
-            const np: *L.Node = @ptrFromInt(pint);
-            self.list.remove(np);
-            self.allocator.destroy(np);
+            self.list.remove(t.getNode());
+            self.allocator.destroy(t);
         }
 
         pub fn iterator(self: *Self) Self.Iterator {
@@ -69,10 +73,16 @@ pub fn Manager(comptime T: type) type {
 //
 // Unit Tests
 //
+const expect = std.testing.expect;
 
 const Frotz = struct {
+    node: ManagedNode = .{},
     i: u32,
     j: f32,
+
+    pub fn getNode(self: Frotz) *ManagedNode {
+        return &self.node;
+    }
 };
 
 test "basic tests" {

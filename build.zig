@@ -24,7 +24,7 @@ pub fn build(b: *std.Build) void {
 
     exe.root_module.addImport("zig_yaml", yml.module("yaml"));
     exe.linkLibC();
-    exe.linkSystemLibrary("ncursesw");
+    //    exe.linkSystemLibrary("ncursesw");
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);
@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
     });
     unit_tests.root_module.addImport("zig_yaml", yml.module("yaml"));
     unit_tests.linkLibC();
-    unit_tests.linkSystemLibrary("ncursesw");
+    //    unit_tests.linkSystemLibrary("ncursesw");
 
     const run_unit_tests = b.addRunArtifact(unit_tests);
 
@@ -67,7 +67,7 @@ pub fn build(b: *std.Build) void {
     });
 
     viz.linkLibC();
-    viz.linkSystemLibrary("ncursesw");
+    //    viz.linkSystemLibrary("ncursesw");
     b.installArtifact(viz);
 
     const viz_cmd = b.addRunArtifact(viz);
